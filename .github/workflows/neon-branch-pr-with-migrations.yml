@@ -65,7 +65,10 @@ jobs:
 
       - name: Get branch expiration date as an env variable (2 weeks from now)
         id: get_expiration_date
-        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+        run: |
+          EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')
+          echo "EXPIRES_AT=${EXPIRES_AT}" >> "$GITHUB_ENV"
+          echo "Branch will expire at: ${EXPIRES_AT}"
 
       - name: Check Neon Credentials
         run: |
