@@ -67,9 +67,28 @@ jobs:
         id: get_expiration_date
         run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
 
+      - name: Check Neon Credentials
+        run: |
+          if [ -z "$NEON_PROJECT_ID" ]; then
+            echo "❌ ERROR: NEON_PROJECT_ID is not set!"
+            echo "Please add NEON_PROJECT_ID as a repository variable in GitHub Settings"
+            exit 1
+          fi
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "❌ ERROR: NEON_API_KEY is not set!"
+            echo "Please add NEON_API_KEY as a repository secret in GitHub Settings"
+            exit 1
+          fi
+          echo "✅ Neon credentials are set"
+          echo "Project ID: ${NEON_PROJECT_ID:0:10}..."
+        env:
+          NEON_PROJECT_ID: "${{ vars.NEON_PROJECT_ID }}"
+          NEON_API_KEY: "${{ secrets.NEON_API_KEY }}"
+
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
+        continue-on-error: false
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
@@ -79,10 +98,15 @@ jobs:
       - name: Debug Branch Creation Outputs
         run: |
           echo "Branch creation step outputs:"
-          echo "db_url length: ${#DB_URL}"
-          echo "db_url_with_pooler length: ${#DB_URL_WITH_POOLER}"
-          echo "All outputs from create_neon_branch step:"
-          echo "${{ toJSON(steps.create_neon_branch.outputs) }}"
+          echo "Checking if outputs exist..."
+          echo "db_url exists: ${{ steps.create_neon_branch.outputs.db_url != '' && 'yes' || 'no' }}"
+          echo "db_url_with_pooler exists: ${{ steps.create_neon_branch.outputs.db_url_with_pooler != '' && 'yes' || 'no' }}"
+          if [ -z "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}" ]; then
+            echo "❌ ERROR: db_url_with_pooler is empty!"
+            echo "This means the Neon branch creation failed or didn't return a URL"
+            exit 1
+          fi
+          echo "✅ Database URL received from Neon branch creation"
         env:
           DB_URL: "${{ steps.create_neon_branch.outputs.db_url }}"
           DB_URL_WITH_POOLER: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
