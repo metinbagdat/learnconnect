@@ -35,8 +35,51 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Verify project structure
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files:"
+          ls -la
+          echo ""
+          echo "Checking for package.json:"
+          if [ -f "package.json" ]; then
+            echo "✅ package.json found"
+          else
+            echo "❌ package.json not found in root"
+            echo "Checking subdirectories..."
+            find . -name "package.json" -type f | head -5
+            exit 1
+          fi
+          echo ""
+          echo "Checking for package-lock.json:"
+          if [ -f "package-lock.json" ]; then
+            echo "✅ package-lock.json found"
+          else
+            echo "⚠️ package-lock.json not found, will use npm install instead"
+          fi
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "Running npm ci (clean install)..."
+            if npm ci; then
+              echo "✅ npm ci completed successfully"
+            else
+              echo "❌ npm ci failed!"
+              echo ""
+              echo "Common causes:"
+              echo "1. package-lock.json is out of sync with package.json"
+              echo "2. Node version mismatch"
+              echo "3. Corrupted npm cache"
+              echo ""
+              echo "Attempting fallback: npm install..."
+              echo "⚠️ NOTE: If this works, you should run 'npm install' locally and commit the updated package-lock.json"
+              npm install
+            fi
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
 
   create_neon_branch:
     name: Create Neon Branch & Run Migrations
@@ -60,8 +103,51 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Verify project structure
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files:"
+          ls -la
+          echo ""
+          echo "Checking for package.json:"
+          if [ -f "package.json" ]; then
+            echo "✅ package.json found"
+          else
+            echo "❌ package.json not found in root"
+            echo "Checking subdirectories..."
+            find . -name "package.json" -type f | head -5
+            exit 1
+          fi
+          echo ""
+          echo "Checking for package-lock.json:"
+          if [ -f "package-lock.json" ]; then
+            echo "✅ package-lock.json found"
+          else
+            echo "⚠️ package-lock.json not found, will use npm install instead"
+          fi
+
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "Running npm ci (clean install)..."
+            if npm ci; then
+              echo "✅ npm ci completed successfully"
+            else
+              echo "❌ npm ci failed!"
+              echo ""
+              echo "Common causes:"
+              echo "1. package-lock.json is out of sync with package.json"
+              echo "2. Node version mismatch"
+              echo "3. Corrupted npm cache"
+              echo ""
+              echo "Attempting fallback: npm install..."
+              echo "⚠️ NOTE: If this works, you should run 'npm install' locally and commit the updated package-lock.json"
+              npm install
+            fi
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
 
       - name: Get branch expiration date as an env variable (2 weeks from now)
         id: get_expiration_date
