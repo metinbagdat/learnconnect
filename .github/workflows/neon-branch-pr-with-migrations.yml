@@ -76,8 +76,29 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
+      - name: Verify Database URL
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: DATABASE_URL is empty!"
+            echo "Branch creation outputs:"
+            echo "db_url: ${{ steps.create_neon_branch.outputs.db_url }}"
+            echo "db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+            echo "Checking if Neon branch was created successfully..."
+            exit 1
+          else
+            echo "✅ DATABASE_URL is set (length: ${#DATABASE_URL} characters)"
+          fi
+        env:
+          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
       - name: Run Database Migrations
-        run: npm run db:push
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: DATABASE_URL is not set. Cannot run migrations."
+            exit 1
+          fi
+          echo "Running database migrations..."
+          npm run db:push
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
 
