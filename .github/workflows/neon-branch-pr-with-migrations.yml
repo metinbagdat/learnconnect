@@ -76,6 +76,17 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
+      - name: Debug Branch Creation Outputs
+        run: |
+          echo "Branch creation step outputs:"
+          echo "db_url length: ${#DB_URL}"
+          echo "db_url_with_pooler length: ${#DB_URL_WITH_POOLER}"
+          echo "All outputs from create_neon_branch step:"
+          echo "${{ toJSON(steps.create_neon_branch.outputs) }}"
+        env:
+          DB_URL: "${{ steps.create_neon_branch.outputs.db_url }}"
+          DB_URL_WITH_POOLER: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
       - name: Verify Database URL
         run: |
           if [ -z "$DATABASE_URL" ]; then
@@ -83,13 +94,21 @@ jobs:
             echo "Branch creation outputs:"
             echo "db_url: ${{ steps.create_neon_branch.outputs.db_url }}"
             echo "db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
-            echo "Checking if Neon branch was created successfully..."
+            echo ""
+            echo "Checking if Neon API credentials are set..."
+            echo "NEON_PROJECT_ID: ${NEON_PROJECT_ID:+SET}" 
+            echo "NEON_API_KEY: ${NEON_API_KEY:+SET}"
+            echo ""
+            echo "If these are not SET, please add them to GitHub Secrets/Variables"
             exit 1
           else
             echo "✅ DATABASE_URL is set (length: ${#DATABASE_URL} characters)"
+            echo "First 20 chars: ${DATABASE_URL:0:20}..."
           fi
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          NEON_PROJECT_ID: "${{ vars.NEON_PROJECT_ID }}"
+          NEON_API_KEY: "${{ secrets.NEON_API_KEY }}"
 
       - name: Run Database Migrations
         run: |
@@ -98,6 +117,7 @@ jobs:
             exit 1
           fi
           echo "Running database migrations..."
+          echo "Using DATABASE_URL (first 30 chars): ${DATABASE_URL:0:30}..."
           npm run db:push
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
