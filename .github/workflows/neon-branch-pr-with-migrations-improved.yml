@@ -189,13 +189,30 @@ jobs:
           echo "Project ID: ${NEON_PROJECT_ID:0:10}..."
           echo "API Key: ${NEON_API_KEY:0:10}..."
 
+      - name: Sanitize Branch Name for Neon
+        id: sanitize_branch
+        run: |
+          # Get the original branch name
+          ORIGINAL_BRANCH="${{ needs.setup.outputs.branch }}"
+          echo "Original branch name: ${ORIGINAL_BRANCH}"
+          
+          # Sanitize: Replace forward slashes and other invalid characters with hyphens
+          SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
+          
+          # Ensure it doesn't start or end with a hyphen
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-\+//' | sed 's/-\+$//')
+          
+          echo "Sanitized branch name: ${SANITIZED_BRANCH}"
+          echo "sanitized_branch=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
         continue-on-error: false
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch_name: ${{ steps.sanitize_branch.outputs.neon_branch_name }}
           api_key: ${{ env.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
@@ -334,7 +351,7 @@ jobs:
         uses: neondatabase/schema-diff-action@v1
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          compare_branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          compare_branch: ${{ steps.sanitize_branch.outputs.neon_branch_name }}
           api_key: ${{ env.NEON_API_KEY }}
         continue-on-error: true
 
@@ -371,10 +388,24 @@ jobs:
           fi
           echo "✅ Neon credentials are set"
 
+      - name: Sanitize Branch Name for Neon (Delete)
+        id: sanitize_branch_delete
+        run: |
+          # Get the original branch name
+          ORIGINAL_BRANCH="${{ needs.setup.outputs.branch }}"
+          
+          # Sanitize: Replace forward slashes and other invalid characters with hyphens
+          SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
+          
+          # Ensure it doesn't start or end with a hyphen
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-\+//' | sed 's/-\+$//')
+          
+          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
       - name: Delete Neon Branch
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
-          branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch: ${{ steps.sanitize_branch_delete.outputs.neon_branch_name }}
           api_key: ${{ env.NEON_API_KEY }}
         continue-on-error: true
