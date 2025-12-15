@@ -12,7 +12,7 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 jobs:
@@ -60,21 +60,25 @@ jobs:
 
       - name: Install dependencies
         run: |
+          echo "node: $(node -v)"
+          echo "npm: $(npm -v)"
           if [ -f "package-lock.json" ]; then
             echo "Running npm ci (clean install)..."
-            if npm ci; then
-              echo "✅ npm ci completed successfully"
+            if grep -q '"workspaces"' package.json 2>/dev/null || grep -q '"workspaces"' package.json; then
+              echo "Detected npm workspaces — running npm ci --workspaces --include-workspace-root"
+              if npm ci --workspaces --include-workspace-root; then
+                echo "✅ npm ci (workspaces) completed successfully"
+              else
+                echo "❌ npm ci (workspaces) failed — falling back to npm install"
+                npm install
+              fi
             else
-              echo "❌ npm ci failed!"
-              echo ""
-              echo "Common causes:"
-              echo "1. package-lock.json is out of sync with package.json"
-              echo "2. Node version mismatch"
-              echo "3. Corrupted npm cache"
-              echo ""
-              echo "Attempting fallback: npm install..."
-              echo "⚠️ NOTE: If this works, you should run 'npm install' locally and commit the updated package-lock.json"
-              npm install
+              if npm ci; then
+                echo "✅ npm ci completed successfully"
+              else
+                echo "❌ npm ci failed — falling back to npm install"
+                npm install
+              fi
             fi
           else
             echo "package-lock.json not found, running npm install..."
@@ -132,21 +136,25 @@ jobs:
 
       - name: Install dependencies
         run: |
+          echo "node: $(node -v)"
+          echo "npm: $(npm -v)"
           if [ -f "package-lock.json" ]; then
             echo "Running npm ci (clean install)..."
-            if npm ci; then
-              echo "✅ npm ci completed successfully"
+            if grep -q '"workspaces"' package.json 2>/dev/null || grep -q '"workspaces"' package.json; then
+              echo "Detected npm workspaces — running npm ci --workspaces --include-workspace-root"
+              if npm ci --workspaces --include-workspace-root; then
+                echo "✅ npm ci (workspaces) completed successfully"
+              else
+                echo "❌ npm ci (workspaces) failed — falling back to npm install"
+                npm install
+              fi
             else
-              echo "❌ npm ci failed!"
-              echo ""
-              echo "Common causes:"
-              echo "1. package-lock.json is out of sync with package.json"
-              echo "2. Node version mismatch"
-              echo "3. Corrupted npm cache"
-              echo ""
-              echo "Attempting fallback: npm install..."
-              echo "⚠️ NOTE: If this works, you should run 'npm install' locally and commit the updated package-lock.json"
-              npm install
+              if npm ci; then
+                echo "✅ npm ci completed successfully"
+              else
+                echo "❌ npm ci failed — falling back to npm install"
+                npm install
+              fi
             fi
           else
             echo "package-lock.json not found, running npm install..."
@@ -200,11 +208,48 @@ jobs:
           SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
           
           # Ensure it doesn't start or end with a hyphen
-          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-\+//' | sed 's/-\+$//')
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^--\+//' | sed 's/-\+$//')
           
           echo "Sanitized branch name: ${SANITIZED_BRANCH}"
           echo "sanitized_branch=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
-          echo "neon_branch_name=preview-pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Git ref for Neon preview branch exists (create or update)
+        id: ensure_ref
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.sanitize_branch.outputs.neon_branch_name }}"
+          REPO="${GITHUB_REPOSITORY}"
+          SHA="${{ github.event.pull_request.head.sha }}"
+          echo "Checking repo: $REPO, branch: $BRANCH, target sha: $SHA"
+          API="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GITHUB_TOKEN" "$API")
+          if [ "$http_code" = "200" ]; then
+            echo "Branch exists, updating ref (force) to ${SHA}"
+            update_api="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
+            resp_code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
+              -d "{\"sha\":\"${SHA}\",\"force\":true}" "$update_api")
+            if [ "$resp_code" != "200" ]; then
+              echo "❌ Failed to update existing ref. HTTP status: $resp_code"
+              exit 1
+            fi
+            echo "✅ Updated existing ref."
+          elif [ "$http_code" = "404" ]; then
+            echo "Branch does not exist, creating ref..."
+            create_api="https://api.github.com/repos/${REPO}/git/refs"
+            resp_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
+              -d "{\"ref\":\"refs/heads/${BRANCH}\",\"sha\":\"${SHA}\"}" "$create_api")
+            if [ "$resp_code" != "201" ]; then
+              echo "❌ Failed to create ref. HTTP status: $resp_code"
+              exit 1
+            fi
+            echo "✅ Created ref ${BRANCH}."
+          else
+            echo "❌ Unexpected GET ref response: $http_code"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Neon Branch
         id: create_neon_branch
@@ -398,9 +443,9 @@ jobs:
           SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
           
           # Ensure it doesn't start or end with a hyphen
-          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-\+//' | sed 's/-\+$//')
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^--\+//' | sed 's/-\+$//')
           
-          echo "neon_branch_name=preview-pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
 
       - name: Delete Neon Branch
         uses: neondatabase/delete-branch-action@v3
@@ -409,3 +454,4 @@ jobs:
           branch: ${{ steps.sanitize_branch_delete.outputs.neon_branch_name }}
           api_key: ${{ env.NEON_API_KEY }}
         continue-on-error: true
+
