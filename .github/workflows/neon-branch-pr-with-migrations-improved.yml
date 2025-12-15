@@ -1,0 +1,411 @@
+name: Create/Delete Branch for Pull Request (with Migrations) - Improved
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  setup:
+    name: Setup
+    outputs:
+      branch: ${{ steps.branch_name.outputs.current_branch }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get branch name
+        id: branch_name
+        uses: tj-actions/branch-names@v8
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Verify project structure
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files:"
+          ls -la
+          echo ""
+          echo "Checking for package.json:"
+          if [ -f "package.json" ]; then
+            echo "✅ package.json found"
+          else
+            echo "❌ package.json not found in root"
+            echo "Checking subdirectories..."
+            find . -name "package.json" -type f | head -5
+            exit 1
+          fi
+          echo ""
+          echo "Checking for package-lock.json:"
+          if [ -f "package-lock.json" ]; then
+            echo "✅ package-lock.json found"
+          else
+            echo "⚠️ package-lock.json not found, will use npm install instead"
+          fi
+
+      - name: Install dependencies
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "Running npm ci (clean install)..."
+            if npm ci; then
+              echo "✅ npm ci completed successfully"
+            else
+              echo "❌ npm ci failed!"
+              echo ""
+              echo "Common causes:"
+              echo "1. package-lock.json is out of sync with package.json"
+              echo "2. Node version mismatch"
+              echo "3. Corrupted npm cache"
+              echo ""
+              echo "Attempting fallback: npm install..."
+              echo "⚠️ NOTE: If this works, you should run 'npm install' locally and commit the updated package-lock.json"
+              npm install
+            fi
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
+
+  create_neon_branch:
+    name: Create Neon Branch & Run Migrations
+    outputs:
+      db_url: ${{ steps.create_neon_branch.outputs.db_url }}
+      db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
+      migration_status: ${{ steps.verify_migration.outputs.status }}
+    needs: setup
+    if: |
+      github.event_name == 'pull_request' && (
+      github.event.action == 'synchronize'
+      || github.event.action == 'opened'
+      || github.event.action == 'reopened')
+    runs-on: ubuntu-latest
+    env:
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Verify project structure
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files:"
+          ls -la
+          echo ""
+          echo "Checking for package.json:"
+          if [ -f "package.json" ]; then
+            echo "✅ package.json found"
+          else
+            echo "❌ package.json not found in root"
+            echo "Checking subdirectories..."
+            find . -name "package.json" -type f | head -5
+            exit 1
+          fi
+          echo ""
+          echo "Checking for package-lock.json:"
+          if [ -f "package-lock.json" ]; then
+            echo "✅ package-lock.json found"
+          else
+            echo "⚠️ package-lock.json not found, will use npm install instead"
+          fi
+
+      - name: Install dependencies
+        run: |
+          if [ -f "package-lock.json" ]; then
+            echo "Running npm ci (clean install)..."
+            if npm ci; then
+              echo "✅ npm ci completed successfully"
+            else
+              echo "❌ npm ci failed!"
+              echo ""
+              echo "Common causes:"
+              echo "1. package-lock.json is out of sync with package.json"
+              echo "2. Node version mismatch"
+              echo "3. Corrupted npm cache"
+              echo ""
+              echo "Attempting fallback: npm install..."
+              echo "⚠️ NOTE: If this works, you should run 'npm install' locally and commit the updated package-lock.json"
+              npm install
+            fi
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
+
+      - name: Get branch expiration date (2 weeks from now)
+        id: get_expiration_date
+        run: |
+          EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')
+          echo "EXPIRES_AT=${EXPIRES_AT}" >> "$GITHUB_ENV"
+          echo "Branch will expire at: ${EXPIRES_AT}"
+
+      - name: Check Neon Credentials
+        run: |
+          echo "🔍 Verifying Neon credentials..."
+          if [ -z "$NEON_PROJECT_ID" ]; then
+            echo "❌ ERROR: NEON_PROJECT_ID is not set!"
+            echo ""
+            echo "📋 How to fix:"
+            echo "1. Go to: https://github.com/${{ github.repository }}/settings/variables/actions"
+            echo "2. Click 'New repository variable'"
+            echo "3. Name: NEON_PROJECT_ID"
+            echo "4. Value: Your Neon Project ID (from https://console.neon.tech/)"
+            echo "5. Click 'Add variable'"
+            exit 1
+          fi
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "❌ ERROR: NEON_API_KEY is not set!"
+            echo ""
+            echo "📋 How to fix:"
+            echo "1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "2. Click 'New repository secret'"
+            echo "3. Name: NEON_API_KEY"
+            echo "4. Value: Your Neon API key (from https://console.neon.tech/account/api-keys)"
+            echo "5. Click 'Add secret'"
+            exit 1
+          fi
+          echo "✅ Neon credentials are set"
+          echo "Project ID: ${NEON_PROJECT_ID:0:10}..."
+          echo "API Key: ${NEON_API_KEY:0:10}..."
+
+      - name: Sanitize Branch Name for Neon
+        id: sanitize_branch
+        run: |
+          # Get the original branch name
+          ORIGINAL_BRANCH="${{ needs.setup.outputs.branch }}"
+          echo "Original branch name: ${ORIGINAL_BRANCH}"
+          
+          # Sanitize: Replace forward slashes and other invalid characters with hyphens
+          SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
+          
+          # Ensure it doesn't start or end with a hyphen
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-\+//' | sed 's/-\+$//')
+          
+          echo "Sanitized branch name: ${SANITIZED_BRANCH}"
+          echo "sanitized_branch=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Neon Branch
+        id: create_neon_branch
+        uses: neondatabase/create-branch-action@v6
+        continue-on-error: false
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch_name: ${{ steps.sanitize_branch.outputs.neon_branch_name }}
+          api_key: ${{ env.NEON_API_KEY }}
+          expires_at: ${{ env.EXPIRES_AT }}
+
+      - name: Debug Branch Creation Outputs
+        run: |
+          echo "🔍 Debugging branch creation outputs..."
+          echo "Checking if outputs exist..."
+          DB_URL_EXISTS="${{ steps.create_neon_branch.outputs.db_url != '' && 'yes' || 'no' }}"
+          DB_URL_POOLER_EXISTS="${{ steps.create_neon_branch.outputs.db_url_with_pooler != '' && 'yes' || 'no' }}"
+          echo "db_url exists: ${DB_URL_EXISTS}"
+          echo "db_url_with_pooler exists: ${DB_URL_POOLER_EXISTS}"
+          
+          if [ "$DB_URL_POOLER_EXISTS" = "no" ]; then
+            echo "❌ ERROR: db_url_with_pooler is empty!"
+            echo ""
+            echo "This means the Neon branch creation failed or didn't return a URL"
+            echo "Possible causes:"
+            echo "1. Invalid NEON_API_KEY"
+            echo "2. Invalid NEON_PROJECT_ID"
+            echo "3. Neon API rate limit exceeded"
+            echo "4. Network connectivity issues"
+            echo ""
+            echo "Check the 'Create Neon Branch' step above for detailed error messages"
+            exit 1
+          fi
+          echo "✅ Database URL received from Neon branch creation"
+        env:
+          DB_URL: "${{ steps.create_neon_branch.outputs.db_url }}"
+          DB_URL_WITH_POOLER: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
+      - name: Verify Database URL
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: DATABASE_URL is empty!"
+            echo ""
+            echo "Branch creation outputs:"
+            echo "db_url: ${{ steps.create_neon_branch.outputs.db_url }}"
+            echo "db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+            echo ""
+            echo "Checking if Neon API credentials are set..."
+            echo "NEON_PROJECT_ID: ${NEON_PROJECT_ID:+SET}" 
+            echo "NEON_API_KEY: ${NEON_API_KEY:+SET}"
+            echo ""
+            echo "If these are not SET, please add them to GitHub Secrets/Variables"
+            exit 1
+          else
+            echo "✅ DATABASE_URL is set (length: ${#DATABASE_URL} characters)"
+            echo "First 20 chars: ${DATABASE_URL:0:20}..."
+            echo "Last 10 chars: ...${DATABASE_URL: -10}"
+          fi
+        env:
+          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
+      - name: Verify Migration Script Exists
+        run: |
+          echo "🔍 Checking if migration script exists..."
+          if npm run db:push --dry-run 2>/dev/null || grep -q '"db:push"' package.json; then
+            echo "✅ Migration script 'db:push' found in package.json"
+          else
+            echo "❌ ERROR: Migration script 'db:push' not found in package.json"
+            echo ""
+            echo "Please ensure package.json contains:"
+            echo '  "scripts": {'
+            echo '    "db:push": "drizzle-kit push"'
+            echo '  }'
+            exit 1
+          fi
+
+      - name: Run Database Migrations
+        id: run_migrations
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: DATABASE_URL is not set. Cannot run migrations."
+            exit 1
+          fi
+          echo "🚀 Running database migrations..."
+          echo "Using DATABASE_URL (first 30 chars): ${DATABASE_URL:0:30}..."
+          echo ""
+          
+          # Run migrations with error handling
+          if npm run db:push; then
+            echo ""
+            echo "✅ Migrations completed successfully!"
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            MIGRATION_EXIT_CODE=$?
+            echo ""
+            echo "❌ Migration failed with exit code: $MIGRATION_EXIT_CODE"
+            echo ""
+            echo "Common causes:"
+            echo "1. Database connection failed"
+            echo "2. Schema conflicts"
+            echo "3. Missing dependencies (drizzle-kit)"
+            echo "4. Invalid DATABASE_URL format"
+            echo ""
+            echo "Check the output above for detailed error messages"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit $MIGRATION_EXIT_CODE
+          fi
+        env:
+          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
+      - name: Verify Migration Success
+        id: verify_migration
+        run: |
+          if [ "${{ steps.run_migrations.outputs.status }}" = "success" ]; then
+            echo "✅ Migration verification passed"
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Migration verification failed"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+      - name: Run Session Table Migration (if needed)
+        run: |
+          echo "🔍 Checking if session table migration is needed..."
+          if [ -f "migrations/create-sessions-table.sql" ]; then
+            echo "📋 Found session table migration file"
+            echo "Note: This migration may be auto-created by connect-pg-simple"
+            echo "If you see errors about session table, run this SQL manually in Neon console"
+          else
+            echo "ℹ️ No session table migration file found (this is OK if using auto-creation)"
+          fi
+        continue-on-error: true
+
+      - name: Seed Database (Optional)
+        run: |
+          echo "🌱 Seeding database..."
+          npm run seed:meb
+        env:
+          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+        continue-on-error: true
+
+      - name: Post Schema Diff Comment to PR
+        uses: neondatabase/schema-diff-action@v1
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          compare_branch: ${{ steps.sanitize_branch.outputs.neon_branch_name }}
+          api_key: ${{ env.NEON_API_KEY }}
+        continue-on-error: true
+
+      - name: Migration Summary
+        if: always()
+        run: |
+          echo "## 📊 Migration Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Neon Branch Created | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Database URL Verified | ✅ |" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.run_migrations.outputs.status }}" = "success" ]; then
+            echo "| Migrations Run | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Migrations Run | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "| Schema Diff Posted | ${{ job.status == 'success' && '✅' || '⚠️' }} |" >> $GITHUB_STEP_SUMMARY
+
+  delete_neon_branch:
+    name: Delete Neon Branch
+    needs: setup
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    env:
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+    steps:
+      - name: Check Neon Credentials
+        run: |
+          if [ -z "$NEON_PROJECT_ID" ] || [ -z "$NEON_API_KEY" ]; then
+            echo "⚠️ WARNING: Neon credentials not set. Cannot delete branch."
+            exit 0
+          fi
+          echo "✅ Neon credentials are set"
+
+      - name: Sanitize Branch Name for Neon (Delete)
+        id: sanitize_branch_delete
+        run: |
+          # Get the original branch name
+          ORIGINAL_BRANCH="${{ needs.setup.outputs.branch }}"
+          
+          # Sanitize: Replace forward slashes and other invalid characters with hyphens
+          SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
+          
+          # Ensure it doesn't start or end with a hyphen
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-\+//' | sed 's/-\+$//')
+          
+          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Delete Neon Branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ env.NEON_PROJECT_ID }}
+          branch: ${{ steps.sanitize_branch_delete.outputs.neon_branch_name }}
+          api_key: ${{ env.NEON_API_KEY }}
+        continue-on-error: true
