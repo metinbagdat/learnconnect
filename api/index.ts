@@ -99,52 +99,91 @@ async function initializeApp() {
 
 // Vercel serverless function handler
 export default async function handler(req: any, res: any) {
+  // Set headers IMMEDIATELY to prevent SSL negotiation issues
+  if (!res.headersSent) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+
   try {
     // Vercel rewrites /api/* to /api (this handler)
-    // req.url contains the original path (e.g., /api/health, /api/courses)
-    const originalUrl = req.url || req.originalUrl || req.path || '/';
-    let apiPath = originalUrl;
-
-    // Vercel may also provide the original path in headers
-    const vercelRewrittenPath = req.headers['x-vercel-rewrite'] || req.headers['x-invoke-path'];
-    if (vercelRewrittenPath && vercelRewrittenPath.startsWith('/api')) {
-      apiPath = vercelRewrittenPath;
+    // Extract the original path from various possible locations
+    let apiPath = req.url || req.originalUrl || req.path;
+    
+    // Vercel provides the original path in different headers depending on configuration
+    // Try x-vercel-rewrite first (common), then x-invoke-path, then x-requested-url
+    const rewriteHeader = req.headers['x-vercel-rewrite'] || 
+                         req.headers['x-invoke-path'] || 
+                         req.headers['x-requested-url'] ||
+                         req.headers['x-forwarded-path'];
+    
+    if (rewriteHeader) {
+      apiPath = rewriteHeader;
+    }
+    
+    // If we still don't have a path or it's just '/api', try to get from query string
+    if (!apiPath || apiPath === '/api') {
+      // Sometimes Vercel passes the path as a query parameter
+      const pathFromQuery = req.query?._path || req.query?.path;
+      if (pathFromQuery) {
+        apiPath = pathFromQuery.startsWith('/') ? pathFromQuery : `/${pathFromQuery}`;
+      } else {
+        // Fallback: use the request path from headers
+        const host = req.headers.host || '';
+        const fullUrl = req.headers['x-forwarded-url'] || req.headers['x-forwarded-uri'] || '';
+        if (fullUrl) {
+          try {
+            const url = new URL(fullUrl);
+            apiPath = url.pathname;
+          } catch {
+            // Invalid URL, continue with default
+          }
+        }
+      }
     }
 
-    // CRITICAL: Only handle API paths - this prevents SSL errors
-    // If it's not an API path, return immediately (Vercel will serve static files)
+    // Ensure apiPath is valid and starts with /api
     if (!apiPath || (!apiPath.startsWith('/api') && apiPath !== '/api')) {
       // This should never happen due to vercel.json rewrites, but guard against it
       console.log(`[API] Non-API path reached handler: ${apiPath}`);
       if (!res.headersSent) {
-        res.status(404).json({ error: "Not Found", path: apiPath });
+        return res.status(404).json({ error: "Not Found", path: String(apiPath) });
       }
       return;
     }
 
-    // Set headers for API responses
-    if (!res.headersSent) {
-      res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    }
+    // Store the original path with query string for Express
+    const fullApiPath = apiPath;
+    // Get path without query string for path matching
+    const apiPathWithoutQuery = apiPath.split('?')[0];
 
     // Initialize app (only once) - with timeout and error handling
     try {
       await Promise.race([
         initializeApp(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Initialization timeout')), 5000)
+          setTimeout(() => reject(new Error('Initialization timeout')), 10000)
         )
       ]);
     } catch (initError: any) {
       console.error('[API] Initialization error:', initError);
-      // Continue anyway - some routes might work without full initialization
-      // Don't block the request completely
+      // If initialization fails completely, return error immediately
+      if (!appInitialized) {
+        if (!res.headersSent) {
+          return res.status(503).json({ 
+            error: "Service unavailable", 
+            message: "Server initialization failed. Please try again later." 
+          });
+        }
+        return;
+      }
+      // If app is partially initialized, continue - some routes might work
     }
 
-    // Update request for Express
-    req.url = apiPath;
-    req.originalUrl = apiPath;
-    req.path = apiPath.split('?')[0];
+    // Update request for Express - preserve query string
+    req.url = fullApiPath;
+    req.originalUrl = fullApiPath;
+    req.path = apiPathWithoutQuery;
 
     // Handle request with Express
     return new Promise<void>((resolve) => {
@@ -208,14 +247,13 @@ export default async function handler(req: any, res: any) {
         } else if (!res.headersSent && !finished) {
           // If no response was sent, send 404
           try {
-            res.status(404).json({ error: "Not Found", path: apiPath });
+            res.status(404).json({ error: "Not Found", path: apiPathWithoutQuery });
           } catch (e) {
             console.error("Error sending 404 response:", e);
           }
           finish();
-        } else if (res.finished && !finished) {
-          finish();
         } else {
+          // Response already sent or finished
           finish();
         }
       });
