@@ -99,15 +99,10 @@ async function initializeApp() {
 
 // Vercel serverless function handler
 export default async function handler(req: any, res: any) {
-  // Set headers immediately to prevent SSL errors
-  if (!res.headersSent) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  }
-
   try {
     // Vercel rewrites /api/* to /api (this handler)
     // req.url contains the original path (e.g., /api/health, /api/courses)
-    const originalUrl = req.url || req.originalUrl || '/';
+    const originalUrl = req.url || req.originalUrl || req.path || '/';
     let apiPath = originalUrl;
 
     // Vercel may also provide the original path in headers
@@ -116,17 +111,35 @@ export default async function handler(req: any, res: any) {
       apiPath = vercelRewrittenPath;
     }
 
-    // Ensure we have an API path
-    if (!apiPath.startsWith('/api')) {
-      // If somehow a non-API path reaches here, return 404 JSON
+    // CRITICAL: Only handle API paths - this prevents SSL errors
+    // If it's not an API path, return immediately (Vercel will serve static files)
+    if (!apiPath || (!apiPath.startsWith('/api') && apiPath !== '/api')) {
+      // This should never happen due to vercel.json rewrites, but guard against it
+      console.log(`[API] Non-API path reached handler: ${apiPath}`);
       if (!res.headersSent) {
-        res.status(404).json({ error: "Not Found" });
+        res.status(404).json({ error: "Not Found", path: apiPath });
       }
       return;
     }
 
-    // Initialize app (only once)
-    await initializeApp();
+    // Set headers for API responses
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    }
+
+    // Initialize app (only once) - with timeout and error handling
+    try {
+      await Promise.race([
+        initializeApp(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Initialization timeout')), 5000)
+        )
+      ]);
+    } catch (initError: any) {
+      console.error('[API] Initialization error:', initError);
+      // Continue anyway - some routes might work without full initialization
+      // Don't block the request completely
+    }
 
     // Update request for Express
     req.url = apiPath;
@@ -162,14 +175,29 @@ export default async function handler(req: any, res: any) {
         }
       }, 25000); // 25 seconds (before Vercel's 30s limit)
 
+      // Set a maximum processing time for the request
+      const processingTimeout = setTimeout(() => {
+        if (!res.headersSent && !finished) {
+          console.error('[API] Request processing timeout');
+          try {
+            res.status(504).json({ error: "Gateway timeout" });
+            finish();
+          } catch (e) {
+            console.error("Error sending timeout response:", e);
+            finish();
+          }
+        }
+      }, 20000); // 20 seconds
+
       app(req, res, (err: any) => {
         clearTimeout(timeout);
+        clearTimeout(processingTimeout);
         
         if (err) {
-          console.error("Express error:", err);
+          console.error("[API] Express error:", err);
           if (!res.headersSent && !finished) {
             try {
-              res.status(500).json({ error: "Internal server error" });
+              res.status(500).json({ error: "Internal server error", message: err.message });
             } catch (e) {
               console.error("Error sending error response:", e);
             }
@@ -180,7 +208,7 @@ export default async function handler(req: any, res: any) {
         } else if (!res.headersSent && !finished) {
           // If no response was sent, send 404
           try {
-            res.status(404).json({ error: "Not Found" });
+            res.status(404).json({ error: "Not Found", path: apiPath });
           } catch (e) {
             console.error("Error sending 404 response:", e);
           }
