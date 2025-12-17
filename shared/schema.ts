@@ -3,6 +3,30 @@ import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Helper: Safely omit fields from Zod schema, catching "Unrecognized key" errors
+// drizzle-zod's createInsertSchema excludes fields with defaultNow() like createdAt/updatedAt
+// So we try to omit each key individually and catch errors for keys that don't exist
+function safeOmit<T extends z.ZodTypeAny>(
+  schema: T,
+  keys: Record<string, true>
+): z.ZodTypeAny {
+  let result: z.ZodTypeAny = schema;
+  const keyList = Object.keys(keys);
+  
+  // Try omitting each key one at a time, catching errors for non-existent keys
+  for (const key of keyList) {
+    try {
+      result = (result as any).omit({ [key]: true }) as z.ZodTypeAny;
+    } catch (error: any) {
+      // If omit fails (e.g., "Unrecognized key"), skip this key
+      // This happens when drizzle-zod excludes fields with defaultNow()
+      continue;
+    }
+  }
+  
+  return result;
+}
+
 // ============================================================================
 // CORE TABLES
 // ============================================================================
@@ -691,7 +715,7 @@ export const userChallengeProgress = userChallengeStreaks; // Alias for backward
 // SCHEMAS & TYPES
 // ============================================================================
 
-export const insertCourseSchema = createInsertSchema(courses).omit({ id: true, createdAt: true });
+export const insertCourseSchema = safeOmit(createInsertSchema(courses), { id: true, createdAt: true });
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
 
@@ -703,15 +727,27 @@ export const insertCourseCategorySchema = z.object({ nameEn: z.string(), nameTr:
 export type InsertCourseCategory = z.infer<typeof insertCourseCategorySchema>;
 export type CourseCategory = typeof courseCategories.$inferSelect;
 
-export const insertExamCategorySchema = createInsertSchema(examCategories).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertExamCategorySchema = safeOmit(createInsertSchema(examCategories), { id: true, createdAt: true, updatedAt: true });
 export type InsertExamCategory = z.infer<typeof insertExamCategorySchema>;
 export type ExamCategory = typeof examCategories.$inferSelect;
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
+// Use pick() instead of omit() to avoid issues with default fields
+const baseUserInsertSchema = createInsertSchema(users);
+export const insertUserSchema = baseUserInsertSchema.pick({
+  username: true,
+  email: true,
+  password: true,
+  passwordHash: true,
+  displayName: true,
+  role: true,
+  interests: true,
+  learningPace: true,
+  profileComplete: true,
+});
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
-export const insertAssignmentSchema = createInsertSchema(assignments).omit({ id: true, createdAt: true });
+export const insertAssignmentSchema = safeOmit(createInsertSchema(assignments), { id: true, createdAt: true });
 export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
 export type Assignment = typeof assignments.$inferSelect;
 
@@ -727,16 +763,16 @@ export const insertUserCourseSchema = createInsertSchema(userCourses).omit({ id:
 export type InsertUserCourse = z.infer<typeof insertUserCourseSchema>;
 export type UserCourse = typeof userCourses.$inferSelect;
 
-export const insertLearningPathSchema = createInsertSchema(learningPaths).omit({ id: true, createdAt: true });
+export const insertLearningPathSchema = safeOmit(createInsertSchema(learningPaths), { id: true, createdAt: true });
 export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;
 export type LearningPath = typeof learningPaths.$inferSelect;
 
-export const insertStudyGoalSchema = createInsertSchema(studyGoals).omit({ id: true, createdAt: true });
+export const insertStudyGoalSchema = safeOmit(createInsertSchema(studyGoals), { id: true, createdAt: true });
 export const insertStudyGoal = insertStudyGoalSchema; // Alias for backward compatibility
 export type InsertStudyGoal = z.infer<typeof insertStudyGoalSchema>;
 export type StudyGoal = typeof studyGoals.$inferSelect;
 
-export const insertStudyScheduleSchema = createInsertSchema(studySchedules).omit({ id: true, createdAt: true });
+export const insertStudyScheduleSchema = safeOmit(createInsertSchema(studySchedules), { id: true, createdAt: true });
 export const insertStudySchedule = insertStudyScheduleSchema; // Alias for backward compatibility
 export type InsertStudySchedule = z.infer<typeof insertStudyScheduleSchema>;
 export type StudySchedule = typeof studySchedules.$inferSelect;
@@ -752,15 +788,15 @@ export type InsertProgramSchedule = z.infer<typeof insertProgramScheduleSchema>;
 export const insertStudySessionSchema = createInsertSchema(studySessions).omit({ id: true });
 export type InsertStudySession = z.infer<typeof insertStudySessionSchema>;
 
-export const insertLearningEcosystemStateSchema = createInsertSchema(learningEcosystemState).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertLearningEcosystemStateSchema = safeOmit(createInsertSchema(learningEcosystemState), { id: true, createdAt: true, updatedAt: true });
 export type InsertLearningEcosystemState = z.infer<typeof insertLearningEcosystemStateSchema>;
 export type LearningEcosystemState = typeof learningEcosystemState.$inferSelect;
 
-export const insertModuleDependencyGraphSchema = createInsertSchema(moduleDependencyGraph).omit({ id: true, createdAt: true });
+export const insertModuleDependencyGraphSchema = safeOmit(createInsertSchema(moduleDependencyGraph), { id: true, createdAt: true });
 export type InsertModuleDependencyGraph = z.infer<typeof insertModuleDependencyGraphSchema>;
 export type ModuleDependencyGraph = typeof moduleDependencyGraph.$inferSelect;
 
-export const insertAIIntegrationLogSchema = createInsertSchema(aiIntegrationLog).omit({ id: true, createdAt: true });
+export const insertAIIntegrationLogSchema = safeOmit(createInsertSchema(aiIntegrationLog), { id: true, createdAt: true });
 export type InsertAIIntegrationLog = z.infer<typeof insertAIIntegrationLogSchema>;
 export type AIIntegrationLog = typeof aiIntegrationLog.$inferSelect;
 
@@ -905,19 +941,19 @@ export const curriculumDesignProcess = pgTable("curriculum_design_process", {
 });
 
 // Schema for Zod validation
-export const insertCurriculumDesignParametersSchema = createInsertSchema(curriculumDesignParameters).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCurriculumDesignParametersSchema = safeOmit(createInsertSchema(curriculumDesignParameters), { id: true, createdAt: true, updatedAt: true });
 export type InsertCurriculumDesignParameters = z.infer<typeof insertCurriculumDesignParametersSchema>;
 export type CurriculumDesignParameters = typeof curriculumDesignParameters.$inferSelect;
 
-export const insertCurriculumSuccessMetricsSchema = createInsertSchema(curriculumSuccessMetrics).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCurriculumSuccessMetricsSchema = safeOmit(createInsertSchema(curriculumSuccessMetrics), { id: true, createdAt: true, updatedAt: true });
 export type InsertCurriculumSuccessMetrics = z.infer<typeof insertCurriculumSuccessMetricsSchema>;
 export type CurriculumSuccessMetrics = typeof curriculumSuccessMetrics.$inferSelect;
 
-export const insertCurriculumDesignProcessSchema = createInsertSchema(curriculumDesignProcess).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCurriculumDesignProcessSchema = safeOmit(createInsertSchema(curriculumDesignProcess), { id: true, createdAt: true, updatedAt: true });
 export type InsertCurriculumDesignProcess = z.infer<typeof insertCurriculumDesignProcessSchema>;
 export type CurriculumDesignProcess = typeof curriculumDesignProcess.$inferSelect;
 
-export const insertCurriculumFeedbackLoopsSchema = createInsertSchema(curriculumFeedbackLoops).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertCurriculumFeedbackLoopsSchema = safeOmit(createInsertSchema(curriculumFeedbackLoops), { id: true, createdAt: true, updatedAt: true });
 export type InsertCurriculumFeedbackLoops = z.infer<typeof insertCurriculumFeedbackLoopsSchema>;
 export type CurriculumFeedbackLoops = typeof curriculumFeedbackLoops.$inferSelect;
 

@@ -47,11 +47,19 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  console.error("[ERROR]", err);
+  console.error("[ERROR]", {
+    message: err.message,
+    stack: err.stack,
+    code: err.code,
+    status: status,
+    path: _req.path,
+    method: _req.method
+  });
   if (!res.headersSent) {
     res.status(status).json({ 
-      message, 
-      error: (typeof process !== "undefined" && process?.env?.NODE_ENV === 'development') ? err.stack : undefined 
+      message: "A server error has occurred",
+      error: message,
+      ...(typeof process !== "undefined" && process?.env?.NODE_ENV === 'development' && { stack: err.stack })
     });
   }
 });
