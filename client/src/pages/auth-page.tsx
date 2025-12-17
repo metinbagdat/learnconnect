@@ -64,7 +64,7 @@ export default function AuthPage() {
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('edulearn_user') || 'null');
     // Only clear if we have a user but they're trying to re-auth (shouldn't happen normally)
-    if (user && !location.pathname.includes('logout')) {
+    if (user && !window.location.pathname.includes('logout')) {
       // User is already logged in, don't clear anything
     } else {
       // Fresh auth attempt, clear stale data
@@ -169,7 +169,25 @@ export default function AuthPage() {
           }
         } catch (error) {
           console.error("[FORM] Register error:", error);
-          toast({ title: "Error", description: String(error), variant: "destructive" });
+          let errorMessage = 'An error occurred during registration.';
+          if (error instanceof Error) {
+            if (error.message.includes('Failed to fetch') || error.message.includes('Unable to connect')) {
+              errorMessage = 'Unable to connect to the server. Please check your internet connection and ensure the server is running.';
+            } else if (error.message.includes('400')) {
+              errorMessage = 'Invalid registration data. Please check your information and try again.';
+            } else if (error.message.includes('409') || error.message.includes('already exists')) {
+              errorMessage = 'Username already exists. Please choose a different username.';
+            } else {
+              errorMessage = error.message;
+            }
+          } else {
+            errorMessage = String(error);
+          }
+          toast({ 
+            title: "Registration failed", 
+            description: errorMessage, 
+            variant: "destructive" 
+          });
         }
       })();
     }

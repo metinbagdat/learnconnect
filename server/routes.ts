@@ -1,27 +1,27 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { setupAuth } from "./auth";
-import { registerStripeRoutes } from "./stripe-routes";
-import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { storage } from "./storage.js";
+import { setupAuth } from "./auth.js";
+import { registerStripeRoutes } from "./stripe-routes.js";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal.js";
 import * as schema from "@shared/schema";
 import type { User, CurriculumDesignParameters, UserSkillProgress } from "@shared/schema";
 import { eq, inArray, gt, and, gte, notInArray, count, sum, sql } from "drizzle-orm";
-import { checkSubscription, checkAssessmentLimit, requirePremium, trackUsage } from "./middleware/subscription";
-import { studyPlannerControl } from "./study-planner-control";
-import { controlHandlers } from "./study-planner-control-handlers";
-import { registerControlEndpoints } from "./control-endpoints";
-import { registerCourseControlEndpoints } from "./course-control-endpoints";
-import { registerSuggestionsEndpoints } from "./smart-suggestions/suggestions-endpoints";
-import { registerAISystemEndpoints } from "./smart-suggestions/ai-system-endpoints";
-import { registerEnhancedAIEndpoints } from "./smart-suggestions/enhanced-ai-profile-endpoints";
-import { registerRegistrationAIEndpoints } from "./smart-suggestions/registration-endpoints";
-import { registerPreCourseAIEndpoints } from "./smart-suggestions/pre-course-ai-guidance-endpoints";
-import { registerAIControlEndpoints } from "./smart-suggestions/ai-control-endpoints";
-import { registerInteractionTrackingEndpoints } from "./smart-suggestions/interaction-tracking-endpoints";
-import { registerStudentDashboardEndpoints } from "./smart-suggestions/student-dashboard-endpoints";
-import { registerHealthCheckEndpoints } from "./smart-suggestions/health-check-endpoints";
-import { registerAdminAIEndpoints } from "./smart-suggestions/admin-ai-endpoints";
+import { checkSubscription, checkAssessmentLimit, requirePremium, trackUsage } from "./middleware/subscription.js";
+import { studyPlannerControl } from "./study-planner-control.js";
+import { controlHandlers } from "./study-planner-control-handlers.js";
+import { registerControlEndpoints } from "./control-endpoints.js";
+import { registerCourseControlEndpoints } from "./course-control-endpoints.js";
+import { registerSuggestionsEndpoints } from "./smart-suggestions/suggestions-endpoints.js";
+import { registerAISystemEndpoints } from "./smart-suggestions/ai-system-endpoints.js";
+import { registerEnhancedAIEndpoints } from "./smart-suggestions/enhanced-ai-profile-endpoints.js";
+import { registerRegistrationAIEndpoints } from "./smart-suggestions/registration-endpoints.js";
+import { registerPreCourseAIEndpoints } from "./smart-suggestions/pre-course-ai-guidance-endpoints.js";
+import { registerAIControlEndpoints } from "./smart-suggestions/ai-control-endpoints.js";
+import { registerInteractionTrackingEndpoints } from "./smart-suggestions/interaction-tracking-endpoints.js";
+import { registerStudentDashboardEndpoints } from "./smart-suggestions/student-dashboard-endpoints.js";
+import { registerHealthCheckEndpoints } from "./smart-suggestions/health-check-endpoints.js";
+import { registerAdminAIEndpoints } from "./smart-suggestions/admin-ai-endpoints.js";
 import { registerGoalFormEndpoints } from "./smart-suggestions/goal-form-endpoints";
 import { registerAIDataFlowEndpoints } from "./smart-suggestions/ai-data-flow-endpoints";
 import { registerDataFlowEndpoints } from "./smart-suggestions/data-flow-endpoints";
@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Setup authentication routes
-  setupAuth(app);
+  await setupAuth(app);
   
   // Setup Stripe payment routes
   registerStripeRoutes(app);
@@ -3572,6 +3572,33 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     } catch (error) {
       console.error("Error fetching trending topics:", error);
       res.status(500).json({ error: "Failed to fetch trending topics" });
+    }
+  });
+
+  // JWT endpoint for SSO/Replit integration (stub)
+  app.get("/api/jwt", async (req, res) => {
+    try {
+      // Check if user is authenticated via session
+      if (req.isAuthenticated() && req.user) {
+        // Return a simple token or user info
+        return res.json({ 
+          authenticated: true,
+          user: {
+            id: req.user.id,
+            username: req.user.username,
+            displayName: req.user.displayName,
+            role: req.user.role
+          }
+        });
+      }
+      // Not authenticated
+      return res.status(403).json({ 
+        authenticated: false,
+        message: "Not authenticated" 
+      });
+    } catch (error) {
+      console.error("Error with JWT endpoint:", error);
+      res.status(500).json({ error: "JWT endpoint failed" });
     }
   });
 

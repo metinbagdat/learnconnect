@@ -111,9 +111,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = user.role === 'admin' ? '/admin' : '/';
     },
     onError: (error: Error) => {
+      console.error("[MUTATION] Registration error", error);
+      // Extract a user-friendly error message
+      let errorMessage = error.message;
+      
+      // Handle network errors more gracefully
+      if (error.message.includes('Unable to connect') || error.message.includes('Failed to fetch')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and ensure the server is running.';
+      } else if (error.message.includes('400')) {
+        errorMessage = 'Invalid registration data. Please check your information and try again.';
+      } else if (error.message.includes('409') || error.message.includes('already exists')) {
+        errorMessage = 'Username already exists. Please choose a different username.';
+      }
+      
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },

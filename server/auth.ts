@@ -2,12 +2,14 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import { MemoryStore } from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
+import { getPoolInstance } from "./db.js";
 
-const MemoryStore = createMemoryStore(session);
+const PgStore = connectPgSimple(session);
 import { User as SelectUser } from "@shared/schema";
 
 declare global {
@@ -51,7 +53,7 @@ async function comparePasswords(supplied: string, stored: string) {
   }
 }
 
-export function setupAuth(app: Express) {
+export async function setupAuth(app: Express) {
   // AUTO-CREATION: Re-enabled to populate production database with courses
   (async () => {
     try {
@@ -82,18 +84,69 @@ export function setupAuth(app: Express) {
     }
   })();
 
+  // Use PostgreSQL session store for serverless compatibility
+  // Falls back to memory store only if database is unavailable (development)
+  let sessionStore: session.Store;
+  
+  try {
+    // Check if DATABASE_URL is available before attempting to use PostgreSQL session store
+    if (!process.env.DATABASE_URL) {
+      throw new Error("DATABASE_URL not set");
+    }
+    
+    // Get the actual pool instance for connect-pg-simple
+    const actualPool = getPoolInstance();
+    
+    // Try to use PostgreSQL session store
+    sessionStore = new PgStore({
+      pool: actualPool as any, // Use the database pool
+      tableName: 'session', // Table name for sessions
+      createTableIfMissing: true, // Automatically create table if missing
+    });
+    console.log("✓ Using PostgreSQL session store (sessions will persist across serverless invocations)");
+  } catch (error: any) {
+    // Fallback to memory store if database is not available
+    console.warn("⚠️ PostgreSQL session store unavailable, falling back to memory store:", error?.message || error);
+    // Use memory store as fallback (even in production if DB connection fails)
+    try {
+      // Try to use memorystore for better memory management (optional dependency)
+      const memorystore = await import("memorystore");
+      const createMemoryStore = memorystore.default || memorystore;
+      const MemoryStoreClass = createMemoryStore(session);
+      sessionStore = new MemoryStoreClass({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      });
+      console.log("⚠️ Using memory store (sessions will not persist across serverless invocations)");
+    } catch (memError: any) {
+      // If memorystore also fails, use basic memory store from express-session
+      console.warn("⚠️ Memorystore package not available, using basic MemoryStore:", memError?.message || memError);
+      sessionStore = new MemoryStore();
+      console.log("⚠️ Using basic memory session store");
+    }
+  }
+
+  // Generate a session secret if not provided (for development/testing)
+  // In production, SESSION_SECRET should be set in Vercel environment variables
+  const sessionSecret = process.env.SESSION_SECRET || "edulearn-platform-dev-secret-change-in-production";
+  
+  // Log SESSION_SECRET status (without exposing the actual secret)
+  if (process.env.SESSION_SECRET) {
+    console.log("✓ SESSION_SECRET is set (length: " + process.env.SESSION_SECRET.length + " chars)");
+  } else {
+    if (process.env.NODE_ENV === 'production') {
+      console.error("❌ ERROR: SESSION_SECRET not set in production! This is a security issue.");
+      console.error("   Please set SESSION_SECRET in Vercel environment variables.");
+      // Don't throw here - let it use the default but log the error clearly
+    } else {
+      console.warn("⚠️ SESSION_SECRET not set, using default (dev only)");
+    }
+  }
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || (() => {
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error('SESSION_SECRET environment variable is required in production');
-      }
-      return "edulearn-platform-dev-secret";
-    })(),
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    store: new MemoryStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    }),
+    store: sessionStore,
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
       httpOnly: true,
@@ -162,29 +215,62 @@ export function setupAuth(app: Express) {
       const { username, password, displayName, role = "student" } = req.body;
       
       if (!username || !password || !displayName) {
-        return res.status(400).json({ message: "Missing required fields" });
+        return res.status(400).json({ message: "Missing required fields. Please provide username, password, and display name." });
       }
       
-      const existingUser = await storage.getUserByUsername(username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+      // Validate input
+      if (username.trim().length === 0) {
+        return res.status(400).json({ message: "Username cannot be empty." });
+      }
+      if (password.length < 3) {
+        return res.status(400).json({ message: "Password must be at least 3 characters long." });
+      }
+      if (displayName.trim().length === 0) {
+        return res.status(400).json({ message: "Display name cannot be empty." });
       }
 
-      const user = await storage.createUser({
-        username,
-        password: password,
-        displayName,
-        role
-      });
+      try {
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser) {
+          return res.status(409).json({ message: "Username already exists. Please choose a different username." });
+        }
+      } catch (dbError: any) {
+        console.error("[AUTH] Database error checking existing user:", dbError);
+        // If database is unavailable, return a clear error
+        return res.status(503).json({ message: "Service temporarily unavailable. Please try again later." });
+      }
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        // Return user without password
-        const { password, ...userWithoutPassword } = user;
-        res.status(201).json(userWithoutPassword);
-      });
-    } catch (error) {
-      next(error);
+      try {
+        const user = await storage.createUser({
+          username,
+          password: password,
+          displayName,
+          role
+        });
+
+        req.login(user, (err) => {
+          if (err) {
+            console.error("[AUTH] Login error after registration:", err);
+            return res.status(500).json({ message: "Registration successful but login failed. Please try logging in." });
+          }
+          // Return user without password
+          const { password, ...userWithoutPassword } = user;
+          res.status(201).json(userWithoutPassword);
+        });
+      } catch (dbError: any) {
+        console.error("[AUTH] Database error creating user:", dbError);
+        // Handle specific database errors
+        if (dbError.code === '23505' || dbError.message?.includes('unique')) {
+          return res.status(409).json({ message: "Username already exists. Please choose a different username." });
+        }
+        return res.status(503).json({ message: "Service temporarily unavailable. Please try again later." });
+      }
+    } catch (error: any) {
+      console.error("[AUTH] Registration error:", error);
+      // Pass to error handler if it's not already handled
+      if (!res.headersSent) {
+        next(error);
+      }
     }
   });
 

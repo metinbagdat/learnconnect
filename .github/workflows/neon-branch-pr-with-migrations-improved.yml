@@ -210,9 +210,38 @@ jobs:
           # Ensure it doesn't start or end with a hyphen
           SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^--\+//' | sed 's/-\+$//')
           
+          # Ensure it's not empty and has valid length (max 63 chars for Neon branch names)
+          if [ -z "$SANITIZED_BRANCH" ] || [ "$SANITIZED_BRANCH" = "" ]; then
+            echo "⚠️ WARNING: Sanitized branch name is empty, using fallback"
+            SANITIZED_BRANCH="branch"
+          fi
+          
+          # Limit length to prevent issues
+          if [ ${#SANITIZED_BRANCH} -gt 50 ]; then
+            SANITIZED_BRANCH="${SANITIZED_BRANCH:0:50}"
+          fi
+          
+          # Final sanitization: remove any remaining invalid characters
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-*//' | sed 's/-*$//')
+          
+          # Ensure it's still not empty after final sanitization
+          if [ -z "$SANITIZED_BRANCH" ] || [ "$SANITIZED_BRANCH" = "" ]; then
+            SANITIZED_BRANCH="pr-${{ github.event.number }}"
+          fi
+          
           echo "Sanitized branch name: ${SANITIZED_BRANCH}"
+          
+          # Build the Neon branch name with length check
+          NEON_BRANCH="preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}"
+          if [ ${#NEON_BRANCH} -gt 63 ]; then
+            # Truncate if too long, keeping prefix
+            TRUNCATED_SANITIZED="${SANITIZED_BRANCH:0:$((63 - ${#NEON_BRANCH} + ${#SANITIZED_BRANCH}))}"
+            NEON_BRANCH="preview/pr-${{ github.event.number }}-${TRUNCATED_SANITIZED}"
+          fi
+          
+          echo "Neon branch name: ${NEON_BRANCH}"
           echo "sanitized_branch=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
-          echo "neon_branch_name=preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "neon_branch_name=${NEON_BRANCH}" >> "$GITHUB_OUTPUT"
 
       - name: Ensure Git ref for Neon preview branch exists (create or update)
         id: ensure_ref
@@ -221,29 +250,79 @@ jobs:
           BRANCH="${{ steps.sanitize_branch.outputs.neon_branch_name }}"
           REPO="${GITHUB_REPOSITORY}"
           SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # Validate inputs
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "" ]; then
+            echo "❌ ERROR: Branch name is empty after sanitization!"
+            exit 1
+          fi
+          if [ -z "$SHA" ] || [ "$SHA" = "" ]; then
+            echo "❌ ERROR: SHA is empty!"
+            exit 1
+          fi
+          
           echo "Checking repo: $REPO, branch: $BRANCH, target sha: $SHA"
           API="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
+          
+          # Check if ref exists
           http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GITHUB_TOKEN" "$API")
+          
           if [ "$http_code" = "200" ]; then
             echo "Branch exists, updating ref (force) to ${SHA}"
             update_api="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
-            resp_code=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
+            response=$(curl -s -w "\n%{http_code}" -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
               -d "{\"sha\":\"${SHA}\",\"force\":true}" "$update_api")
-            if [ "$resp_code" != "200" ]; then
+            resp_code=$(echo "$response" | tail -n1)
+            resp_body=$(echo "$response" | sed '$d')
+            
+            if [ "$resp_code" = "200" ] || [ "$resp_code" = "422" ]; then
+              # 422 might mean ref is already at this SHA, which is fine
+              if [ "$resp_code" = "422" ]; then
+                echo "⚠️ Got 422 response (might be already at this SHA), checking response..."
+                if echo "$resp_body" | grep -q "already exists\|current branch\|reference already"; then
+                  echo "✅ Ref is already at the correct SHA, continuing..."
+                else
+                  echo "Response body: $resp_body"
+                  echo "❌ Failed to update ref. HTTP status: $resp_code"
+                  exit 1
+                fi
+              else
+                echo "✅ Updated existing ref."
+              fi
+            else
+              echo "Response body: $resp_body"
               echo "❌ Failed to update existing ref. HTTP status: $resp_code"
               exit 1
             fi
-            echo "✅ Updated existing ref."
           elif [ "$http_code" = "404" ]; then
             echo "Branch does not exist, creating ref..."
             create_api="https://api.github.com/repos/${REPO}/git/refs"
-            resp_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
+            response=$(curl -s -w "\n%{http_code}" -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
               -d "{\"ref\":\"refs/heads/${BRANCH}\",\"sha\":\"${SHA}\"}" "$create_api")
-            if [ "$resp_code" != "201" ]; then
+            resp_code=$(echo "$response" | tail -n1)
+            resp_body=$(echo "$response" | sed '$d')
+            
+            if [ "$resp_code" = "201" ]; then
+              echo "✅ Created ref ${BRANCH}."
+            elif [ "$resp_code" = "422" ]; then
+              # 422 might mean ref already exists (race condition) or invalid input
+              echo "⚠️ Got 422 response when creating ref, checking response..."
+              if echo "$resp_body" | grep -q "already exists\|Reference already"; then
+                echo "✅ Ref already exists (likely created by another run), continuing..."
+              elif echo "$resp_body" | grep -q "invalid\|Invalid"; then
+                echo "Response body: $resp_body"
+                echo "❌ Invalid ref name or SHA. HTTP status: $resp_code"
+                exit 1
+              else
+                echo "Response body: $resp_body"
+                echo "❌ Failed to create ref. HTTP status: $resp_code"
+                exit 1
+              fi
+            else
+              echo "Response body: $resp_body"
               echo "❌ Failed to create ref. HTTP status: $resp_code"
               exit 1
             fi
-            echo "✅ Created ref ${BRANCH}."
           else
             echo "❌ Unexpected GET ref response: $http_code"
             exit 1
