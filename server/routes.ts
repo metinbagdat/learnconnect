@@ -1189,7 +1189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Import the AI chat service
-      const { processStudyCompanionChat } = await import('./ai-chat-service');
+      const { processStudyCompanionChat } = await import('./ai-chat-service.js');
       
       // Process the chat message with context
       const response = await processStudyCompanionChat(
@@ -1218,7 +1218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { getChatHistory } = await import('./ai-chat-service');
+      const { getChatHistory } = await import('./ai-chat-service.js');
       const history = getChatHistory(userId);
       res.json({ messages: history });
     } catch (error) {
@@ -1237,7 +1237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { clearChatHistory } = await import('./ai-chat-service');
+      const { clearChatHistory } = await import('./ai-chat-service.js');
       const cleared = clearChatHistory(userId);
       res.json({ success: cleared });
     } catch (error) {
@@ -1796,7 +1796,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       }
 
       // Import the AI module service to get lesson data
-      const { generateAIEnhancedModules } = await import("./ai-module-service");
+      const { generateAIEnhancedModules } = await import("./ai-module-service.js");
       
       // For now, we'll find the lesson by searching through all courses
       // This is a temporary solution until we have proper lesson storage
@@ -1837,7 +1837,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       }
 
       // Import the AI module service
-      const { generateAIEnhancedModules } = await import("./ai-module-service");
+      const { generateAIEnhancedModules } = await import("./ai-module-service.js");
       
       const language = req.query.lang as string || 'en';
       const aiModules = await generateAIEnhancedModules(courseId, userId, language);
@@ -1852,7 +1852,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.post("/api/create-admin", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       // Import the admin creation function
-      const { default: createAdminAccount } = await import("./create-admin");
+      const { default: createAdminAccount } = await import("./create-admin.js");
       
       // Create an admin with default credentials
       const result = await createAdminAccount("admin", "admin123", "Admin User");
@@ -1876,7 +1876,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     
     try {
       // Import the addTurkishCourses function directly
-      const { default: addTurkishCourses } = await import("./add-turkish-courses");
+      const { default: addTurkishCourses } = await import("./add-turkish-courses.js");
       
       // Call the function to add Turkish courses
       await addTurkishCourses();
@@ -2148,7 +2148,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Milestone and userId are required" });
       }
 
-      const { aiEmojiService } = await import('./ai-emoji-service');
+      const { aiEmojiService } = await import('./ai-emoji-service.js');
       const emojiReaction = await aiEmojiService.generateMilestoneEmoji(
         milestone,
         userId,
@@ -5016,7 +5016,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     try {
       const { subject, subCategory, language = 'en' } = req.body;
       
-      const { generateAssessmentQuestions } = await import('./assessment-service');
+      const { generateAssessmentQuestions } = await import('./assessment-service.js');
       
       // Generate 3 sample questions for preview
       const previewQuestions = await generateAssessmentQuestions(
@@ -5071,7 +5071,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Subject is required" });
       }
 
-      const { createLevelAssessment } = await import('./assessment-service');
+      const { createLevelAssessment } = await import('./assessment-service.js');
       const assessmentId = await createLevelAssessment(userId, subject, subCategory, language);
       
       // Track assessment usage
@@ -5165,7 +5165,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(404).json({ message: "Assessment not found" });
       }
 
-      const { completeAssessment } = await import('./assessment-service');
+      const { completeAssessment } = await import('./assessment-service.js');
       const result = await completeAssessment(assessmentId, answers, language);
       
       res.json(result);
@@ -6512,7 +6512,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       }
 
       // Import AI daily plan service
-      const { generateAndSaveDailyPlan } = await import("./ai-daily-plan-service");
+      const { generateAndSaveDailyPlan } = await import("./ai-daily-plan-service.js");
       
       const plan = await generateAndSaveDailyPlan({
         userId: req.user.id,
@@ -7646,7 +7646,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
       const { taskId, score, timeSpent, difficulty, satisfaction, topicId, subjectId, notes } = req.body;
-      const { trackTaskPerformance } = await import('./adaptive-learning-service');
+      const { trackTaskPerformance } = await import('./adaptive-learning-service.js');
       const feedback = await trackTaskPerformance(req.user.id, {
         taskId,
         score,
@@ -7667,7 +7667,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.get("/api/adaptive/analytics", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-      const { generateLearningAnalyticsReport } = await import('./adaptive-learning-service');
+      const { generateLearningAnalyticsReport } = await import('./adaptive-learning-service.js');
       const report = await generateLearningAnalyticsReport(req.user.id);
       res.json(report);
     } catch (error) {
@@ -7680,7 +7680,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
       const { examDate } = req.body;
-      const { predictExamPerformance } = await import('./adaptive-learning-service');
+      const { predictExamPerformance } = await import('./adaptive-learning-service.js');
       const prediction = await predictExamPerformance(req.user.id, examDate);
       res.json(prediction);
     } catch (error) {
@@ -7692,7 +7692,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.get("/api/adaptive/learning-patterns", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-      const { analyzeLearningPatterns } = await import('./adaptive-learning-service');
+      const { analyzeLearningPatterns } = await import('./adaptive-learning-service.js');
       const patterns = await analyzeLearningPatterns(req.user.id);
       res.json(patterns);
     } catch (error) {
@@ -9657,7 +9657,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const { suggestionEngine } = await import("./suggestion-engine");
+      const { suggestionEngine } = await import("./suggestion-engine.js");
       const suggestions = await suggestionEngine.generateSuggestions(parseInt(userId));
 
       res.json({
@@ -9681,7 +9681,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const { suggestionEngine } = await import("./suggestion-engine");
+      const { suggestionEngine } = await import("./suggestion-engine.js");
       const suggestions = await suggestionEngine.generateSuggestions(req.user.id);
 
       res.json(suggestions.slice(0, 5));
@@ -9703,7 +9703,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing or invalid courseId or performanceData" });
       }
 
-      const { adaptiveLearningSystem } = await import("./adaptive-learning-system");
+      const { adaptiveLearningSystem } = await import("./adaptive-learning-system.js");
       const result = await adaptiveLearningSystem.adjustCurriculum(req.user.id, courseId, performanceData);
 
       res.json({
@@ -9762,7 +9762,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
           completedDate: p.createdAt || new Date().toISOString(),
         }));
 
-      const { adaptiveLearningSystem } = await import("./adaptive-learning-system");
+      const { adaptiveLearningSystem } = await import("./adaptive-learning-system.js");
       const result = await adaptiveLearningSystem.adjustCurriculum(
         userId,
         enrollments[0].courseId,
@@ -9788,7 +9788,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const { progressTracker } = await import("./progress-tracker");
+      const { progressTracker } = await import("./progress-tracker.js");
       progressTracker.trackUserProgress(req.user.id, {
         assignmentId,
         score,
@@ -9812,7 +9812,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const { progressTracker } = await import("./progress-tracker");
+      const { progressTracker } = await import("./progress-tracker.js");
       const summary = await progressTracker.getProgressSummary(parseInt(userId));
       res.json(summary);
     } catch (error) {
@@ -9833,7 +9833,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing courseId or moduleId" });
       }
 
-      const { assignmentGenerator } = await import("./assignment-generator");
+      const { assignmentGenerator } = await import("./assignment-generator.js");
       const assignments = await assignmentGenerator.generateAssignmentsForModule(
         courseId,
         moduleId,
@@ -9865,7 +9865,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing required parameters" });
       }
 
-      const { assignmentGenerator } = await import("./assignment-generator");
+      const { assignmentGenerator } = await import("./assignment-generator.js");
       const assignment = await assignmentGenerator.generateAssignment({
         moduleId,
         moduleName: moduleName || "Module",
@@ -10082,7 +10082,7 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
         return res.status(403).json({ message: "Only admins can view analytics" });
       }
 
-      const { analyticsEngine } = await import("./analytics-engine");
+      const { analyticsEngine } = await import("./analytics-engine.js");
       const metrics = await analyticsEngine.getDashboardMetrics();
 
       res.json({ success: true, metrics });

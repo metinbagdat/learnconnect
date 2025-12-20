@@ -183,22 +183,28 @@ export default async function handler(req: any, res: any) {
       await Promise.race([
         initializeApp(),
         new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Initialization timeout')), 10000)
+          setTimeout(() => reject(new Error('Initialization timeout after 10s')), 10000)
         )
       ]);
+      console.log('[API] App initialization completed successfully');
     } catch (initError: any) {
       console.error('[API] Initialization error:', initError);
+      console.error('[API] Error message:', initError?.message);
+      console.error('[API] Error stack:', initError?.stack);
       // If initialization fails completely, return error immediately
       if (!appInitialized) {
+        console.error('[API] App not initialized - returning 503');
         if (!res.headersSent) {
           return res.status(503).json({ 
             error: "Service unavailable", 
-            message: "Server initialization failed. Please try again later." 
+            message: initError?.message || "Server initialization failed. Please try again later.",
+            details: process.env.NODE_ENV === 'development' ? initError?.stack : undefined
           });
         }
         return;
       }
       // If app is partially initialized, continue - some routes might work
+      console.warn('[API] App partially initialized - continuing with request');
     }
 
     // Update request for Express - preserve query string
