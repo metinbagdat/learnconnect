@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { generateSitemap, defaultSitemapEntries } from "./sitemap";
+import { generateSitemap, defaultSitemapEntries } from "./sitemap.js";
 
 const router = Router();
 
