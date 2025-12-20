@@ -178,28 +178,36 @@ export async function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log(`[AUTH] Login attempt for user: ${username}, password: ${password}`);
+        console.log(`[AUTH] Login attempt for user: ${username}`);
         const user = await storage.getUserByUsername(username);
         if (!user) {
           console.log(`[AUTH] User not found: ${username}`);
           return done(null, false, { message: "Incorrect username or password" });
         }
         console.log(`[AUTH] User found: ${username}`);
-        console.log(`[AUTH] Stored password: ${user.password}`);
-        console.log(`[AUTH] Supplied password: ${password}`);
         
         // TEMPORARY: Direct plaintext comparison for testing
         const passwordMatch = user.password === password;
         console.log(`[AUTH] Password match (plaintext): ${passwordMatch}`);
         
         if (!passwordMatch) {
+          console.log(`[AUTH] Password mismatch for user: ${username}`);
           return done(null, false, { message: "Incorrect username or password" });
         }
         console.log(`[AUTH] Login successful for: ${username}`);
         return done(null, user);
-      } catch (error) {
-        console.error(`[AUTH] Login error:`, error);
-        return done(error);
+      } catch (error: any) {
+        console.error(`[AUTH] Login error in LocalStrategy:`, error?.message || error);
+        console.error(`[AUTH] Error stack:`, error?.stack);
+        // Don't pass the error to done() - it will cause a 500
+        // Instead, return false to indicate authentication failure
+        // This prevents database connection errors from causing 500s
+        if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND' || error?.message?.includes('database')) {
+          console.error(`[AUTH] Database connection error during login - returning auth failure`);
+          return done(null, false, { message: "Service temporarily unavailable. Please try again later." });
+        }
+        // For other errors, still return false but log the error
+        return done(null, false, { message: "Authentication service error. Please try again." });
       }
     }),
   );
@@ -300,14 +308,23 @@ export async function setupAuth(app: Express) {
       passport.authenticate("local", (err: Error | null, user: any, info: { message?: string } | undefined) => {
         try {
           if (err) {
-            console.error("[AUTH] Login authentication error:", err);
+            console.error("[AUTH] Login authentication error (from passport):", err);
+            console.error("[AUTH] Error message:", err?.message);
             console.error("[AUTH] Error stack:", err?.stack);
-            // Don't pass to next() which might crash, return 500 directly
-            return res.status(500).json({ message: "A server error has occurred" });
+            // This should rarely happen now since LocalStrategy catches errors
+            // But if it does, return a 500
+            if (!res.headersSent) {
+              return res.status(500).json({ message: "A server error has occurred during authentication" });
+            }
+            return;
           }
           if (!user) {
-            console.log("[AUTH] Authentication failed:", info?.message || "Invalid credentials");
-            return res.status(401).json({ message: info?.message || "Incorrect username or password" });
+            const errorMsg = info?.message || "Invalid credentials";
+            console.log("[AUTH] Authentication failed:", errorMsg);
+            if (!res.headersSent) {
+              return res.status(401).json({ message: errorMsg });
+            }
+            return;
           }
           
           req.login(user, (err: Error | null) => {
