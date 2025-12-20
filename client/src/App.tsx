@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { Analytics } from "@vercel/analytics/react";
 import { Toaster } from "@/components/ui/toaster";
 import { LanguageProvider } from "@/contexts/consolidated-language-context";
 import { Navbar } from "@/components/layout/navbar";
@@ -225,6 +226,7 @@ function App() {
                 <Navbar />
                 <Router />
                 <Toaster />
+                <Analytics />
               </SkillChallengeProvider>
             </GamificationProvider>
           </LanguageProvider>
