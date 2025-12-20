@@ -22,40 +22,40 @@ import { registerInteractionTrackingEndpoints } from "./smart-suggestions/intera
 import { registerStudentDashboardEndpoints } from "./smart-suggestions/student-dashboard-endpoints.js";
 import { registerHealthCheckEndpoints } from "./smart-suggestions/health-check-endpoints.js";
 import { registerAdminAIEndpoints } from "./smart-suggestions/admin-ai-endpoints.js";
-import { registerGoalFormEndpoints } from "./smart-suggestions/goal-form-endpoints";
-import { registerAIDataFlowEndpoints } from "./smart-suggestions/ai-data-flow-endpoints";
-import { registerDataFlowEndpoints } from "./smart-suggestions/data-flow-endpoints";
-import { registerMLModelEndpoints } from "./smart-suggestions/ml-model-endpoints";
-import { registerAIAdaptationEndpoints } from "./smart-suggestions/ai-adaptation-endpoints";
-import { registerCurriculumMLEndpoints } from "./smart-suggestions/curriculum-ml-endpoints";
-import { registerRealTimeAdaptationEndpoints } from "./smart-suggestions/real-time-adaptation-endpoints";
-import { registerSystemValidationEndpoints } from "./smart-suggestions/system-validation-endpoints";
-import { registerMemoryEnhancementEndpoints } from "./smart-suggestions/memory-enhancement-endpoints";
-import { registerMemoryEnhancedCurriculumEndpoints } from "./smart-suggestions/memory-enhanced-curriculum-endpoints";
-import { registerCognitiveIntegrationEndpoints } from "./smart-suggestions/cognitive-integration-endpoints";
-import { registerMemoryTechniqueIntegrationEndpoints } from "./smart-suggestions/memory-technique-integration-endpoints";
-import { registerSpacedRepetitionEndpoints } from "./smart-suggestions/spaced-repetition-endpoints";
-import { registerAIIntegrationEndpoints } from "./smart-suggestions/ai-integration-endpoints";
-import { registerUnifiedOrchestrationEndpoints } from "./smart-suggestions/unified-orchestration-endpoints";
-import { handleCourseEnrollment } from "./enrollment-event-handler";
-import { aiFeatures } from "./ai-features";
-import { dashboardService } from "./dashboard-service";
-import { adminDashboardService } from "./admin-dashboard-service";
-import { contentBasedSuggestions } from "./content-based-suggestions";
-import { notificationsService } from "./notifications-service";
-import { studyPlanService } from "./study-plan-service";
-import { requireAdmin, requireInstructor, validateRequest, curriculumGenerationSchema, studyPlanAdjustmentSchema } from "./middleware/auth-validation";
-import { registerDashboardEndpoints } from "./smart-suggestions/dashboard-endpoints";
-import { registerFormsAndListsEndpoints } from "./smart-suggestions/forms-and-lists-endpoints";
-import { registerSuccessMetricsEndpoints } from "./smart-suggestions/success-metrics-endpoints";
-import { registerUnifiedIntegrationEndpoints } from "./smart-suggestions/unified-integration-endpoints";
-import { courseIntegrationEngine } from "./course-integration-engine";
-import curriculumGenerationRouter from "./smart-suggestions/curriculum-generation-endpoints";
-import productionRouter from "./smart-suggestions/production-endpoints";
-import { realTimeMonitor } from "./real-time-monitor";
-import { alertSystem } from "./alert-system";
-import { predictiveMaintenanceEngine } from "./predictive-maintenance";
-import { selfHealingEngine } from "./self-healing";
+import { registerGoalFormEndpoints } from "./smart-suggestions/goal-form-endpoints.js";
+import { registerAIDataFlowEndpoints } from "./smart-suggestions/ai-data-flow-endpoints.js";
+import { registerDataFlowEndpoints } from "./smart-suggestions/data-flow-endpoints.js";
+import { registerMLModelEndpoints } from "./smart-suggestions/ml-model-endpoints.js";
+import { registerAIAdaptationEndpoints } from "./smart-suggestions/ai-adaptation-endpoints.js";
+import { registerCurriculumMLEndpoints } from "./smart-suggestions/curriculum-ml-endpoints.js";
+import { registerRealTimeAdaptationEndpoints } from "./smart-suggestions/real-time-adaptation-endpoints.js";
+import { registerSystemValidationEndpoints } from "./smart-suggestions/system-validation-endpoints.js";
+import { registerMemoryEnhancementEndpoints } from "./smart-suggestions/memory-enhancement-endpoints.js";
+import { registerMemoryEnhancedCurriculumEndpoints } from "./smart-suggestions/memory-enhanced-curriculum-endpoints.js";
+import { registerCognitiveIntegrationEndpoints } from "./smart-suggestions/cognitive-integration-endpoints.js";
+import { registerMemoryTechniqueIntegrationEndpoints } from "./smart-suggestions/memory-technique-integration-endpoints.js";
+import { registerSpacedRepetitionEndpoints } from "./smart-suggestions/spaced-repetition-endpoints.js";
+import { registerAIIntegrationEndpoints } from "./smart-suggestions/ai-integration-endpoints.js";
+import { registerUnifiedOrchestrationEndpoints } from "./smart-suggestions/unified-orchestration-endpoints.js";
+import { handleCourseEnrollment } from "./enrollment-event-handler.js";
+import { aiFeatures } from "./ai-features.js";
+import { dashboardService } from "./dashboard-service.js";
+import { adminDashboardService } from "./admin-dashboard-service.js";
+import { contentBasedSuggestions } from "./content-based-suggestions.js";
+import { notificationsService } from "./notifications-service.js";
+import { studyPlanService } from "./study-plan-service.js";
+import { requireAdmin, requireInstructor, validateRequest, curriculumGenerationSchema, studyPlanAdjustmentSchema } from "./middleware/auth-validation.js";
+import { registerDashboardEndpoints } from "./smart-suggestions/dashboard-endpoints.js";
+import { registerFormsAndListsEndpoints } from "./smart-suggestions/forms-and-lists-endpoints.js";
+import { registerSuccessMetricsEndpoints } from "./smart-suggestions/success-metrics-endpoints.js";
+import { registerUnifiedIntegrationEndpoints } from "./smart-suggestions/unified-integration-endpoints.js";
+import { courseIntegrationEngine } from "./course-integration-engine.js";
+import curriculumGenerationRouter from "./smart-suggestions/curriculum-generation-endpoints.js";
+import productionRouter from "./smart-suggestions/production-endpoints.js";
+import { realTimeMonitor } from "./real-time-monitor.js";
+import { alertSystem } from "./alert-system.js";
+import { predictiveMaintenanceEngine } from "./predictive-maintenance.js";
+import { selfHealingEngine } from "./self-healing.js";
 import { 
   insertCourseSchema, 
   insertUserCourseSchema, 
@@ -103,9 +103,9 @@ import {
   insertAiReviewLogSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { generateCourse, saveGeneratedCourse, generateCourseRecommendations, generateLearningPath, saveLearningPath } from "./ai-service";
-import { callAIWithFallback, parseAIJSON } from "./ai-provider-service";
-import * as aiCurriculumService from "./ai-curriculum-service";
+import { generateCourse, saveGeneratedCourse, generateCourseRecommendations, generateLearningPath, saveLearningPath } from "./ai-service.js";
+import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
+import * as aiCurriculumService from "./ai-curriculum-service.js";
 import { 
   generateLessonTrail, 
   saveLessonTrail, 
@@ -113,31 +113,31 @@ import {
   updateTrailProgress, 
   generatePersonalizedRecommendations,
   recordLearningAnalytics 
-} from "./lesson-trail-service";
+} from "./lesson-trail-service.js";
 import * as fs from "fs";
 import * as path from "path";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { seedChallenges } from "./seed-challenges";
-import { generateExamLearningPath, saveExamLearningPath, generatePredefinedExamPaths } from "./entrance-exam-service";
-import { getSuggestions } from "./suggestion-service";
-import { generateAdaptiveLearningPath, updateStepProgress, generateNewRecommendations } from "./adaptive-learning-service";
-import { handleUnifiedLearningAction, getUnifiedLearningContext } from "./unified-learning-service";
+import { seedChallenges } from "./seed-challenges.js";
+import { generateExamLearningPath, saveExamLearningPath, generatePredefinedExamPaths } from "./entrance-exam-service.js";
+import { getSuggestions } from "./suggestion-service.js";
+import { generateAdaptiveLearningPath, updateStepProgress, generateNewRecommendations } from "./adaptive-learning-service.js";
+import { handleUnifiedLearningAction, getUnifiedLearningContext } from "./unified-learning-service.js";
 import { 
   detectLearningStyle,
   generateDifficultyAdjustment,
   generatePredictiveAnalytics,
   generateAdaptiveInsights
-} from "./advanced-adaptive-service";
-import * as smartPlanning from "./smart-planning";
-import { aiCurriculumGenerator } from "./ai-curriculum-generator";
-import { aiCourseRecommender } from "./ai-course-recommender";
-import { enrollmentPipeline } from "./enrollment-pipeline";
-import * as notificationService from "./notification-service";
-import * as aiSessionGenerator from "./ai-session-generator";
-import { analyzeProgressAndRecommend, getTopicResources, trackResourceEngagement } from "./resource-recommendation-service";
-import { generateAdaptiveAdjustments, detectLearningInterventionNeeds } from "./adaptive-adjustment-service";
-import { db } from "./db";
+} from "./advanced-adaptive-service.js";
+import * as smartPlanning from "./smart-planning.js";
+import { aiCurriculumGenerator } from "./ai-curriculum-generator.js";
+import { aiCourseRecommender } from "./ai-course-recommender.js";
+import { enrollmentPipeline } from "./enrollment-pipeline.js";
+import * as notificationService from "./notification-service.js";
+import * as aiSessionGenerator from "./ai-session-generator.js";
+import { analyzeProgressAndRecommend, getTopicResources, trackResourceEngagement } from "./resource-recommendation-service.js";
+import { generateAdaptiveAdjustments, detectLearningInterventionNeeds } from "./adaptive-adjustment-service.js";
+import { db } from "./db.js";
 import { 
   skillChallenges, 
   userSkillChallengeAttempts,
