@@ -100,9 +100,22 @@ async function initializeApp() {
 // Vercel serverless function handler
 export default async function handler(req: any, res: any) {
   try {
+    // CRITICAL: Check if this is a static asset request BEFORE any processing
+    // This prevents SSL_ERROR_RX_RECORD_TOO_LONG when static assets accidentally reach this handler
+    const rawPath = req.url || req.originalUrl || req.path || '';
+    const staticAssetExtensions = ['.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.json', '.map'];
+    const isStaticAsset = staticAssetExtensions.some(ext => rawPath.toLowerCase().includes(ext));
+    
+    if (isStaticAsset || rawPath.startsWith('/assets/')) {
+      // This is a static asset - don't process it, let Vercel handle it
+      console.log(`[API] Static asset request detected, ignoring: ${rawPath}`);
+      // Return undefined to let Vercel's static file handler take over
+      return;
+    }
+    
     // Vercel rewrites /api/* to /api (this handler)
     // Extract the original path from various possible locations
-    let apiPath = req.url || req.originalUrl || req.path;
+    let apiPath = rawPath;
     
     // Vercel provides the original path in different headers depending on configuration
     // Try x-vercel-rewrite first (common), then x-invoke-path, then x-requested-url
