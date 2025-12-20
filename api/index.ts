@@ -99,12 +99,6 @@ async function initializeApp() {
 
 // Vercel serverless function handler
 export default async function handler(req: any, res: any) {
-  // Set headers IMMEDIATELY to prevent SSL negotiation issues
-  if (!res.headersSent) {
-    res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  }
-
   try {
     // Vercel rewrites /api/* to /api (this handler)
     // Extract the original path from various possible locations
@@ -150,6 +144,12 @@ export default async function handler(req: any, res: any) {
         return res.status(404).json({ error: "Not Found", path: String(apiPath) });
       }
       return;
+    }
+
+    // Set headers for API responses AFTER path detection to prevent SSL negotiation issues
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
 
     // Store the original path with query string for Express

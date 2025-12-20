@@ -95,15 +95,28 @@ export async function setupAuth(app: Express) {
     }
     
     // Get the actual pool instance for connect-pg-simple
-    const actualPool = getPoolInstance();
+    // Wrap in try-catch to handle pool initialization errors gracefully
+    let actualPool;
+    try {
+      actualPool = getPoolInstance();
+    } catch (poolError: any) {
+      console.warn("⚠️ Failed to get pool instance:", poolError?.message || poolError);
+      throw poolError; // Re-throw to trigger fallback to memory store
+    }
     
     // Try to use PostgreSQL session store
-    sessionStore = new PgStore({
-      pool: actualPool as any, // Use the database pool
-      tableName: 'session', // Table name for sessions
-      createTableIfMissing: true, // Automatically create table if missing
-    });
-    console.log("✓ Using PostgreSQL session store (sessions will persist across serverless invocations)");
+    // Wrap in try-catch to handle PgStore initialization errors
+    try {
+      sessionStore = new PgStore({
+        pool: actualPool as any, // Use the database pool
+        tableName: 'session', // Table name for sessions
+        createTableIfMissing: true, // Automatically create table if missing
+      });
+      console.log("✓ Using PostgreSQL session store (sessions will persist across serverless invocations)");
+    } catch (pgStoreError: any) {
+      console.warn("⚠️ Failed to initialize PgStore:", pgStoreError?.message || pgStoreError);
+      throw pgStoreError; // Re-throw to trigger fallback to memory store
+    }
   } catch (error: any) {
     // Fallback to memory store if database is not available
     console.warn("⚠️ PostgreSQL session store unavailable, falling back to memory store:", error?.message || error);
@@ -275,33 +288,65 @@ export async function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log("POST /api/login - User attempting login:", req.body.username);
-    
-    passport.authenticate("local", (err: Error | null, user: any, info: { message?: string } | undefined) => {
-      if (err) {
-        console.log("Login error:", err);
-        return next(err);
-      }
-      if (!user) {
-        console.log("Authentication failed:", info?.message);
-        return res.status(401).json({ message: info?.message || "Authentication failed" });
+    try {
+      console.log("POST /api/login - User attempting login:", req.body?.username || 'unknown');
+      
+      // Validate request body
+      if (!req.body || !req.body.username || !req.body.password) {
+        console.log("[AUTH] Login request missing credentials");
+        return res.status(400).json({ message: "Username and password are required" });
       }
       
-      req.login(user, (err: Error | null) => {
-        if (err) {
-          console.log("Login session error:", err);
-          return next(err);
+      passport.authenticate("local", (err: Error | null, user: any, info: { message?: string } | undefined) => {
+        try {
+          if (err) {
+            console.error("[AUTH] Login authentication error:", err);
+            console.error("[AUTH] Error stack:", err?.stack);
+            // Don't pass to next() which might crash, return 500 directly
+            return res.status(500).json({ message: "A server error has occurred" });
+          }
+          if (!user) {
+            console.log("[AUTH] Authentication failed:", info?.message || "Invalid credentials");
+            return res.status(401).json({ message: info?.message || "Incorrect username or password" });
+          }
+          
+          req.login(user, (err: Error | null) => {
+            try {
+              if (err) {
+                console.error("[AUTH] Login session error:", err);
+                console.error("[AUTH] Session error stack:", err?.stack);
+                // Don't pass to next() which might crash, return 500 directly
+                return res.status(500).json({ message: "A server error has occurred" });
+              }
+              
+              // Log session details
+              console.log("[AUTH] User logged in successfully, session ID:", req.session?.id || 'no-id');
+              
+              // Return user without password
+              const { password, ...userWithoutPassword } = user;
+              res.status(200).json(userWithoutPassword);
+            } catch (loginErr: any) {
+              console.error("[AUTH] Error in req.login callback:", loginErr);
+              if (!res.headersSent) {
+                return res.status(500).json({ message: "A server error has occurred" });
+              }
+            }
+          });
+        } catch (authErr: any) {
+          console.error("[AUTH] Error in passport.authenticate callback:", authErr);
+          if (!res.headersSent) {
+            return res.status(500).json({ message: "A server error has occurred" });
+          }
         }
-        
-        // Log session details
-        console.log("User logged in successfully, session ID:", req.session.id);
-        console.log("Session cookie:", req.session.cookie);
-        
-        // Return user without password
-        const { password, ...userWithoutPassword } = user;
-        res.status(200).json(userWithoutPassword);
-      });
-    })(req, res, next);
+      })(req, res, next);
+    } catch (error: any) {
+      console.error("[AUTH] Error in /api/login handler:", error);
+      console.error("[AUTH] Error stack:", error?.stack);
+      if (!res.headersSent) {
+        return res.status(500).json({ message: "A server error has occurred" });
+      }
+      next(error);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
