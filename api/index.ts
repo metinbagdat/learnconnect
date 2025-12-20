@@ -137,16 +137,19 @@ export default async function handler(req: any, res: any) {
     }
 
     // Ensure apiPath is valid and starts with /api
+    // CRITICAL: If path doesn't start with /api, this handler should not process it
+    // Static assets (CSS, JS, images) should never reach this handler
     if (!apiPath || (!apiPath.startsWith('/api') && apiPath !== '/api')) {
-      // This should never happen due to vercel.json rewrites, but guard against it
-      console.log(`[API] Non-API path reached handler: ${apiPath}`);
-      if (!res.headersSent) {
-        return res.status(404).json({ error: "Not Found", path: String(apiPath) });
-      }
+      // This should never happen due to vercel.json rewrites, but if it does,
+      // we should NOT set JSON headers - let Vercel handle it as a static file
+      console.log(`[API] Non-API path reached handler, ignoring: ${apiPath}`);
+      // Don't send any response - let Vercel's static file handler take over
+      // This prevents SSL_ERROR_RX_RECORD_TOO_LONG when static assets accidentally reach here
       return;
     }
 
-    // Set headers for API responses AFTER path detection to prevent SSL negotiation issues
+    // Set headers for API responses ONLY after confirming it's an API path
+    // This prevents SSL errors when static assets accidentally reach the handler
     if (!res.headersSent) {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
