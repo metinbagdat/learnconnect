@@ -77,7 +77,9 @@ async function initializeApp() {
 
   initializationPromise = (async () => {
     try {
+      console.log("[INIT] Starting application initialization...");
       await registerRoutes(app);
+      console.log("[INIT] Routes registered successfully");
       
       // 404 handler - must be AFTER all routes are registered
       app.use((_req: Request, res: Response) => {
@@ -87,9 +89,12 @@ async function initializeApp() {
       });
       
       appInitialized = true;
-      console.log("Application initialized for Vercel");
-    } catch (error) {
-      console.error(`FATAL ERROR during initialization: ${error}`);
+      console.log("[INIT] Application initialized successfully for Vercel");
+    } catch (error: any) {
+      console.error(`[INIT] FATAL ERROR during initialization:`, error);
+      console.error(`[INIT] Error message:`, error?.message);
+      console.error(`[INIT] Error stack:`, error?.stack);
+      // Don't set appInitialized to true on error
       throw error;
     }
   })();
