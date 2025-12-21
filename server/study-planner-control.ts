@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import {
   generateAiStudyPlan,
   createStudyGoal,
@@ -8,8 +8,8 @@ import {
   getUserStudySessions,
   markSessionComplete,
   getProgressCharts,
-} from "./smart-planning";
-import { HealthMonitor } from "./study-planner-health-monitor";
+} from "./smart-planning.js";
+import { HealthMonitor } from "./study-planner-health-monitor.js";
 
 export interface StudyPlannerModule {
   initialize(preferences: any): Promise<void>;

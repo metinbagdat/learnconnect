@@ -7,7 +7,7 @@ import {
   asc,
   sql
 } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "./db.js";
 import * as schema from "@shared/schema";
 
 const {

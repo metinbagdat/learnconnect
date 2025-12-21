@@ -8,6 +8,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage.js";
 import { getPoolInstance } from "./db.js";
+import { logger } from "./utils/logger.js";
 
 const PgStore = connectPgSimple(session);
 import { User as SelectUser } from "@shared/schema";
@@ -178,32 +179,37 @@ export async function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log(`[AUTH] Login attempt for user: ${username}`);
+        logger.debug(`Login attempt for user: ${username}`, { username });
         const user = await storage.getUserByUsername(username);
         if (!user) {
-          console.log(`[AUTH] User not found: ${username}`);
+          logger.debug(`User not found: ${username}`, { username });
           return done(null, false, { message: "Incorrect username or password" });
         }
-        console.log(`[AUTH] User found: ${username}`);
+        logger.debug(`User found: ${username}`, { username, userId: user.id });
         
         // TEMPORARY: Direct plaintext comparison for testing
         const passwordMatch = user.password === password;
-        console.log(`[AUTH] Password match (plaintext): ${passwordMatch}`);
+        logger.debug(`Password match (plaintext): ${passwordMatch}`, { username });
         
         if (!passwordMatch) {
-          console.log(`[AUTH] Password mismatch for user: ${username}`);
+          logger.debug(`Password mismatch for user: ${username}`, { username });
           return done(null, false, { message: "Incorrect username or password" });
         }
-        console.log(`[AUTH] Login successful for: ${username}`);
+        logger.info(`Login successful for: ${username}`, { username, userId: user.id });
         return done(null, user);
       } catch (error: any) {
-        console.error(`[AUTH] Login error in LocalStrategy:`, error?.message || error);
-        console.error(`[AUTH] Error stack:`, error?.stack);
+        // Note: req is not available in LocalStrategy callback, so we can't get requestId here
+        logger.error('Login error in LocalStrategy', error, {
+          username,
+          errorCode: error?.code,
+        });
         // Don't pass the error to done() - it will cause a 500
         // Instead, return false to indicate authentication failure
         // This prevents database connection errors from causing 500s
         if (error?.code === 'ECONNREFUSED' || error?.code === 'ENOTFOUND' || error?.message?.includes('database')) {
-          console.error(`[AUTH] Database connection error during login - returning auth failure`);
+          logger.warn('Database connection error during login - returning auth failure', {
+            username,
+          });
           return done(null, false, { message: "Service temporarily unavailable. Please try again later." });
         }
         // For other errors, still return false but log the error
@@ -217,18 +223,20 @@ export async function setupAuth(app: Express) {
     try {
       const user = await storage.getUser(id);
       if (!user) {
-        console.log(`[AUTH] User not found during deserialization: ${id}`);
+        logger.debug(`User not found during deserialization: ${id}`, { userId: id });
         return done(null, false);
       }
       done(null, user);
-    } catch (error: any) {
-      // If database is not available, don't fail the session
-      // This allows the app to work even without a database connection
-      console.error(`[AUTH] Error deserializing user ${id}:`, error?.message || error);
-      // Return null instead of error to allow session to continue
-      // The user will need to re-authenticate when database is available
-      done(null, false);
-    }
+      } catch (error: any) {
+        // If database is not available, don't fail the session
+        // This allows the app to work even without a database connection
+        logger.error('Error deserializing user', error, {
+          userId: id,
+        });
+        // Return null instead of error to allow session to continue
+        // The user will need to re-authenticate when database is available
+        done(null, false);
+      }
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -256,7 +264,11 @@ export async function setupAuth(app: Express) {
           return res.status(409).json({ message: "Username already exists. Please choose a different username." });
         }
       } catch (dbError: any) {
-        console.error("[AUTH] Database error checking existing user:", dbError);
+        const requestId = (req as any)?.requestId || 'unknown';
+        logger.error('Database error checking existing user during registration', dbError, {
+          requestId,
+          username,
+        });
         // If database is unavailable, return a clear error
         return res.status(503).json({ message: "Service temporarily unavailable. Please try again later." });
       }
@@ -279,7 +291,12 @@ export async function setupAuth(app: Express) {
           res.status(201).json(userWithoutPassword);
         });
       } catch (dbError: any) {
-        console.error("[AUTH] Database error creating user:", dbError);
+        const requestId = (req as any)?.requestId || 'unknown';
+        logger.error('Database error creating user during registration', dbError, {
+          requestId,
+          username,
+          errorCode: dbError?.code,
+        });
         // Handle specific database errors
         if (dbError.code === '23505' || dbError.message?.includes('unique')) {
           return res.status(409).json({ message: "Username already exists. Please choose a different username." });
@@ -287,7 +304,11 @@ export async function setupAuth(app: Express) {
         return res.status(503).json({ message: "Service temporarily unavailable. Please try again later." });
       }
     } catch (error: any) {
-      console.error("[AUTH] Registration error:", error);
+      const requestId = (req as any)?.requestId || 'unknown';
+      logger.error('Registration error', error, {
+        requestId,
+        username: req.body?.username,
+      });
       // Pass to error handler if it's not already handled
       if (!res.headersSent) {
         next(error);
@@ -297,20 +318,26 @@ export async function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     try {
-      console.log("POST /api/login - User attempting login:", req.body?.username || 'unknown');
+      const requestId = (req as any)?.requestId || 'unknown';
+      logger.info("POST /api/login - User attempting login", {
+        requestId,
+        username: req.body?.username || 'unknown',
+      });
       
       // Validate request body
       if (!req.body || !req.body.username || !req.body.password) {
-        console.log("[AUTH] Login request missing credentials");
+        logger.warn("Login request missing credentials", { requestId });
         return res.status(400).json({ message: "Username and password are required" });
       }
       
       passport.authenticate("local", (err: Error | null, user: any, info: { message?: string } | undefined) => {
         try {
           if (err) {
-            console.error("[AUTH] Login authentication error (from passport):", err);
-            console.error("[AUTH] Error message:", err?.message);
-            console.error("[AUTH] Error stack:", err?.stack);
+            const requestId = (req as any)?.requestId || 'unknown';
+            logger.error('Login authentication error from passport', err, {
+              requestId,
+              username: req.body?.username,
+            });
             // This should rarely happen now since LocalStrategy catches errors
             // But if it does, return a 500
             if (!res.headersSent) {
@@ -320,7 +347,12 @@ export async function setupAuth(app: Express) {
           }
           if (!user) {
             const errorMsg = info?.message || "Invalid credentials";
-            console.log("[AUTH] Authentication failed:", errorMsg);
+            const requestId = (req as any)?.requestId || 'unknown';
+            logger.warn("Authentication failed", {
+              requestId,
+              username: req.body?.username,
+              message: errorMsg,
+            });
             if (!res.headersSent) {
               return res.status(401).json({ message: errorMsg });
             }
@@ -330,35 +362,56 @@ export async function setupAuth(app: Express) {
           req.login(user, (err: Error | null) => {
             try {
               if (err) {
-                console.error("[AUTH] Login session error:", err);
-                console.error("[AUTH] Session error stack:", err?.stack);
+                const requestId = (req as any)?.requestId || 'unknown';
+                logger.error('Login session error', err, {
+                  requestId,
+                  userId: user?.id,
+                  username: user?.username,
+                });
                 // Don't pass to next() which might crash, return 500 directly
                 return res.status(500).json({ message: "A server error has occurred" });
               }
               
               // Log session details
-              console.log("[AUTH] User logged in successfully, session ID:", req.session?.id || 'no-id');
+              const requestId = (req as any)?.requestId || 'unknown';
+              logger.info("User logged in successfully", {
+                requestId,
+                userId: user?.id,
+                username: user?.username,
+                sessionId: req.session?.id || 'no-id',
+              });
               
               // Return user without password
               const { password, ...userWithoutPassword } = user;
               res.status(200).json(userWithoutPassword);
             } catch (loginErr: any) {
-              console.error("[AUTH] Error in req.login callback:", loginErr);
+              const requestId = (req as any)?.requestId || 'unknown';
+              logger.error("Error in req.login callback", loginErr, {
+                requestId,
+                userId: user?.id,
+              });
               if (!res.headersSent) {
                 return res.status(500).json({ message: "A server error has occurred" });
               }
             }
           });
         } catch (authErr: any) {
-          console.error("[AUTH] Error in passport.authenticate callback:", authErr);
+          const requestId = (req as any)?.requestId || 'unknown';
+          logger.error('Error in passport.authenticate callback', authErr, {
+            requestId,
+            username: req.body?.username,
+          });
           if (!res.headersSent) {
             return res.status(500).json({ message: "A server error has occurred" });
           }
         }
       })(req, res, next);
     } catch (error: any) {
-      console.error("[AUTH] Error in /api/login handler:", error);
-      console.error("[AUTH] Error stack:", error?.stack);
+      const requestId = (req as any)?.requestId || 'unknown';
+      logger.error('Error in /api/login handler', error, {
+        requestId,
+        username: req.body?.username,
+      });
       if (!res.headersSent) {
         return res.status(500).json({ message: "A server error has occurred" });
       }
@@ -400,17 +453,29 @@ export async function setupAuth(app: Express) {
         } catch (dbError: any) {
           // Database error - but we know the userId is valid from header
           // Create minimal user object to proceed
-          console.log('[MIDDLEWARE] Database error, creating minimal user object for userId:', userId);
+          const requestId = (req as any)?.requestId || 'unknown';
+          logger.warn('Database error in authentication middleware, creating minimal user object', {
+            requestId,
+            userId,
+          });
           req.user = { id: Number(userId), role: 'student' };
           return next();
         }
       }
       
       // No authentication succeeded
-      console.log('[MIDDLEWARE] No authentication found - session:', req.isAuthenticated(), 'header:', req.headers['x-user-id']);
+      const requestId = (req as any)?.requestId || 'unknown';
+      logger.debug('No authentication found', {
+        requestId,
+        hasSession: req.isAuthenticated(),
+        hasHeader: !!req.headers['x-user-id'],
+      });
       return res.status(401).json({ message: "Unauthorized" });
-    } catch (error) {
-      console.error("[MIDDLEWARE] Authentication error:", error);
+    } catch (error: any) {
+      const requestId = (req as any)?.requestId || 'unknown';
+      logger.error('Authentication middleware error', error, {
+        requestId,
+      });
       return res.status(401).json({ message: "Unauthorized" });
     }
   };
@@ -424,16 +489,21 @@ export async function setupAuth(app: Express) {
       }
       
       // Try header-based auth
-      const userId = req.headers['x-user-id'];
-      if (userId) {
+      const userIdHeader = req.headers['x-user-id'];
+      if (userIdHeader) {
         try {
-          const user = await storage.getUser(Number(userId));
+          const userId = typeof userIdHeader === 'string' ? Number(userIdHeader) : Number(userIdHeader[0]);
+          const user = await storage.getUser(userId);
           if (user) {
             const { password, ...userWithoutPassword } = user;
             return res.json(userWithoutPassword);
           }
-        } catch (dbError) {
-          console.error("[AUTH] Database error fetching user:", dbError);
+        } catch (dbError: any) {
+          const requestId = (req as any)?.requestId || 'unknown';
+          logger.error('Database error fetching user in /api/user', dbError, {
+            requestId,
+            userId: userIdHeader,
+          });
           // Return 401 instead of 500 for database errors
           return res.status(401).json({ message: "Unauthorized" });
         }
@@ -441,8 +511,11 @@ export async function setupAuth(app: Express) {
       
       // No authentication - return 401 (this is expected for unauthenticated users)
       return res.status(401).json({ message: "Unauthorized" });
-    } catch (error) {
-      console.error("[AUTH] Error in /api/user:", error);
+    } catch (error: any) {
+      const requestId = (req as any)?.requestId || 'unknown';
+      logger.error('Error in /api/user handler', error, {
+        requestId,
+      });
       // Return 401 instead of 500 to prevent ErrorBoundary from catching it
       res.status(401).json({ message: "Unauthorized" });
     }

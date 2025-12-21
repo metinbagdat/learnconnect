@@ -3,6 +3,8 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "../server/routes.js";
 import sitemapRoutes from "../server/routes-sitemap.js";
+import { logger } from "../server/utils/logger.js";
+import { ErrorHandler } from "../server/middleware/error-handler.js";
 
 // Declare process for TypeScript
 declare const process: {
@@ -28,15 +30,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // SEO routes (sitemap, robots.txt)
 app.use(sitemapRoutes);
 
-// Logging middleware
+// Logging middleware with request ID tracking
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
+  const requestId = (req as any).requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  (req as any).requestId = requestId;
 
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      console.log(`${req.method} ${path} ${res.statusCode} in ${duration}ms`);
+      logger.request(req.method, path, res.statusCode, duration, requestId);
     }
   });
 
@@ -44,42 +48,52 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Error handler middleware - must come after routes are registered
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  console.error("[ERROR]", {
-    message: err.message,
-    stack: err.stack,
-    code: err.code,
-    status: status,
-    path: _req.path,
-    method: _req.method
-  });
-  if (!res.headersSent) {
-    res.status(status).json({ 
-      message: "A server error has occurred",
-      error: message,
-      ...(typeof process !== "undefined" && process?.env?.NODE_ENV === 'development' && { stack: err.stack })
-    });
-  }
-});
+app.use(ErrorHandler.handleError);
 
 // Initialize app
 let appInitialized = false;
 let initializationPromise: Promise<void> | null = null;
 
 async function initializeApp() {
-  if (appInitialized) return;
+  if (appInitialized) {
+    logger.debug("App already initialized, skipping");
+    return;
+  }
   
   if (initializationPromise) {
+    logger.debug("Initialization already in progress, waiting...");
     return initializationPromise;
   }
 
   initializationPromise = (async () => {
+    const initStartTime = Date.now();
+    const initId = `init_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     try {
-      console.log("[INIT] Starting application initialization...");
+      logger.info("Starting application initialization", { requestId: initId });
+
+      // Step 1: Verify critical modules can be loaded
+      logger.debug("Step 1: Verifying module resolution", { requestId: initId });
+      try {
+        await import("@shared/schema");
+        logger.debug("✓ @shared/schema loaded successfully", { requestId: initId });
+      } catch (error: any) {
+        logger.error("✗ Failed to load @shared/schema", error, { requestId: initId });
+        throw new Error(`Module resolution failed: @shared/schema - ${error.message}`);
+      }
+
+      try {
+        await import("../server/storage.js");
+        logger.debug("✓ server/storage.js loaded successfully", { requestId: initId });
+      } catch (error: any) {
+        logger.error("✗ Failed to load server/storage.js", error, { requestId: initId });
+        throw new Error(`Module resolution failed: server/storage.js - ${error.message}`);
+      }
+
+      // Step 2: Register routes
+      logger.debug("Step 2: Registering routes", { requestId: initId });
       await registerRoutes(app);
-      console.log("[INIT] Routes registered successfully");
+      logger.info("✓ Routes registered successfully", { requestId: initId });
       
       // 404 handler - must be AFTER all routes are registered
       app.use((_req: Request, res: Response) => {
@@ -89,11 +103,17 @@ async function initializeApp() {
       });
       
       appInitialized = true;
-      console.log("[INIT] Application initialized successfully for Vercel");
+      const initDuration = Date.now() - initStartTime;
+      logger.info("Application initialized successfully", { 
+        requestId: initId,
+        duration: `${initDuration}ms`,
+      });
     } catch (error: any) {
-      console.error(`[INIT] FATAL ERROR during initialization:`, error);
-      console.error(`[INIT] Error message:`, error?.message);
-      console.error(`[INIT] Error stack:`, error?.stack);
+      const initDuration = Date.now() - initStartTime;
+      logger.error("FATAL ERROR during initialization", error, {
+        requestId: initId,
+        duration: `${initDuration}ms`,
+      });
       // Don't set appInitialized to true on error
       throw error;
     }
@@ -113,7 +133,7 @@ export default async function handler(req: any, res: any) {
     
     if (isStaticAsset || rawPath.startsWith('/assets/')) {
       // This is a static asset - don't process it, let Vercel handle it
-      console.log(`[API] Static asset request detected, ignoring: ${rawPath}`);
+      logger.debug(`Static asset request detected, ignoring: ${rawPath}`);
       // Return undefined to let Vercel's static file handler take over
       return;
     }
@@ -160,7 +180,7 @@ export default async function handler(req: any, res: any) {
     if (!apiPath || (!apiPath.startsWith('/api') && apiPath !== '/api')) {
       // This should never happen due to vercel.json rewrites, but if it does,
       // we should NOT set JSON headers - let Vercel handle it as a static file
-      console.log(`[API] Non-API path reached handler, ignoring: ${apiPath}`);
+      logger.debug(`Non-API path reached handler, ignoring: ${apiPath}`);
       // Don't send any response - let Vercel's static file handler take over
       // This prevents SSL_ERROR_RX_RECORD_TOO_LONG when static assets accidentally reach here
       return;
@@ -178,6 +198,20 @@ export default async function handler(req: any, res: any) {
     // Get path without query string for path matching
     const apiPathWithoutQuery = apiPath.split('?')[0];
 
+    // Generate request ID for tracking
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    (req as any).requestId = requestId;
+    
+    logger.debug("Incoming request", {
+      requestId,
+      method: req.method,
+      path: apiPath,
+      headers: {
+        'user-agent': req.headers['user-agent'],
+        'content-type': req.headers['content-type'],
+      },
+    });
+
     // Initialize app (only once) - with timeout and error handling
     try {
       await Promise.race([
@@ -186,25 +220,24 @@ export default async function handler(req: any, res: any) {
           setTimeout(() => reject(new Error('Initialization timeout after 10s')), 10000)
         )
       ]);
-      console.log('[API] App initialization completed successfully');
+      logger.debug("App initialization completed", { requestId });
     } catch (initError: any) {
-      console.error('[API] Initialization error:', initError);
-      console.error('[API] Error message:', initError?.message);
-      console.error('[API] Error stack:', initError?.stack);
+      logger.error("Initialization error", initError, { requestId });
       // If initialization fails completely, return error immediately
       if (!appInitialized) {
-        console.error('[API] App not initialized - returning 503');
+        logger.error("App not initialized - returning 503", { requestId });
         if (!res.headersSent) {
           return res.status(503).json({ 
             error: "Service unavailable", 
             message: initError?.message || "Server initialization failed. Please try again later.",
-            details: process.env.NODE_ENV === 'development' ? initError?.stack : undefined
+            details: process.env.NODE_ENV === 'development' ? initError?.stack : undefined,
+            requestId,
           });
         }
         return;
       }
       // If app is partially initialized, continue - some routes might work
-      console.warn('[API] App partially initialized - continuing with request');
+      logger.warn("App partially initialized - continuing with request", { requestId });
     }
 
     // Update request for Express - preserve query string
@@ -235,7 +268,7 @@ export default async function handler(req: any, res: any) {
           try {
             res.status(504).json({ error: "Request timeout" });
           } catch (e) {
-            console.error("Error sending timeout response:", e);
+            logger.error("Error sending timeout response", e, { requestId });
           }
           finish();
         }
@@ -244,12 +277,12 @@ export default async function handler(req: any, res: any) {
       // Set a maximum processing time for the request
       const processingTimeout = setTimeout(() => {
         if (!res.headersSent && !finished) {
-          console.error('[API] Request processing timeout');
+          logger.error('Request processing timeout', undefined, { requestId });
           try {
             res.status(504).json({ error: "Gateway timeout" });
             finish();
           } catch (e) {
-            console.error("Error sending timeout response:", e);
+            logger.error("Error sending timeout response", e, { requestId });
             finish();
           }
         }
@@ -260,12 +293,12 @@ export default async function handler(req: any, res: any) {
         clearTimeout(processingTimeout);
         
         if (err) {
-          console.error("[API] Express error:", err);
+          logger.error("Express error", err, { requestId, path: apiPathWithoutQuery });
           if (!res.headersSent && !finished) {
             try {
               res.status(500).json({ error: "Internal server error", message: err.message });
             } catch (e) {
-              console.error("Error sending error response:", e);
+              logger.error("Error sending error response", e, { requestId });
             }
             finish();
           } else {
@@ -276,7 +309,7 @@ export default async function handler(req: any, res: any) {
           try {
             res.status(404).json({ error: "Not Found", path: apiPathWithoutQuery });
           } catch (e) {
-            console.error("Error sending 404 response:", e);
+            logger.error("Error sending 404 response", e, { requestId });
           }
           finish();
         } else {
@@ -286,12 +319,13 @@ export default async function handler(req: any, res: any) {
       });
     });
   } catch (error: any) {
-    console.error("Handler error:", error);
+    const requestId = (req as any)?.requestId || 'unknown';
+    logger.error("Handler error", error, { requestId });
     if (!res.headersSent) {
       try {
         res.status(500).json({ error: "Internal server error" });
       } catch (e) {
-        console.error("Error sending error response in catch:", e);
+        logger.error("Error sending error response in catch", e, { requestId });
       }
     }
   }

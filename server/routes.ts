@@ -181,10 +181,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
   try {
     console.log("[ROUTES] Starting route registration...");
     
-    // Health check endpoint - used by deployment to verify app is running without database access
-    app.get("/health", (req, res) => {
-      res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+    // ========== HEALTH CHECK & DEBUG ENDPOINTS ==========
+    
+    // Basic health check
+    app.get("/api/health", (req, res) => {
+      res.status(200).json({ 
+        status: "ok", 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+      });
     });
+
+    // Detailed health check with system diagnostics
+    app.get("/api/health/detailed", async (req, res) => {
+      try {
+        const health = {
+          status: "ok",
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || "unknown",
+          nodeVersion: process.version,
+          memory: {
+            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+            rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
+          },
+          database: "unknown" as string,
+        };
+
+        // Check database connection
+        try {
+          const { getPoolInstance } = await import("./db.js");
+          const pool = getPoolInstance();
+          if (pool) {
+            const result = await pool.query("SELECT 1 as health");
+            health.database = result.rows?.[0]?.health === 1 ? "connected" : "disconnected";
+          } else {
+            health.database = "not_initialized";
+          }
+        } catch (dbError: any) {
+          health.database = `error: ${dbError.message}`;
+        }
+
+        res.status(200).json(health);
+      } catch (error: any) {
+        res.status(503).json({
+          status: "error",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    // Debug endpoints (development only)
+    if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEBUG === 'true') {
+      // Debug info endpoint
+      app.get("/api/debug/info", (req, res) => {
+        res.json({
+          nodeVersion: process.version,
+          platform: process.platform,
+          arch: process.arch,
+          env: Object.keys(process.env).filter(key => 
+            !key.includes('PASSWORD') && 
+            !key.includes('SECRET') && 
+            !key.includes('KEY') &&
+            !key.includes('TOKEN')
+          ).reduce((acc: any, key) => {
+            acc[key] = process.env[key];
+            return acc;
+          }, {}),
+          memory: process.memoryUsage(),
+          uptime: process.uptime(),
+        });
+      });
+
+      // Module resolution check
+      app.get("/api/debug/modules", async (req, res) => {
+        try {
+          const moduleChecks: any = {
+            timestamp: new Date().toISOString(),
+            checks: [],
+          };
+
+          // Check @shared/schema
+          try {
+            const schema = await import("@shared/schema");
+            moduleChecks.checks.push({
+              module: "@shared/schema",
+              status: "ok",
+              exports: Object.keys(schema).slice(0, 10), // First 10 exports
+            });
+          } catch (error: any) {
+            moduleChecks.checks.push({
+              module: "@shared/schema",
+              status: "error",
+              error: error.message,
+            });
+          }
+
+          // Check storage
+          try {
+            const { storage } = await import("./storage.js");
+            moduleChecks.checks.push({
+              module: "./storage.js",
+              status: "ok",
+              hasGetUser: typeof storage?.getUser === 'function',
+            });
+          } catch (error: any) {
+            moduleChecks.checks.push({
+              module: "./storage.js",
+              status: "error",
+              error: error.message,
+            });
+          }
+
+          res.json(moduleChecks);
+        } catch (error: any) {
+          res.status(500).json({ error: error.message });
+        }
+      });
+
+      // Environment variables check (sanitized)
+      app.get("/api/debug/env", (req, res) => {
+        const env = process.env;
+        const sanitized: Record<string, string> = {};
+
+        // List of sensitive keys to mask
+        const sensitiveKeys = [
+          'PASSWORD', 'SECRET', 'KEY', 'TOKEN', 'AUTH', 
+          'DATABASE', 'DB', 'CONNECTION', 'CREDENTIAL',
+          'API_KEY', 'PRIVATE', 'ACCESS'
+        ];
+
+        Object.keys(env).forEach((key) => {
+          const isSensitive = sensitiveKeys.some(sensitive => 
+            key.toUpperCase().includes(sensitive)
+          );
+
+          if (isSensitive) {
+            // Show that the variable exists but mask its value
+            const value = env[key] || '';
+            sanitized[key] = value.length > 0 
+              ? `${value.substring(0, 4)}***[masked]` 
+              : '[not set]';
+          } else {
+            // Show non-sensitive variables as-is
+            sanitized[key] = env[key] || '[not set]';
+          }
+        });
+
+        res.json({
+          timestamp: new Date().toISOString(),
+          environment: env.NODE_ENV || 'unknown',
+          nodeVersion: process.version,
+          variables: sanitized,
+          count: Object.keys(sanitized).length,
+        });
+      });
+    }
 
     // Setup authentication routes
     console.log("[ROUTES] Setting up authentication...");
@@ -3638,7 +3792,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { generateAIEnhancedModules } = await import('./ai-module-service');
+      const { generateAIEnhancedModules } = await import('./ai-module-service.js');
       const enhancedModules = await generateAIEnhancedModules(courseId, userId);
       
       res.json(enhancedModules);

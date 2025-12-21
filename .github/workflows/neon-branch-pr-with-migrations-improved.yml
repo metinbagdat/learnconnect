@@ -99,7 +99,7 @@ jobs:
       || github.event.action == 'reopened')
     runs-on: ubuntu-latest
     env:
-      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID || '' }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
     steps:
       - name: Checkout code
@@ -501,7 +501,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     env:
-      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+      NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID || '' }}
       NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
     steps:
       - name: Check Neon Credentials

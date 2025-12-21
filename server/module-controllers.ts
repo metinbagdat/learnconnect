@@ -1,11 +1,11 @@
-import { studyPlannerControl } from "./study-planner-control";
+import { studyPlannerControl } from "./study-planner-control.js";
 import {
   generateAiStudyPlan,
   getUserStudyGoals,
   createStudySession,
   getUserStudySessions,
   getProgressCharts,
-} from "./smart-planning";
+} from "./smart-planning.js";
 
 const logger = {
   info: (msg: string) => console.log(`[MODULE CONTROLLER] ${msg}`),
