@@ -1,4 +1,20 @@
 import "dotenv/config";
+// Register path aliases for runtime resolution (needed for Vercel)
+import { register } from "tsconfig-paths/register";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Register @shared/* path alias for runtime resolution
+register({
+  baseUrl: resolve(__dirname, ".."),
+  paths: {
+    "@shared/*": ["./shared/*"],
+  },
+});
+
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "../server/routes.js";
