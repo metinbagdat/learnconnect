@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { db } from "../db";
-import { subscriptionPlans, userSubscriptions, userUsageTracking } from "@shared/schema";
+import { db } from "../db.js";
+import { subscriptionPlans, userSubscriptions, userUsageTracking } from "../../shared/schema.js";
 import { eq, and, desc, gte } from "drizzle-orm";
 
 // Extend Request interface to include subscription info
