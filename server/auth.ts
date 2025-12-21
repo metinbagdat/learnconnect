@@ -11,7 +11,7 @@ import { getPoolInstance } from "./db.js";
 import { logger } from "./utils/logger.js";
 
 const PgStore = connectPgSimple(session);
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser } from "../shared/schema.js";
 
 declare global {
   namespace Express {

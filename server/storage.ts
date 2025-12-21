@@ -8,7 +8,7 @@ import {
   sql
 } from "drizzle-orm";
 import { db } from "./db.js";
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema.js";
 
 const {
   users,

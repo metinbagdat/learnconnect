@@ -4,8 +4,8 @@ import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
 import { registerStripeRoutes } from "./stripe-routes.js";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal.js";
-import * as schema from "@shared/schema";
-import type { User, CurriculumDesignParameters, UserSkillProgress } from "@shared/schema";
+import * as schema from "../shared/schema.js";
+import type { User, CurriculumDesignParameters, UserSkillProgress } from "../shared/schema.js";
 import { eq, inArray, gt, and, gte, notInArray, count, sum, sql } from "drizzle-orm";
 import { checkSubscription, checkAssessmentLimit, requirePremium, trackUsage } from "./middleware/subscription.js";
 import { studyPlannerControl } from "./study-planner-control.js";
@@ -101,7 +101,7 @@ import {
   insertAiConceptLogSchema,
   insertAiStudyTipsLogSchema,
   insertAiReviewLogSchema
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { z } from "zod";
 import { generateCourse, saveGeneratedCourse, generateCourseRecommendations, generateLearningPath, saveLearningPath } from "./ai-service.js";
 import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
@@ -148,7 +148,7 @@ import {
   userChallengeProgress,
   userCourses,
   users
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 // Initialize clients only if API keys are provided
 const openaiKey = process.env.OPENAI_API_KEY?.trim();
