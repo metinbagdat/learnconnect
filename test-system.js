@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { storage } from "./server/storage.js";
+import { storage } from "./server/storage.ts";
 
 /**
  * Comprehensive system test script

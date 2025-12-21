@@ -1,8 +1,8 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, desc, gte } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 import { studyGoals, studySessions, studyPrograms } from "@shared/schema";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

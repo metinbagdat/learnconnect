@@ -1,61 +1,61 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { setupAuth } from "./auth";
-import { registerStripeRoutes } from "./stripe-routes";
-import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
+import { storage } from "./storage.js";
+import { setupAuth } from "./auth.js";
+import { registerStripeRoutes } from "./stripe-routes.js";
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal.js";
 import * as schema from "@shared/schema";
 import type { User, CurriculumDesignParameters, UserSkillProgress } from "@shared/schema";
 import { eq, inArray, gt, and, gte, notInArray, count, sum, sql } from "drizzle-orm";
-import { checkSubscription, checkAssessmentLimit, requirePremium, trackUsage } from "./middleware/subscription";
-import { studyPlannerControl } from "./study-planner-control";
-import { controlHandlers } from "./study-planner-control-handlers";
-import { registerControlEndpoints } from "./control-endpoints";
-import { registerCourseControlEndpoints } from "./course-control-endpoints";
-import { registerSuggestionsEndpoints } from "./smart-suggestions/suggestions-endpoints";
-import { registerAISystemEndpoints } from "./smart-suggestions/ai-system-endpoints";
-import { registerEnhancedAIEndpoints } from "./smart-suggestions/enhanced-ai-profile-endpoints";
-import { registerRegistrationAIEndpoints } from "./smart-suggestions/registration-endpoints";
-import { registerPreCourseAIEndpoints } from "./smart-suggestions/pre-course-ai-guidance-endpoints";
-import { registerAIControlEndpoints } from "./smart-suggestions/ai-control-endpoints";
-import { registerInteractionTrackingEndpoints } from "./smart-suggestions/interaction-tracking-endpoints";
-import { registerStudentDashboardEndpoints } from "./smart-suggestions/student-dashboard-endpoints";
-import { registerHealthCheckEndpoints } from "./smart-suggestions/health-check-endpoints";
-import { registerAdminAIEndpoints } from "./smart-suggestions/admin-ai-endpoints";
-import { registerGoalFormEndpoints } from "./smart-suggestions/goal-form-endpoints";
-import { registerAIDataFlowEndpoints } from "./smart-suggestions/ai-data-flow-endpoints";
-import { registerDataFlowEndpoints } from "./smart-suggestions/data-flow-endpoints";
-import { registerMLModelEndpoints } from "./smart-suggestions/ml-model-endpoints";
-import { registerAIAdaptationEndpoints } from "./smart-suggestions/ai-adaptation-endpoints";
-import { registerCurriculumMLEndpoints } from "./smart-suggestions/curriculum-ml-endpoints";
-import { registerRealTimeAdaptationEndpoints } from "./smart-suggestions/real-time-adaptation-endpoints";
-import { registerSystemValidationEndpoints } from "./smart-suggestions/system-validation-endpoints";
-import { registerMemoryEnhancementEndpoints } from "./smart-suggestions/memory-enhancement-endpoints";
-import { registerMemoryEnhancedCurriculumEndpoints } from "./smart-suggestions/memory-enhanced-curriculum-endpoints";
-import { registerCognitiveIntegrationEndpoints } from "./smart-suggestions/cognitive-integration-endpoints";
-import { registerMemoryTechniqueIntegrationEndpoints } from "./smart-suggestions/memory-technique-integration-endpoints";
-import { registerSpacedRepetitionEndpoints } from "./smart-suggestions/spaced-repetition-endpoints";
-import { registerAIIntegrationEndpoints } from "./smart-suggestions/ai-integration-endpoints";
-import { registerUnifiedOrchestrationEndpoints } from "./smart-suggestions/unified-orchestration-endpoints";
-import { handleCourseEnrollment } from "./enrollment-event-handler";
-import { aiFeatures } from "./ai-features";
-import { dashboardService } from "./dashboard-service";
-import { adminDashboardService } from "./admin-dashboard-service";
-import { contentBasedSuggestions } from "./content-based-suggestions";
-import { notificationsService } from "./notifications-service";
-import { studyPlanService } from "./study-plan-service";
-import { requireAdmin, requireInstructor, validateRequest, curriculumGenerationSchema, studyPlanAdjustmentSchema } from "./middleware/auth-validation";
-import { registerDashboardEndpoints } from "./smart-suggestions/dashboard-endpoints";
-import { registerFormsAndListsEndpoints } from "./smart-suggestions/forms-and-lists-endpoints";
-import { registerSuccessMetricsEndpoints } from "./smart-suggestions/success-metrics-endpoints";
-import { registerUnifiedIntegrationEndpoints } from "./smart-suggestions/unified-integration-endpoints";
-import { courseIntegrationEngine } from "./course-integration-engine";
-import curriculumGenerationRouter from "./smart-suggestions/curriculum-generation-endpoints";
-import productionRouter from "./smart-suggestions/production-endpoints";
-import { realTimeMonitor } from "./real-time-monitor";
-import { alertSystem } from "./alert-system";
-import { predictiveMaintenanceEngine } from "./predictive-maintenance";
-import { selfHealingEngine } from "./self-healing";
+import { checkSubscription, checkAssessmentLimit, requirePremium, trackUsage } from "./middleware/subscription.js";
+import { studyPlannerControl } from "./study-planner-control.js";
+import { controlHandlers } from "./study-planner-control-handlers.js";
+import { registerControlEndpoints } from "./control-endpoints.js";
+import { registerCourseControlEndpoints } from "./course-control-endpoints.js";
+import { registerSuggestionsEndpoints } from "./smart-suggestions/suggestions-endpoints.js";
+import { registerAISystemEndpoints } from "./smart-suggestions/ai-system-endpoints.js";
+import { registerEnhancedAIEndpoints } from "./smart-suggestions/enhanced-ai-profile-endpoints.js";
+import { registerRegistrationAIEndpoints } from "./smart-suggestions/registration-endpoints.js";
+import { registerPreCourseAIEndpoints } from "./smart-suggestions/pre-course-ai-guidance-endpoints.js";
+import { registerAIControlEndpoints } from "./smart-suggestions/ai-control-endpoints.js";
+import { registerInteractionTrackingEndpoints } from "./smart-suggestions/interaction-tracking-endpoints.js";
+import { registerStudentDashboardEndpoints } from "./smart-suggestions/student-dashboard-endpoints.js";
+import { registerHealthCheckEndpoints } from "./smart-suggestions/health-check-endpoints.js";
+import { registerAdminAIEndpoints } from "./smart-suggestions/admin-ai-endpoints.js";
+import { registerGoalFormEndpoints } from "./smart-suggestions/goal-form-endpoints.js";
+import { registerAIDataFlowEndpoints } from "./smart-suggestions/ai-data-flow-endpoints.js";
+import { registerDataFlowEndpoints } from "./smart-suggestions/data-flow-endpoints.js";
+import { registerMLModelEndpoints } from "./smart-suggestions/ml-model-endpoints.js";
+import { registerAIAdaptationEndpoints } from "./smart-suggestions/ai-adaptation-endpoints.js";
+import { registerCurriculumMLEndpoints } from "./smart-suggestions/curriculum-ml-endpoints.js";
+import { registerRealTimeAdaptationEndpoints } from "./smart-suggestions/real-time-adaptation-endpoints.js";
+import { registerSystemValidationEndpoints } from "./smart-suggestions/system-validation-endpoints.js";
+import { registerMemoryEnhancementEndpoints } from "./smart-suggestions/memory-enhancement-endpoints.js";
+import { registerMemoryEnhancedCurriculumEndpoints } from "./smart-suggestions/memory-enhanced-curriculum-endpoints.js";
+import { registerCognitiveIntegrationEndpoints } from "./smart-suggestions/cognitive-integration-endpoints.js";
+import { registerMemoryTechniqueIntegrationEndpoints } from "./smart-suggestions/memory-technique-integration-endpoints.js";
+import { registerSpacedRepetitionEndpoints } from "./smart-suggestions/spaced-repetition-endpoints.js";
+import { registerAIIntegrationEndpoints } from "./smart-suggestions/ai-integration-endpoints.js";
+import { registerUnifiedOrchestrationEndpoints } from "./smart-suggestions/unified-orchestration-endpoints.js";
+import { handleCourseEnrollment } from "./enrollment-event-handler.js";
+import { aiFeatures } from "./ai-features.js";
+import { dashboardService } from "./dashboard-service.js";
+import { adminDashboardService } from "./admin-dashboard-service.js";
+import { contentBasedSuggestions } from "./content-based-suggestions.js";
+import { notificationsService } from "./notifications-service.js";
+import { studyPlanService } from "./study-plan-service.js";
+import { requireAdmin, requireInstructor, validateRequest, curriculumGenerationSchema, studyPlanAdjustmentSchema } from "./middleware/auth-validation.js";
+import { registerDashboardEndpoints } from "./smart-suggestions/dashboard-endpoints.js";
+import { registerFormsAndListsEndpoints } from "./smart-suggestions/forms-and-lists-endpoints.js";
+import { registerSuccessMetricsEndpoints } from "./smart-suggestions/success-metrics-endpoints.js";
+import { registerUnifiedIntegrationEndpoints } from "./smart-suggestions/unified-integration-endpoints.js";
+import { courseIntegrationEngine } from "./course-integration-engine.js";
+import curriculumGenerationRouter from "./smart-suggestions/curriculum-generation-endpoints.js";
+import productionRouter from "./smart-suggestions/production-endpoints.js";
+import { realTimeMonitor } from "./real-time-monitor.js";
+import { alertSystem } from "./alert-system.js";
+import { predictiveMaintenanceEngine } from "./predictive-maintenance.js";
+import { selfHealingEngine } from "./self-healing.js";
 import { 
   insertCourseSchema, 
   insertUserCourseSchema, 
@@ -103,9 +103,9 @@ import {
   insertAiReviewLogSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { generateCourse, saveGeneratedCourse, generateCourseRecommendations, generateLearningPath, saveLearningPath } from "./ai-service";
-import { callAIWithFallback, parseAIJSON } from "./ai-provider-service";
-import * as aiCurriculumService from "./ai-curriculum-service";
+import { generateCourse, saveGeneratedCourse, generateCourseRecommendations, generateLearningPath, saveLearningPath } from "./ai-service.js";
+import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
+import * as aiCurriculumService from "./ai-curriculum-service.js";
 import { 
   generateLessonTrail, 
   saveLessonTrail, 
@@ -113,31 +113,31 @@ import {
   updateTrailProgress, 
   generatePersonalizedRecommendations,
   recordLearningAnalytics 
-} from "./lesson-trail-service";
+} from "./lesson-trail-service.js";
 import * as fs from "fs";
 import * as path from "path";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { seedChallenges } from "./seed-challenges";
-import { generateExamLearningPath, saveExamLearningPath, generatePredefinedExamPaths } from "./entrance-exam-service";
-import { getSuggestions } from "./suggestion-service";
-import { generateAdaptiveLearningPath, updateStepProgress, generateNewRecommendations } from "./adaptive-learning-service";
-import { handleUnifiedLearningAction, getUnifiedLearningContext } from "./unified-learning-service";
+import { seedChallenges } from "./seed-challenges.js";
+import { generateExamLearningPath, saveExamLearningPath, generatePredefinedExamPaths } from "./entrance-exam-service.js";
+import { getSuggestions } from "./suggestion-service.js";
+import { generateAdaptiveLearningPath, updateStepProgress, generateNewRecommendations } from "./adaptive-learning-service.js";
+import { handleUnifiedLearningAction, getUnifiedLearningContext } from "./unified-learning-service.js";
 import { 
   detectLearningStyle,
   generateDifficultyAdjustment,
   generatePredictiveAnalytics,
   generateAdaptiveInsights
-} from "./advanced-adaptive-service";
-import * as smartPlanning from "./smart-planning";
-import { aiCurriculumGenerator } from "./ai-curriculum-generator";
-import { aiCourseRecommender } from "./ai-course-recommender";
-import { enrollmentPipeline } from "./enrollment-pipeline";
-import * as notificationService from "./notification-service";
-import * as aiSessionGenerator from "./ai-session-generator";
-import { analyzeProgressAndRecommend, getTopicResources, trackResourceEngagement } from "./resource-recommendation-service";
-import { generateAdaptiveAdjustments, detectLearningInterventionNeeds } from "./adaptive-adjustment-service";
-import { db } from "./db";
+} from "./advanced-adaptive-service.js";
+import * as smartPlanning from "./smart-planning.js";
+import { aiCurriculumGenerator } from "./ai-curriculum-generator.js";
+import { aiCourseRecommender } from "./ai-course-recommender.js";
+import { enrollmentPipeline } from "./enrollment-pipeline.js";
+import * as notificationService from "./notification-service.js";
+import * as aiSessionGenerator from "./ai-session-generator.js";
+import { analyzeProgressAndRecommend, getTopicResources, trackResourceEngagement } from "./resource-recommendation-service.js";
+import { generateAdaptiveAdjustments, detectLearningInterventionNeeds } from "./adaptive-adjustment-service.js";
+import { db } from "./db.js";
 import { 
   skillChallenges, 
   userSkillChallengeAttempts,
@@ -178,13 +178,172 @@ function buildCourseTree(courses: any[], parentId: number | null = null): any[] 
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint - used by deployment to verify app is running without database access
-  app.get("/health", (req, res) => {
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
+  try {
+    console.log("[ROUTES] Starting route registration...");
+    
+    // ========== HEALTH CHECK & DEBUG ENDPOINTS ==========
+    
+    // Basic health check
+    app.get("/api/health", (req, res) => {
+      res.status(200).json({ 
+        status: "ok", 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+      });
+    });
 
-  // Setup authentication routes
-  setupAuth(app);
+    // Detailed health check with system diagnostics
+    app.get("/api/health/detailed", async (req, res) => {
+      try {
+        const health = {
+          status: "ok",
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: process.env.NODE_ENV || "unknown",
+          nodeVersion: process.version,
+          memory: {
+            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+            rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
+          },
+          database: "unknown" as string,
+        };
+
+        // Check database connection
+        try {
+          const { getPoolInstance } = await import("./db.js");
+          const pool = getPoolInstance();
+          if (pool) {
+            const result = await pool.query("SELECT 1 as health");
+            health.database = result.rows?.[0]?.health === 1 ? "connected" : "disconnected";
+          } else {
+            health.database = "not_initialized";
+          }
+        } catch (dbError: any) {
+          health.database = `error: ${dbError.message}`;
+        }
+
+        res.status(200).json(health);
+      } catch (error: any) {
+        res.status(503).json({
+          status: "error",
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    // Debug endpoints (development only)
+    if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEBUG === 'true') {
+      // Debug info endpoint
+      app.get("/api/debug/info", (req, res) => {
+        res.json({
+          nodeVersion: process.version,
+          platform: process.platform,
+          arch: process.arch,
+          env: Object.keys(process.env).filter(key => 
+            !key.includes('PASSWORD') && 
+            !key.includes('SECRET') && 
+            !key.includes('KEY') &&
+            !key.includes('TOKEN')
+          ).reduce((acc: any, key) => {
+            acc[key] = process.env[key];
+            return acc;
+          }, {}),
+          memory: process.memoryUsage(),
+          uptime: process.uptime(),
+        });
+      });
+
+      // Module resolution check
+      app.get("/api/debug/modules", async (req, res) => {
+        try {
+          const moduleChecks: any = {
+            timestamp: new Date().toISOString(),
+            checks: [],
+          };
+
+          // Check @shared/schema
+          try {
+            const schema = await import("@shared/schema");
+            moduleChecks.checks.push({
+              module: "@shared/schema",
+              status: "ok",
+              exports: Object.keys(schema).slice(0, 10), // First 10 exports
+            });
+          } catch (error: any) {
+            moduleChecks.checks.push({
+              module: "@shared/schema",
+              status: "error",
+              error: error.message,
+            });
+          }
+
+          // Check storage
+          try {
+            const { storage } = await import("./storage.js");
+            moduleChecks.checks.push({
+              module: "./storage.js",
+              status: "ok",
+              hasGetUser: typeof storage?.getUser === 'function',
+            });
+          } catch (error: any) {
+            moduleChecks.checks.push({
+              module: "./storage.js",
+              status: "error",
+              error: error.message,
+            });
+          }
+
+          res.json(moduleChecks);
+        } catch (error: any) {
+          res.status(500).json({ error: error.message });
+        }
+      });
+
+      // Environment variables check (sanitized)
+      app.get("/api/debug/env", (req, res) => {
+        const env = process.env;
+        const sanitized: Record<string, string> = {};
+
+        // List of sensitive keys to mask
+        const sensitiveKeys = [
+          'PASSWORD', 'SECRET', 'KEY', 'TOKEN', 'AUTH', 
+          'DATABASE', 'DB', 'CONNECTION', 'CREDENTIAL',
+          'API_KEY', 'PRIVATE', 'ACCESS'
+        ];
+
+        Object.keys(env).forEach((key) => {
+          const isSensitive = sensitiveKeys.some(sensitive => 
+            key.toUpperCase().includes(sensitive)
+          );
+
+          if (isSensitive) {
+            // Show that the variable exists but mask its value
+            const value = env[key] || '';
+            sanitized[key] = value.length > 0 
+              ? `${value.substring(0, 4)}***[masked]` 
+              : '[not set]';
+          } else {
+            // Show non-sensitive variables as-is
+            sanitized[key] = env[key] || '[not set]';
+          }
+        });
+
+        res.json({
+          timestamp: new Date().toISOString(),
+          environment: env.NODE_ENV || 'unknown',
+          nodeVersion: process.version,
+          variables: sanitized,
+          count: Object.keys(sanitized).length,
+        });
+      });
+    }
+
+    // Setup authentication routes
+    console.log("[ROUTES] Setting up authentication...");
+    await setupAuth(app);
+    console.log("[ROUTES] Authentication setup complete");
   
   // Setup Stripe payment routes
   registerStripeRoutes(app);
@@ -1189,7 +1348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Import the AI chat service
-      const { processStudyCompanionChat } = await import('./ai-chat-service');
+      const { processStudyCompanionChat } = await import('./ai-chat-service.js');
       
       // Process the chat message with context
       const response = await processStudyCompanionChat(
@@ -1218,7 +1377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { getChatHistory } = await import('./ai-chat-service');
+      const { getChatHistory } = await import('./ai-chat-service.js');
       const history = getChatHistory(userId);
       res.json({ messages: history });
     } catch (error) {
@@ -1237,7 +1396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const { clearChatHistory } = await import('./ai-chat-service');
+      const { clearChatHistory } = await import('./ai-chat-service.js');
       const cleared = clearChatHistory(userId);
       res.json({ success: cleared });
     } catch (error) {
@@ -1796,7 +1955,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       }
 
       // Import the AI module service to get lesson data
-      const { generateAIEnhancedModules } = await import("./ai-module-service");
+      const { generateAIEnhancedModules } = await import("./ai-module-service.js");
       
       // For now, we'll find the lesson by searching through all courses
       // This is a temporary solution until we have proper lesson storage
@@ -1837,7 +1996,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       }
 
       // Import the AI module service
-      const { generateAIEnhancedModules } = await import("./ai-module-service");
+      const { generateAIEnhancedModules } = await import("./ai-module-service.js");
       
       const language = req.query.lang as string || 'en';
       const aiModules = await generateAIEnhancedModules(courseId, userId, language);
@@ -1852,7 +2011,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.post("/api/create-admin", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       // Import the admin creation function
-      const { default: createAdminAccount } = await import("./create-admin");
+      const { default: createAdminAccount } = await import("./create-admin.js");
       
       // Create an admin with default credentials
       const result = await createAdminAccount("admin", "admin123", "Admin User");
@@ -1876,7 +2035,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     
     try {
       // Import the addTurkishCourses function directly
-      const { default: addTurkishCourses } = await import("./add-turkish-courses");
+      const { default: addTurkishCourses } = await import("./add-turkish-courses.js");
       
       // Call the function to add Turkish courses
       await addTurkishCourses();
@@ -2148,7 +2307,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Milestone and userId are required" });
       }
 
-      const { aiEmojiService } = await import('./ai-emoji-service');
+      const { aiEmojiService } = await import('./ai-emoji-service.js');
       const emojiReaction = await aiEmojiService.generateMilestoneEmoji(
         milestone,
         userId,
@@ -3575,6 +3734,33 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     }
   });
 
+  // JWT endpoint for SSO/Replit integration (stub)
+  app.get("/api/jwt", async (req, res) => {
+    try {
+      // Check if user is authenticated via session
+      if (req.isAuthenticated() && req.user) {
+        // Return a simple token or user info
+        return res.json({ 
+          authenticated: true,
+          user: {
+            id: req.user.id,
+            username: req.user.username,
+            displayName: req.user.displayName,
+            role: req.user.role
+          }
+        });
+      }
+      // Not authenticated
+      return res.status(403).json({ 
+        authenticated: false,
+        message: "Not authenticated" 
+      });
+    } catch (error) {
+      console.error("Error with JWT endpoint:", error);
+      res.status(500).json({ error: "JWT endpoint failed" });
+    }
+  });
+
   // Social authentication endpoints (OAuth integration would go here)
   app.post("/api/auth/social/:provider", (app as any).ensureAuthenticated, async (req, res) => {
     try {
@@ -3606,7 +3792,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(401).json({ error: "Unauthorized" });
       }
 
-      const { generateAIEnhancedModules } = await import('./ai-module-service');
+      const { generateAIEnhancedModules } = await import('./ai-module-service.js');
       const enhancedModules = await generateAIEnhancedModules(courseId, userId);
       
       res.json(enhancedModules);
@@ -4989,7 +5175,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     try {
       const { subject, subCategory, language = 'en' } = req.body;
       
-      const { generateAssessmentQuestions } = await import('./assessment-service');
+      const { generateAssessmentQuestions } = await import('./assessment-service.js');
       
       // Generate 3 sample questions for preview
       const previewQuestions = await generateAssessmentQuestions(
@@ -5044,7 +5230,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Subject is required" });
       }
 
-      const { createLevelAssessment } = await import('./assessment-service');
+      const { createLevelAssessment } = await import('./assessment-service.js');
       const assessmentId = await createLevelAssessment(userId, subject, subCategory, language);
       
       // Track assessment usage
@@ -5138,7 +5324,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(404).json({ message: "Assessment not found" });
       }
 
-      const { completeAssessment } = await import('./assessment-service');
+      const { completeAssessment } = await import('./assessment-service.js');
       const result = await completeAssessment(assessmentId, answers, language);
       
       res.json(result);
@@ -6485,7 +6671,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       }
 
       // Import AI daily plan service
-      const { generateAndSaveDailyPlan } = await import("./ai-daily-plan-service");
+      const { generateAndSaveDailyPlan } = await import("./ai-daily-plan-service.js");
       
       const plan = await generateAndSaveDailyPlan({
         userId: req.user.id,
@@ -7619,7 +7805,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
       const { taskId, score, timeSpent, difficulty, satisfaction, topicId, subjectId, notes } = req.body;
-      const { trackTaskPerformance } = await import('./adaptive-learning-service');
+      const { trackTaskPerformance } = await import('./adaptive-learning-service.js');
       const feedback = await trackTaskPerformance(req.user.id, {
         taskId,
         score,
@@ -7640,7 +7826,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.get("/api/adaptive/analytics", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-      const { generateLearningAnalyticsReport } = await import('./adaptive-learning-service');
+      const { generateLearningAnalyticsReport } = await import('./adaptive-learning-service.js');
       const report = await generateLearningAnalyticsReport(req.user.id);
       res.json(report);
     } catch (error) {
@@ -7653,7 +7839,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
       const { examDate } = req.body;
-      const { predictExamPerformance } = await import('./adaptive-learning-service');
+      const { predictExamPerformance } = await import('./adaptive-learning-service.js');
       const prediction = await predictExamPerformance(req.user.id, examDate);
       res.json(prediction);
     } catch (error) {
@@ -7665,7 +7851,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.get("/api/adaptive/learning-patterns", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-      const { analyzeLearningPatterns } = await import('./adaptive-learning-service');
+      const { analyzeLearningPatterns } = await import('./adaptive-learning-service.js');
       const patterns = await analyzeLearningPatterns(req.user.id);
       res.json(patterns);
     } catch (error) {
@@ -9630,7 +9816,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const { suggestionEngine } = await import("./suggestion-engine");
+      const { suggestionEngine } = await import("./suggestion-engine.js");
       const suggestions = await suggestionEngine.generateSuggestions(parseInt(userId));
 
       res.json({
@@ -9654,7 +9840,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const { suggestionEngine } = await import("./suggestion-engine");
+      const { suggestionEngine } = await import("./suggestion-engine.js");
       const suggestions = await suggestionEngine.generateSuggestions(req.user.id);
 
       res.json(suggestions.slice(0, 5));
@@ -9676,7 +9862,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing or invalid courseId or performanceData" });
       }
 
-      const { adaptiveLearningSystem } = await import("./adaptive-learning-system");
+      const { adaptiveLearningSystem } = await import("./adaptive-learning-system.js");
       const result = await adaptiveLearningSystem.adjustCurriculum(req.user.id, courseId, performanceData);
 
       res.json({
@@ -9735,7 +9921,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
           completedDate: p.createdAt || new Date().toISOString(),
         }));
 
-      const { adaptiveLearningSystem } = await import("./adaptive-learning-system");
+      const { adaptiveLearningSystem } = await import("./adaptive-learning-system.js");
       const result = await adaptiveLearningSystem.adjustCurriculum(
         userId,
         enrollments[0].courseId,
@@ -9761,7 +9947,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const { progressTracker } = await import("./progress-tracker");
+      const { progressTracker } = await import("./progress-tracker.js");
       progressTracker.trackUserProgress(req.user.id, {
         assignmentId,
         score,
@@ -9785,7 +9971,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const { progressTracker } = await import("./progress-tracker");
+      const { progressTracker } = await import("./progress-tracker.js");
       const summary = await progressTracker.getProgressSummary(parseInt(userId));
       res.json(summary);
     } catch (error) {
@@ -9806,7 +9992,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing courseId or moduleId" });
       }
 
-      const { assignmentGenerator } = await import("./assignment-generator");
+      const { assignmentGenerator } = await import("./assignment-generator.js");
       const assignments = await assignmentGenerator.generateAssignmentsForModule(
         courseId,
         moduleId,
@@ -9838,7 +10024,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         return res.status(400).json({ message: "Missing required parameters" });
       }
 
-      const { assignmentGenerator } = await import("./assignment-generator");
+      const { assignmentGenerator } = await import("./assignment-generator.js");
       const assignment = await assignmentGenerator.generateAssignment({
         moduleId,
         moduleName: moduleName || "Module",
@@ -10055,7 +10241,7 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
         return res.status(403).json({ message: "Only admins can view analytics" });
       }
 
-      const { analyticsEngine } = await import("./analytics-engine");
+      const { analyticsEngine } = await import("./analytics-engine.js");
       const metrics = await analyticsEngine.getDashboardMetrics();
 
       res.json({ success: true, metrics });
@@ -10658,8 +10844,15 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
     res.status(statusCode).json(errorResponse);
   });
 
-  // Create HTTP server
-  const httpServer = createServer(app);
-
-  return httpServer;
+    // Create HTTP server
+    const httpServer = createServer(app);
+    
+    console.log("[ROUTES] Route registration completed successfully");
+    return httpServer;
+  } catch (error: any) {
+    console.error("[ROUTES] FATAL ERROR during route registration:", error);
+    console.error("[ROUTES] Error message:", error?.message);
+    console.error("[ROUTES] Error stack:", error?.stack);
+    throw error; // Re-throw to be caught by api/index.ts
+  }
 }

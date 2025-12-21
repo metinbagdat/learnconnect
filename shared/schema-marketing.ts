@@ -174,20 +174,39 @@ export const newsArticles = pgTable("news_articles", {
 });
 
 // Insert schemas
-export const insertReferralCodeSchema = createInsertSchema(referralCodes).omit({ id: true, createdAt: true });
-export const insertReferralRedemptionSchema = createInsertSchema(referralRedemptions).omit({ id: true, createdAt: true });
-export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns).omit({ id: true, createdAt: true });
-export const insertEmailSubscriberSchema = createInsertSchema(emailSubscribers).omit({ id: true, createdAt: true });
-export const insertAffiliateProgramSchema = createInsertSchema(affiliateProgram).omit({ id: true, createdAt: true });
-export const insertAffiliateTransactionSchema = createInsertSchema(affiliateTransactions).omit({ id: true, createdAt: true });
-export const insertSocialShareSchema = createInsertSchema(socialShares).omit({ id: true, createdAt: true });
-export const insertMarketingAnalyticsSchema = createInsertSchema(marketingAnalytics).omit({ id: true, createdAt: true });
-export const insertUserAcquisitionMetricsSchema = createInsertSchema(userAcquisitionMetrics).omit({ id: true, createdAt: true });
-export const insertWaitlistSchema = createInsertSchema(waitlist).omit({ id: true, createdAt: true });
-export const insertTestimonialSchema = createInsertSchema(testimonials).omit({ id: true, createdAt: true });
-export const insertAutomationWorkflowSchema = createInsertSchema(automationWorkflows).omit({ id: true, createdAt: true });
-export const insertAutomationExecutionSchema = createInsertSchema(automationExecutions).omit({ id: true, createdAt: true });
-export const insertNewsArticleSchema = createInsertSchema(newsArticles).omit({ id: true, createdAt: true, publishedAt: true });
+// Helper function to safely omit fields (imported from schema.ts pattern)
+function safeOmit<T extends z.ZodTypeAny>(
+  schema: T,
+  keys: Record<string, true>
+): z.ZodTypeAny {
+  const shape = (schema as any).shape || {};
+  const keysToOmit: Record<string, true> = {};
+  
+  for (const key of Object.keys(keys)) {
+    if (key in shape) {
+      keysToOmit[key] = true;
+    }
+  }
+  
+  return Object.keys(keysToOmit).length > 0 
+    ? (schema as any).omit(keysToOmit)
+    : schema;
+}
+
+export const insertReferralCodeSchema = safeOmit(createInsertSchema(referralCodes), { id: true, createdAt: true });
+export const insertReferralRedemptionSchema = safeOmit(createInsertSchema(referralRedemptions), { id: true, createdAt: true });
+export const insertEmailCampaignSchema = safeOmit(createInsertSchema(emailCampaigns), { id: true, createdAt: true });
+export const insertEmailSubscriberSchema = safeOmit(createInsertSchema(emailSubscribers), { id: true, createdAt: true });
+export const insertAffiliateProgramSchema = safeOmit(createInsertSchema(affiliateProgram), { id: true, createdAt: true });
+export const insertAffiliateTransactionSchema = safeOmit(createInsertSchema(affiliateTransactions), { id: true, createdAt: true });
+export const insertSocialShareSchema = safeOmit(createInsertSchema(socialShares), { id: true, createdAt: true });
+export const insertMarketingAnalyticsSchema = safeOmit(createInsertSchema(marketingAnalytics), { id: true, createdAt: true });
+export const insertUserAcquisitionMetricsSchema = safeOmit(createInsertSchema(userAcquisitionMetrics), { id: true, createdAt: true });
+export const insertWaitlistSchema = safeOmit(createInsertSchema(waitlist), { id: true, createdAt: true });
+export const insertTestimonialSchema = safeOmit(createInsertSchema(testimonials), { id: true, createdAt: true });
+export const insertAutomationWorkflowSchema = safeOmit(createInsertSchema(automationWorkflows), { id: true, createdAt: true });
+export const insertAutomationExecutionSchema = safeOmit(createInsertSchema(automationExecutions), { id: true, createdAt: true });
+export const insertNewsArticleSchema = safeOmit(createInsertSchema(newsArticles), { id: true, createdAt: true, publishedAt: true });
 
 // Types
 export type ReferralCode = typeof referralCodes.$inferSelect;

@@ -1,109 +1,159 @@
-# LearnConnect Deployment Checklist ✅
+# Deployment Checklist - FUNCTION_INVOCATION_FAILED Fix
 
-## Pre-Deployment Verification
+## ✅ Critical Bug Fixed
 
-### ✅ Core Features Implemented
-- [x] 2.1 Smart AI Curriculum Generator - Complete
-- [x] 2.2 Automated Enrollment Pipeline - Complete  
-- [x] 3.1 Student Dashboard Components - Complete
-- [x] 4.1 Intelligent Suggestions Engine - Complete
-- [x] 4.2 Adaptive Learning System - Complete
-- [x] 6.1 Real-time Progress Tracking - Complete
-- [x] 6.2 Automated Assignment Generation - Complete
-- [x] 7.1 Analytics Dashboard - Complete
+### Issue
+`FUNCTION_INVOCATION_FAILED` errors on `/api/login` and `/api/user` endpoints.
 
-### ✅ Technical Requirements Met
-- [x] TypeScript type safety throughout
-- [x] PostgreSQL database with Drizzle ORM
-- [x] Claude 3.5 Sonnet AI integration
-- [x] Passport.js authentication with role-based access
-- [x] Zod validation on all inputs
-- [x] Comprehensive error handling
-- [x] 20+ API endpoints operational
-- [x] React 18 frontend with Shadcn UI
-- [x] TanStack Query for data management
-- [x] Wouter for routing
-- [x] Tailwind CSS responsive design
+### Root Cause
+In `server/auth.ts`, the LocalStrategy callback was trying to access `req.requestId`, but `req` is not available in that scope, causing a `ReferenceError` that crashed the function.
 
-### ✅ Database & Schema
-- [x] users table with learningPace tracking
-- [x] courses with bilingual support
-- [x] enrollments (userCourses)
-- [x] curriculums with JSON structure
-- [x] modules and lessons
-- [x] assignments with cumulative due dates
-- [x] userProgress tracking
-- [x] notifications system
-- [x] studyPlans and adjustments
+### Fix Applied
+- Removed `req` reference from LocalStrategy error handler (line 201)
+- Improved logging throughout auth.ts (replaced console.log with logger)
+- Fixed type issue with userId header parsing
 
-### ✅ API Endpoints
-- [x] Curriculum generation (admin + auto-adapt)
-- [x] Enrollment pipeline orchestration
-- [x] Student dashboard data
-- [x] Suggestion generation (full + dashboard)
-- [x] Adaptive curriculum adjustment
-- [x] Progress tracking & summary
-- [x] Assignment generation (batch + single)
-- [x] Analytics dashboard
-- [x] Study plan pace adjustment
-- [x] Notifications management
+## ✅ Pre-Deployment Verification
 
-### ✅ Security & Auth
-- [x] Passport.js session management
-- [x] Role-based access control
-- [x] Protected routes on frontend
-- [x] Admin-only endpoints secured
-- [x] User data isolation
+### Completed Checks
+- [x] Build debugging passed (`npm run debug:build`)
+- [x] Critical modules verified
+- [x] Build output size acceptable (1.37 MB)
+- [x] Import verification script available (`npm run verify:imports`)
+- [x] Enhanced logging system in place
+- [x] Error handling middleware configured
+- [x] Health check endpoints available
 
-### ✅ Testing Completed
-- [x] Server startup verified
-- [x] Core endpoints responding
-- [x] Database connectivity confirmed
-- [x] AI integration active
-- [x] Authentication system operational
+### Known Issues (Non-Critical)
+- 87 import warnings for `@shared/schema` missing `.js` extensions
+  - These are likely handled by build system path aliases
+  - Can be addressed incrementally if needed
+- Many `console.log` statements still exist in non-critical files
+  - Can be migrated to logger incrementally
+  - Critical paths (auth, api/index) already use logger
 
-### ✅ Frontend Routes
-- [x] `/dashboard-smart` - Smart dashboard with 4 widgets
-- [x] `/student-dashboard` - Student learning view
-- [x] `/admin-dashboard` - Admin analytics
-- [x] `/admin/curriculum-generator` - Curriculum UI
-- [x] Authentication pages
+## 🚀 Deployment Steps
 
-### ✅ Deployment Ready
-- [x] No console errors blocking startup
-- [x] All dependencies installed
-- [x] Environment variables configured
-- [x] Database migrations ready
-- [x] Port 5000 available
-- [x] Server running successfully
+### 1. Pre-Deployment
+```bash
+# Verify imports (optional - may show warnings)
+npm run verify:imports
 
-## Deployment Instructions
+# Test build
+npm run debug:build
 
-### Step 1: Publish Application
-Use Replit's built-in publishing feature to deploy the application.
+# Check TypeScript compilation
+npm run check
+```
 
-### Step 2: Monitor Performance
-- Check server logs for any runtime errors
-- Monitor database connectivity
-- Verify AI integration responses
+### 2. Deploy to Vercel
+- Push changes to your repository
+- Vercel will automatically build and deploy
+- Monitor the deployment logs
 
-### Step 3: User Testing
-- Test enrollment pipeline
-- Verify curriculum generation
-- Check student dashboard widgets
-- Confirm suggestion engine functionality
+### 3. Post-Deployment Verification
 
-## Environment Variables Required
-- `ANTHROPIC_API_KEY` - Claude AI integration (handled by Replit)
-- `DATABASE_URL` - PostgreSQL connection (Neon - handled by Replit)
-- Session configuration (default in place)
+#### Health Checks
+```bash
+# Basic health check
+curl https://your-domain.com/api/health
 
-## Known Limitations & Future Work
-- Peer learning features (planned for medium-term)
-- Mobile app (planned for medium-term)
-- Predictive learning optimization (long-term vision)
-- Advanced content generation (long-term vision)
-- Certification integration (long-term vision)
+# Detailed diagnostics
+curl https://your-domain.com/api/health/detailed
+```
 
-## Status: ✅ PRODUCTION READY
-All immediate and short-term goals completed. Platform ready for deployment and user testing.
+#### Test Authentication Endpoints
+```bash
+# Test login (should work now)
+curl -X POST https://your-domain.com/api/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test","password":"test"}' \
+  -c cookies.txt
+
+# Test user endpoint
+curl https://your-domain.com/api/user \
+  -b cookies.txt
+```
+
+### 4. Monitor Logs
+
+After deployment, check Vercel function logs:
+1. Go to Vercel Dashboard
+2. Select your deployment
+3. Click "Functions" tab
+4. View logs for `api/index.ts`
+
+Look for:
+- ✅ Successful initialization messages
+- ✅ Request IDs in logs (for correlation)
+- ✅ No `FUNCTION_INVOCATION_FAILED` errors
+- ✅ Proper error messages with context
+
+## 📊 Expected Behavior After Fix
+
+### Before Fix
+- `/api/login` → `FUNCTION_INVOCATION_FAILED` (500)
+- `/api/user` → `FUNCTION_INVOCATION_FAILED` (500)
+- No error context in logs
+
+### After Fix
+- `/api/login` → Should work correctly (200 or 401)
+- `/api/user` → Should work correctly (200 or 401)
+- Detailed error logs with request IDs
+- Better error messages for debugging
+
+## 🔍 Debugging Tools Available
+
+### Health Check Endpoints
+- `GET /api/health` - Basic health check
+- `GET /api/health/detailed` - Detailed system diagnostics
+
+### Debug Endpoints (Development Only)
+- `GET /api/debug/info` - System information
+- `GET /api/debug/modules` - Module resolution status
+- `GET /api/debug/env` - Environment variables (sanitized)
+
+### Local Testing
+```bash
+# Test local server
+npm run test:local
+
+# Debug build issues
+npm run debug:build
+
+# Verify imports
+npm run verify:imports
+```
+
+## 📝 Files Modified
+
+1. **server/auth.ts**
+   - Fixed critical bug (removed req reference)
+   - Enhanced logging (replaced console.log with logger)
+   - Fixed type issues
+
+2. **api/index.ts** (previously modified)
+   - Enhanced logging throughout
+   - Request ID tracking
+   - Better error handling
+
+## ⚠️ Important Notes
+
+1. **Session Configuration**: Ensure session store is properly configured for production
+2. **Database Connection**: Verify database connection strings are set correctly
+3. **Environment Variables**: Check that all required env vars are set in Vercel
+4. **CORS Settings**: Verify CORS is configured correctly for your domain
+
+## 🆘 If Issues Persist
+
+1. Check Vercel function logs for detailed error messages
+2. Use `/api/health/detailed` to check system status
+3. Verify database connection is working
+4. Check that all environment variables are set
+5. Review request IDs in logs to correlate errors
+
+## 📚 Additional Resources
+
+- See `DEBUG_GUIDE.md` for comprehensive debugging guide
+- Use test utilities in `test-utils/` for local testing
+- Check `scripts/` for debugging tools

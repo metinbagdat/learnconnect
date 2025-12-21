@@ -1,4 +1,4 @@
-import { StudyPlannerControl } from "./study-planner-control";
+import { StudyPlannerControl } from "./study-planner-control.js";
 
 export interface ModuleHealth {
   status: "healthy" | "degraded" | "failed";

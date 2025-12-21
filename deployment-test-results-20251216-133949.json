@@ -1,0 +1,56 @@
+﻿[
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:31",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu. (Status: N/A)",
+        "Test":  "Health Check Endpoint"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:36",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu. (Status: N/A)",
+        "Test":  "System Metrics Endpoint"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:36",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "Root URL Accessibility"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:40",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "Security Headers Verification"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:40",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "Static Asset Caching"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:40",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "HTML Cache Control"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:45",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "Homepage Response Time"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:49",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "Health API Response Time"
+    },
+    {
+        "Passed":  false,
+        "Timestamp":  "2025-12-16 13:39:49",
+        "Details":  "Error: Temel alınan bağlantı kapatıldı: Gönderme işleminde beklenmeyen hata oluştu.",
+        "Test":  "CORS Headers"
+    }
+]

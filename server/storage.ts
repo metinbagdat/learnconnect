@@ -7,7 +7,7 @@ import {
   asc,
   sql
 } from "drizzle-orm";
-import { db } from "./db";
+import { db } from "./db.js";
 import * as schema from "@shared/schema";
 
 const {
@@ -43,6 +43,7 @@ const {
 export interface IStorage {
   getUser(id: number): Promise<any>;
   getUserByUsername(username: string): Promise<any>;
+  getUsers(): Promise<any[]>;
   createUser(user: any): Promise<any>;
   getUserCourses(userId: number): Promise<any[]>;
   getUserAssignments(userId: number): Promise<any[]>;
@@ -89,6 +90,15 @@ class DatabaseStorage implements IStorage {
     } catch (error: any) {
       console.error(`[STORAGE] Error getting user by username ${username}:`, error?.message || error);
       throw new Error(`Database error: ${error?.message || 'Failed to get user'}`);
+    }
+  }
+
+  async getUsers() {
+    try {
+      return await db.select().from(users);
+    } catch (error: any) {
+      console.error("[STORAGE] Error getting users:", error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get users'}`);
     }
   }
 
@@ -423,6 +433,10 @@ class InMemoryStorage implements IStorage {
 
   async getUserByUsername(username: string) {
     return this.users.find((u) => u.username === username) || null;
+  }
+
+  async getUsers() {
+    return this.users;
   }
 
   async createUser(userData: any) {
