@@ -48,8 +48,8 @@ async function comparePasswords(supplied: string, stored: string) {
     const isEqual = timingSafeEqual(hashedBuf, suppliedBuf);
     console.log(`[HASH] Buffers equal: ${isEqual}`);
     return isEqual;
-  } catch (error) {
-    console.error(`[HASH] Password comparison error:`, error);
+  } catch (error: any) {
+    logger.error('Password comparison error', error);
     return false;
   }
 }
