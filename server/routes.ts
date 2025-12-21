@@ -178,13 +178,18 @@ function buildCourseTree(courses: any[], parentId: number | null = null): any[] 
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint - used by deployment to verify app is running without database access
-  app.get("/health", (req, res) => {
-    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
+  try {
+    console.log("[ROUTES] Starting route registration...");
+    
+    // Health check endpoint - used by deployment to verify app is running without database access
+    app.get("/health", (req, res) => {
+      res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+    });
 
-  // Setup authentication routes
-  await setupAuth(app);
+    // Setup authentication routes
+    console.log("[ROUTES] Setting up authentication...");
+    await setupAuth(app);
+    console.log("[ROUTES] Authentication setup complete");
   
   // Setup Stripe payment routes
   registerStripeRoutes(app);
@@ -10685,8 +10690,15 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
     res.status(statusCode).json(errorResponse);
   });
 
-  // Create HTTP server
-  const httpServer = createServer(app);
-
-  return httpServer;
+    // Create HTTP server
+    const httpServer = createServer(app);
+    
+    console.log("[ROUTES] Route registration completed successfully");
+    return httpServer;
+  } catch (error: any) {
+    console.error("[ROUTES] FATAL ERROR during route registration:", error);
+    console.error("[ROUTES] Error message:", error?.message);
+    console.error("[ROUTES] Error stack:", error?.stack);
+    throw error; // Re-throw to be caught by api/index.ts
+  }
 }
