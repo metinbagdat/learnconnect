@@ -1,35 +1,4 @@
 import "dotenv/config";
-// ESM path alias resolution for @shared/* imports
-// Since tsconfig-paths doesn't work with ESM, we use a custom resolver
-import { fileURLToPath } from "url";
-import { dirname, resolve as pathResolve } from "path";
-import { createRequire } from "module";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const projectRoot = pathResolve(__dirname, "..");
-
-// Patch the import system to resolve @shared/* paths
-// This works by intercepting dynamic imports
-const originalImport = globalThis.import;
-if (typeof originalImport === 'undefined') {
-  // Create a custom import function that resolves @shared/* paths
-  const require = createRequire(import.meta.url);
-  const Module = require('module');
-  
-  // For ESM, we need to use a different approach
-  // Store the resolver function for use in dynamic imports
-  (globalThis as any).__sharedPathResolver = (specifier: string) => {
-    if (specifier.startsWith('@shared/')) {
-      const relativePath = specifier.replace('@shared/', './shared/');
-      const fullPath = pathResolve(projectRoot, relativePath);
-      return pathToFileURL(fullPath).href;
-    }
-    return specifier;
-  };
-}
-
-import { pathToFileURL } from "url";
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import { registerRoutes } from "../server/routes.js";
@@ -106,7 +75,7 @@ async function initializeApp() {
       // Step 1: Verify critical modules can be loaded
       logger.debug("Step 1: Verifying module resolution", { requestId: initId });
       try {
-        await import("@shared/schema");
+        await import("../shared/schema.js");
         logger.debug("✓ @shared/schema loaded successfully", { requestId: initId });
       } catch (error: any) {
         logger.error("✗ Failed to load @shared/schema", error, { requestId: initId });
