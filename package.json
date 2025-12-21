@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
+  "imports": {
+    "@shared/*": "./shared/*.js",
+    "@shared/schema": "./shared/schema.js"
+  },
   "scripts": {
     "dev": "tsx server/index.ts",
     "dev:debug": "NODE_ENV=development tsx server/index.ts",

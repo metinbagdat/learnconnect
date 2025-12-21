@@ -26,8 +26,21 @@ const aliasPlugin = {
         resolvedPath += '.ts';
       }
       
+      const fullPath = path.resolve(__dirname, resolvedPath);
+      
+      // Verify the file exists
+      try {
+        const fs = require('fs');
+        if (!fs.existsSync(fullPath)) {
+          console.warn(`⚠️  Warning: Resolved path does not exist: ${fullPath}`);
+          console.warn(`   Original import: ${args.path}`);
+        }
+      } catch (e) {
+        // Ignore if fs check fails
+      }
+      
       return {
-        path: path.resolve(__dirname, resolvedPath),
+        path: fullPath,
         namespace: 'file', // Use the default file namespace
       };
     });
@@ -77,6 +90,10 @@ async function buildServer() {
       // This keeps the bundle smaller and faster to build
       // Alternatives: 'bundle' (bundle everything) or provide array of package names
       packages: 'external',
+      
+      // Ensure @shared/* imports are resolved and bundled
+      // The alias plugin handles the resolution, and bundle: true ensures they're included
+      external: [], // Don't externalize anything - bundle everything including @shared/*
       
       // plugins: Array of esbuild plugins to use
       // Our aliasPlugin handles @shared/* path resolution
