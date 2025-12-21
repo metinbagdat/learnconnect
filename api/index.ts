@@ -1,30 +1,23 @@
 import "dotenv/config";
-// Runtime path alias resolution for @shared/* imports in Vercel
-// This must run BEFORE any imports that use @shared/*
+// Use tsconfig-paths for runtime path alias resolution in Vercel
+// Note: This must be imported BEFORE any other imports that use @shared/*
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-import { createRequire } from "module";
+
+// Import tsconfig-paths and register it
+import { register } from "tsconfig-paths";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, "..");
 
-// Create a require function for dynamic imports
-const require = createRequire(import.meta.url);
-
-// Patch Module._resolveFilename to handle @shared/* imports
-// This is a workaround for ESM path aliases in Vercel
-if (typeof process !== "undefined" && process.versions?.node) {
-  const Module = require("module");
-  const originalResolveFilename = Module._resolveFilename;
-  Module._resolveFilename = function(request: string, parent: any, isMain: boolean, options: any) {
-    if (request.startsWith("@shared/")) {
-      const resolvedPath = request.replace("@shared/", resolve(projectRoot, "shared/"));
-      return originalResolveFilename.call(this, resolvedPath, parent, isMain, options);
-    }
-    return originalResolveFilename.call(this, request, parent, isMain, options);
-  };
-}
+// Register path aliases for runtime resolution
+register({
+  baseUrl: projectRoot,
+  paths: {
+    "@shared/*": ["./shared/*"],
+  },
+});
 
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
