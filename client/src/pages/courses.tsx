@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import ModernNavigation from "@/components/layout/modern-navigation";
 import { CourseTree } from "@/components/ui/course-tree";
+import { ExamCategoryTree } from "@/components/ui/exam-category-tree";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
