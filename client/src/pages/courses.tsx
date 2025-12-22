@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import ModernNavigation from "@/components/layout/modern-navigation";
 import { CourseTree } from "@/components/ui/course-tree";
-import { ExamCategoryTree } from "@/components/ui/exam-category-tree";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -246,30 +245,29 @@ export default function Courses() {
                             Browse courses organized by exam category (TYT/AYT/LGS) with full curriculum structure. Enroll in any course to begin learning.
                           </p>
                         </div>
-                        {typeof ExamCategoryTree !== 'undefined' ? (
-                          <ExamCategoryTree 
-                            data={examCategoryData} 
-                            showEnrollButton
-                            onEnroll={enrollInCourse}
-                          />
-                        ) : (
-                          <div className="space-y-4">
-                            {examCategoryData.map((category: any) => (
-                              <div key={category.id} className="space-y-2">
-                                <h3 className="text-lg font-bold">{category.name || category.code}</h3>
-                                {category.courses && category.courses.length > 0 ? (
-                                  <CourseTree
-                                    courses={category.courses}
-                                    showEnrollButton
-                                    onEnroll={enrollInCourse}
-                                  />
-                                ) : (
-                                  <p className="text-sm text-gray-500">No courses available</p>
-                                )}
+                        <div className="space-y-6">
+                          {examCategoryData.map((category: any) => {
+                            // Flatten courses from all categories for CourseTree
+                            const courses = category.courses || [];
+                            if (courses.length === 0) return null;
+                            
+                            return (
+                              <div key={category.id} className="space-y-3">
+                                <div className="flex items-center gap-2 pb-2 border-b border-gray-300">
+                                  <h3 className="text-lg font-bold text-gray-900">
+                                    {category.name || category.nameEn || category.nameTr || category.code || 'Category'}
+                                  </h3>
+                                  <span className="text-sm text-gray-500">({courses.length} courses)</span>
+                                </div>
+                                <CourseTree
+                                  courses={courses}
+                                  showEnrollButton
+                                  onEnroll={enrollInCourse}
+                                />
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            );
+                          })}
+                        </div>
                       </div>
                     ) : (
                       <EmptyState 
