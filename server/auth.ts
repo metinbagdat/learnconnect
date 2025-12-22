@@ -58,35 +58,8 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export async function setupAuth(app: Express) {
-  // AUTO-CREATION: Re-enabled to populate production database with courses
-  (async () => {
-    try {
-      const existingUser = await storage.getUserByUsername("testuser");
-      if (!existingUser) {
-        // TEMPORARY: Store plaintext for testing
-        await storage.createUser({
-          username: "testuser",
-          password: "password123",
-          displayName: "Test User",
-          role: "student"
-        });
-        logger.info("Seeded test user: testuser / password123 (PLAINTEXT FOR TESTING)");
-      }
-      // Also ensure admin user exists
-      const adminUser = await storage.getUserByUsername("admin");
-      if (!adminUser) {
-        await storage.createUser({
-          username: "admin",
-          password: "password123",
-          displayName: "Admin User",
-          role: "admin"
-        });
-        logger.info("Seeded admin user: admin / password123");
-      }
-    } catch (err: any) {
-      logger.error("Could not seed test user", err);
-    }
-  })();
+  // NOTE: Seeding of test/admin users has been moved to a one‑time script
+  // (`server/create-admin.ts`) to avoid creating test accounts on every deploy.
 
   // Use PostgreSQL session store for serverless compatibility
   // Falls back to memory store only if database is unavailable (development)
