@@ -64,9 +64,6 @@
       "runtime": "nodejs20.x"
     }
   },
-  "ignore": [
-    "api/index.ts"
-  ],
   "build": {
     "env": {
       "NODE_ENV": "production"
