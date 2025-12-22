@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ interface AIEnhancedModule {
 export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<AIEnhancedLesson | null>(null);
+  const [, navigate] = useLocation();
   const { t, language } = useLanguage();
 
   const { data: modules, isLoading } = useQuery<AIEnhancedModule[]>({
@@ -175,9 +177,11 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
                           "p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-all cursor-pointer",
                           selectedLesson?.id === lesson.id && "border-blue-500 bg-blue-50"
                         )}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setSelectedLesson(lesson);
-                          window.location.href = `/lessons/${lesson.id}`;
+                          navigate(`/lessons/${lesson.id}`);
                         }}
                       >
                         <div className="flex items-center justify-between mb-2">
@@ -239,7 +243,14 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
             <p className="text-gray-600 mb-4">
               This course doesn't have AI-enhanced modules yet. Content will be generated automatically as you progress.
             </p>
-            <Button variant="outline" onClick={() => window.location.reload()}>
+            <Button 
+              variant="outline" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.location.reload();
+              }}
+            >
               Refresh Content
             </Button>
           </div>
@@ -324,8 +335,10 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
               </div>
 
               {/* Action Button */}
-              <Button className="w-full" onClick={() => {
-                window.location.href = `/lessons/${selectedLesson.id}`;
+              <Button className="w-full" onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/lessons/${selectedLesson.id}`);
               }}>
                 Start Learning
               </Button>
