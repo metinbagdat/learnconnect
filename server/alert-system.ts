@@ -1,5 +1,5 @@
-import { studyPlannerControl } from "./study-planner-control";
-import { moduleControllers } from "./module-controllers";
+import { studyPlannerControl } from "./study-planner-control.js";
+import { moduleControllers } from "./module-controllers.js";
 
 export interface AlertRule {
   name: string;

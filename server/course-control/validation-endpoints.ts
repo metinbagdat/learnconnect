@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { systemValidation } from "./system-validation";
+import { systemValidation } from "./system-validation.js";
 
 export function registerValidationEndpoints(app: Express) {
   // Health check endpoint

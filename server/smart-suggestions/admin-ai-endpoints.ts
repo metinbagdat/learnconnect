@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { adminAIManagement } from "./admin-ai-management";
+import { adminAIManagement } from "./admin-ai-management.js";
 
 export function registerAdminAIEndpoints(app: Express) {
   // Get comprehensive AI management data

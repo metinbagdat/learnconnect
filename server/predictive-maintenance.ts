@@ -1,5 +1,5 @@
-import { realTimeMonitor } from "./real-time-monitor";
-import { alertSystem } from "./alert-system";
+import { realTimeMonitor } from "./real-time-monitor.js";
+import { alertSystem } from "./alert-system.js";
 
 interface PredictiveMetric {
   timestamp: string;

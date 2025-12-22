@@ -1,5 +1,5 @@
 import { storage } from "../storage.js";
-import type { UserCourse, UserLesson } from "@shared/schema";
+import type { UserCourse, UserLesson } from "../../shared/schema.js";
 
 export class EnrollmentManager {
   async enrollUser(userId: number, courseId: number): Promise<UserCourse | undefined> {

@@ -1,8 +1,8 @@
-import { pool } from "./db";
+import { pool } from "./db.js";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { migrate } from "drizzle-orm/neon-serverless/migrator";
 import { sql } from "drizzle-orm";
-import * as schema from "@shared/schema";
+import * as schema from "../shared/schema.js";
 
 async function runMigration() {
   console.log("Starting database migration...");

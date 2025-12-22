@@ -1,4 +1,4 @@
-import { aiDataModels } from "./ai-data-models";
+import { aiDataModels } from "./ai-data-models.js";
 
 export interface MLFeatures {
   learningStyle: number[];

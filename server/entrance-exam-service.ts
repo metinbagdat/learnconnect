@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { storage } from "./storage";
-import { InsertLearningPath, InsertLearningPathStep, Course } from "@shared/schema";
+import { storage } from "./storage.js";
+import { InsertLearningPath, InsertLearningPathStep, Course } from "../shared/schema.js";
 
 /*
 <important_code_snippet_instructions>

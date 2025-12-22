@@ -2,7 +2,7 @@
 // Master engine that connects course enrollments to all other modules
 // Implements cascading integration when users enroll in courses
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and, inArray } from "drizzle-orm";
 import { 
   courses, 
@@ -11,15 +11,15 @@ import {
   assignments as assignmentTable,
   dailyStudyTasks,
   users
-} from "@shared/schema";
+} from "../shared/schema.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { parseAIJSON } from "./ai-provider-service";
-import { CurriculumConnector } from "./curriculum-connector";
-import { StudyPlannerConnector } from "./study-planner-connector";
-import { AssignmentConnector } from "./assignment-connector";
-import { AISubcourseDirector } from "./ai-subcourse-director";
-import { ecosystemStateManager } from "./ecosystem-state-manager";
-import { integrationOrchestrator } from "./integration-orchestrator";
+import { parseAIJSON } from "./ai-provider-service.js";
+import { CurriculumConnector } from "./curriculum-connector.js";
+import { StudyPlannerConnector } from "./study-planner-connector.js";
+import { AssignmentConnector } from "./assignment-connector.js";
+import { AISubcourseDirector } from "./ai-subcourse-director.js";
+import { ecosystemStateManager } from "./ecosystem-state-manager.js";
+import { integrationOrchestrator } from "./integration-orchestrator.js";
 
 interface CourseAnalysis {
   courses: any[];

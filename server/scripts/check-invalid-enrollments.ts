@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { storage } from "../storage";
-import { db } from "../db";
-import { userCourses, courses } from "@shared/schema";
+import { storage } from "../storage.js";
+import { db } from "../db.js";
+import { userCourses, courses } from "../../shared/schema.js";
 import { eq, inArray } from "drizzle-orm";
 
 /**

@@ -1,7 +1,7 @@
 import { Express } from "express";
-import { studyPlannerControl } from "./study-planner-control";
-import { controlHandlers } from "./study-planner-control-handlers";
-import { permissions } from "./permissions";
+import { studyPlannerControl } from "./study-planner-control.js";
+import { controlHandlers } from "./study-planner-control-handlers.js";
+import { permissions } from "./permissions.js";
 
 const logger = {
   info: (msg: string) => console.log(`[INFO] ${new Date().toISOString()} ${msg}`),

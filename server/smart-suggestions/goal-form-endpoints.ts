@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { goalFormSystem } from "./goal-form-system";
+import { goalFormSystem } from "./goal-form-system.js";
 
 export function registerGoalFormEndpoints(app: Express) {
   // Get AI goal suggestions

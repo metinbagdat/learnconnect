@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { systemHealthCheck } from "./system-health-check";
+import { systemHealthCheck } from "./system-health-check.js";
 
 export function registerHealthCheckEndpoints(app: Express) {
   // System health status

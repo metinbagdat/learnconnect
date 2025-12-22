@@ -1,4 +1,4 @@
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 
 /**
  * Adds Turkish university entrance exam (YKS) courses to the database

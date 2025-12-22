@@ -1,7 +1,7 @@
 // Step 7: System Validation & Health Check for Deployment
 
 import { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export function registerSystemValidationEndpoints(app: Express) {
   // Comprehensive system health and validation check

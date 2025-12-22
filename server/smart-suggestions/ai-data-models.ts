@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { aiProfiles, enhancedInteractionLogs } from "@shared/schema";
+import { db } from "../db.js";
+import { aiProfiles, enhancedInteractionLogs } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 /**

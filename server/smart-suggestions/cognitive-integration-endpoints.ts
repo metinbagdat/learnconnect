@@ -1,7 +1,7 @@
 // Step 8.2: Comprehensive Integration Endpoints
 
 import { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export function registerCognitiveIntegrationEndpoints(app: Express) {
   // Create/Update Cognitive User Profile

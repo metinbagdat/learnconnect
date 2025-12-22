@@ -1,6 +1,6 @@
 import { Express } from "express";
-import { goalRecommendationModel } from "./ml-model-integration";
-import { aiDataModels } from "./ai-data-models";
+import { goalRecommendationModel } from "./ml-model-integration.js";
+import { aiDataModels } from "./ai-data-models.js";
 
 export function registerMLModelEndpoints(app: Express) {
   // Get goal recommendations

@@ -1,5 +1,5 @@
-import { studyPlannerControl } from "./study-planner-control";
-import { alertSystem } from "./alert-system";
+import { studyPlannerControl } from "./study-planner-control.js";
+import { alertSystem } from "./alert-system.js";
 
 export interface MetricsData {
   planGeneration: {

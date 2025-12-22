@@ -1,5 +1,5 @@
-import { storage } from "./storage";
-import { callAIWithFallback } from "./ai-provider-service";
+import { storage } from "./storage.js";
+import { callAIWithFallback } from "./ai-provider-service.js";
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';

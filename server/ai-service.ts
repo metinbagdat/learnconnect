@@ -1,7 +1,7 @@
-import { Course, insertCourseSchema, LearningPath, InsertLearningPath, InsertLearningPathStep } from "@shared/schema";
+import { Course, insertCourseSchema, LearningPath, InsertLearningPath, InsertLearningPathStep } from "../shared/schema.js";
 import { z } from "zod";
-import { storage } from "./storage";
-import { callAIWithFallback, parseAIJSON } from "./ai-provider-service";
+import { storage } from "./storage.js";
+import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
 
 // Define InsertCourse type from the schema
 type InsertCourse = z.infer<typeof insertCourseSchema>;

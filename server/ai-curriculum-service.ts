@@ -4,8 +4,8 @@ import {
   Course, Module, Lesson, 
   InsertCourseCurriculum, InsertCurriculumSkill, InsertCurriculumModule,
   InsertUserCurriculum, InsertUserCurriculumTask, InsertCurriculumCheckpoint
-} from "@shared/schema";
-import { storage } from "./storage";
+} from "../shared/schema.js";
+import { storage } from "./storage.js";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

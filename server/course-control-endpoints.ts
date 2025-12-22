@@ -1,13 +1,13 @@
 import { Express } from "express";
-import { courseControl } from "./course-control/course-control";
-import { interactionTracker } from "./course-control/interaction-tracker";
-import { integrationManager } from "./course-control/integration-manager";
-import { registerDataFlowEndpoints } from "./course-control/data-flow-endpoints";
-import { registerAnalyticsEndpoints } from "./course-control/analytics-endpoints";
-import { registerNotificationEndpoints } from "./course-control/notification-endpoints";
-import { registerPermissionEndpoints } from "./course-control/permission-endpoints";
-import { registerValidationEndpoints } from "./course-control/validation-endpoints";
-import { insertCourseSchema } from "@shared/schema";
+import { courseControl } from "./course-control/course-control.js";
+import { interactionTracker } from "./course-control/interaction-tracker.js";
+import { integrationManager } from "./course-control/integration-manager.js";
+import { registerDataFlowEndpoints } from "./course-control/data-flow-endpoints.js";
+import { registerAnalyticsEndpoints } from "./course-control/analytics-endpoints.js";
+import { registerNotificationEndpoints } from "./course-control/notification-endpoints.js";
+import { registerPermissionEndpoints } from "./course-control/permission-endpoints.js";
+import { registerValidationEndpoints } from "./course-control/validation-endpoints.js";
+import { insertCourseSchema } from "../shared/schema.js";
 
 export function registerCourseControlEndpoints(app: Express) {
   // Course Management Endpoints

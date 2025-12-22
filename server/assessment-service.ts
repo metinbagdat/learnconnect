@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { storage } from "./storage";
-import type { InsertLevelAssessment, InsertAssessmentQuestion, InsertUserSkillLevel } from "@shared/schema";
+import { storage } from "./storage.js";
+import type { InsertLevelAssessment, InsertAssessmentQuestion, InsertUserSkillLevel } from "../shared/schema.js";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,

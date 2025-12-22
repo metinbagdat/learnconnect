@@ -1,10 +1,10 @@
 // Unified Orchestration Engine - Coordinates all processes triggered by enrollment
 // Connects: Enrollment → Curriculum → Study Plan → Assignments → Targets
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and } from "drizzle-orm";
-import { userCourses, courses, memoryEnhancedCurricula, assignments as assignmentTable, userAssignments, users } from "@shared/schema";
-import { parseAIJSON } from "./ai-provider-service";
+import { userCourses, courses, memoryEnhancedCurricula, assignments as assignmentTable, userAssignments, users } from "../shared/schema.js";
+import { parseAIJSON } from "./ai-provider-service.js";
 import Anthropic from "@anthropic-ai/sdk";
 
 // Type definitions

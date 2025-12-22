@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { skillChallenges } from "@shared/schema";
+import { db } from "./db.js";
+import { skillChallenges } from "../shared/schema.js";
 
 const sampleSkillChallenges = [
   {

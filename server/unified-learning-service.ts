@@ -3,7 +3,7 @@
  * When a user takes action (attend lesson, complete task), ALL related components update atomically
  */
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and } from "drizzle-orm";
 import {
   userCourses,
@@ -13,8 +13,8 @@ import {
   studyProgress,
   studyGoals,
   userLevels,
-} from "@shared/schema";
-import { storage } from "./storage";
+} from "../shared/schema.js";
+import { storage } from "./storage.js";
 
 export interface UnifiedLearningAction {
   userId: number;

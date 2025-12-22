@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { userCurriculums } from "@shared/schema";
+import { db } from "./db.js";
+import { userCurriculums } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 interface ProductionData {

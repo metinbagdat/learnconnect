@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { courses, modules, lessons } from "@shared/schema";
+import { db } from "./db.js";
+import { courses, modules, lessons } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 interface ModuleData {

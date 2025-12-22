@@ -1,5 +1,5 @@
-import { aiSuggestionEngine } from "./ai-suggestion-engine";
-import type { UserGoal, UserInterest } from "@shared/schema";
+import { aiSuggestionEngine } from "./ai-suggestion-engine.js";
+import type { UserGoal, UserInterest } from "../../shared/schema.js";
 
 export interface UserProfile {
   userId: number;

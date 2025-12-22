@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { aiControlDashboard } from "./ai-control-system";
+import { aiControlDashboard } from "./ai-control-system.js";
 
 export function registerAIControlEndpoints(app: Express) {
   // Get comprehensive AI control panel

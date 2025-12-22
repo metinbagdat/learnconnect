@@ -1,6 +1,6 @@
-import { db } from "./db";
-import { challenges, userLevels } from "@shared/schema";
-import { storage } from "./storage";
+import { db } from "./db.js";
+import { challenges, userLevels } from "../shared/schema.js";
+import { storage } from "./storage.js";
 
 export async function seedChallenges() {
   try {

@@ -3,13 +3,13 @@
  * Generates assignments based on curriculum and courses
  */
 
-import { db } from './db';
+import { db } from './db.js';
 import {
   memoryEnhancedCurricula,
   assignments as assignmentTable,
   courses,
   courseIntegrationState,
-} from '@shared/schema';
+} from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 interface CourseAnalysis {

@@ -2,7 +2,7 @@
 // Demonstrates the complete AI-powered ecosystem with cascading updates
 
 import { Express } from "express";
-import { unifiedIntegrationLayer } from "../unified-integration-layer";
+import { unifiedIntegrationLayer } from "../unified-integration-layer.js";
 
 export function registerUnifiedIntegrationEndpoints(app: Express) {
   // Get unified dashboard view showing integrated ecosystem

@@ -1,13 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import type { 
   TytSubject, 
   TytTopic, 
   UserTopicProgress,
   TytStudentProfile,
   InsertAiDailyPlan 
-} from "@shared/schema";
+} from "../shared/schema.js";
 
 // Initialize AI clients only if API keys are provided
 const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();

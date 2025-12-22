@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { studySessions, reminders } from "@shared/schema";
+import { db } from "./db.js";
+import { studySessions, reminders } from "../shared/schema.js";
 import { eq, and, lte } from "drizzle-orm";
 
 interface ReminderPayload {

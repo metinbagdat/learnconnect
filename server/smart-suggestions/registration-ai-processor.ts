@@ -1,5 +1,5 @@
-import { learnConnectAISystem } from "./core-ai-system";
-import { aiSuggestionEngine } from "./ai-suggestion-engine";
+import { learnConnectAISystem } from "./core-ai-system.js";
+import { aiSuggestionEngine } from "./ai-suggestion-engine.js";
 
 export interface RegistrationData {
   email: string;

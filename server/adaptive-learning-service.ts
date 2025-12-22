@@ -1,5 +1,5 @@
-import { storage } from "./storage";
-import { User } from "@shared/schema";
+import { storage } from "./storage.js";
+import { User } from "../shared/schema.js";
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 

@@ -1,7 +1,7 @@
 import { Express } from "express";
-import { courseAlertNotificationSystem } from "./alert-notification-system";
-import { interactionTracker } from "./interaction-tracker";
-import { integrationManager } from "./integration-manager";
+import { courseAlertNotificationSystem } from "./alert-notification-system.js";
+import { interactionTracker } from "./interaction-tracker.js";
+import { integrationManager } from "./integration-manager.js";
 
 export function registerNotificationEndpoints(app: Express) {
   // Check metrics and generate alerts

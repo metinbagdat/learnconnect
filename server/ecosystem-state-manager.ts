@@ -4,14 +4,14 @@
  * including all active integrations, dependencies, and AI decisions
  */
 
-import { db } from './db';
+import { db } from './db.js';
 import {
   learningEcosystemState,
   moduleDependencyGraph,
   aiIntegrationLog,
   courseIntegrationState,
   userCourses,
-} from '@shared/schema';
+} from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 interface EcosystemStateSnapshot {

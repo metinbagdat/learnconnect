@@ -1,7 +1,7 @@
 // Step 2.2: Advanced Spaced Repetition Engine Endpoints
 
 import { Express } from "express";
-import { SpacedRepetitionEngine } from "../ml-models/spaced-repetition-engine";
+import { SpacedRepetitionEngine } from "../ml-models/spaced-repetition-engine.js";
 
 const srEngine = new SpacedRepetitionEngine();
 

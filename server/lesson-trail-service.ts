@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { db } from './db';
+import { db } from './db.js';
 import { 
   lessonTrails, 
   trailNodes, 
@@ -12,7 +12,7 @@ import {
   userCourses,
   userLevels,
   userAchievements
-} from '@shared/schema';
+} from '../shared/schema.js';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 
 // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219

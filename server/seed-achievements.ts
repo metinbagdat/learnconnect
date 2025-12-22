@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { achievements, leaderboards } from "@shared/schema";
+import { db } from "./db.js";
+import { achievements, leaderboards } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export async function seedAchievements() {

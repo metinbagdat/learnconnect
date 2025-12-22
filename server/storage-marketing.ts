@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import {
   referralCodes,
   referralRedemptions,
@@ -28,7 +28,7 @@ import {
   type InsertAutomationWorkflow,
   type InsertAutomationExecution,
   type InsertNewsArticle,
-} from "@shared/schema-marketing";
+} from "../shared/schema-marketing.js";
 
 export interface IMarketingStorage {
   // Referral System

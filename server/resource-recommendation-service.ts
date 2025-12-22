@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { studyProgress, lessons, modules, courses, userCourses } from "@shared/schema";
+import { db } from "./db.js";
+import { studyProgress, lessons, modules, courses, userCourses } from "../shared/schema.js";
 import { eq, and, count, avg } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 

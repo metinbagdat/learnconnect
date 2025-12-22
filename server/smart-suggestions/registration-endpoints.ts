@@ -1,8 +1,8 @@
 import { Express } from "express";
-import { registrationAIProcessor } from "./registration-ai-processor";
-import { learnConnectAISystem } from "./core-ai-system";
-import { db } from "../db";
-import { aiProfiles, userGoals, users } from "@shared/schema";
+import { registrationAIProcessor } from "./registration-ai-processor.js";
+import { learnConnectAISystem } from "./core-ai-system.js";
+import { db } from "../db.js";
+import { aiProfiles, userGoals, users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export function registerRegistrationAIEndpoints(app: Express) {

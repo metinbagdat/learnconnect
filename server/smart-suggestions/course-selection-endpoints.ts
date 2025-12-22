@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { courseSelectionController } from '../course-selection-controller';
+import { courseSelectionController } from '../course-selection-controller.js';
 
 export const courseSelectionRouter = Router();
 

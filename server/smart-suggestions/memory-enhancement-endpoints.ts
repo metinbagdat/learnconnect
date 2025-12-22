@@ -1,8 +1,8 @@
 // Step 8: Memory Enhancement & Spaced Repetition Endpoints
 
 import { Express } from "express";
-import { storage } from "../storage";
-import { MemoryEnhancementEngine } from "../ml-models/memory-enhancement-engine";
+import { storage } from "../storage.js";
+import { MemoryEnhancementEngine } from "../ml-models/memory-enhancement-engine.js";
 
 const memoryEngine = new MemoryEnhancementEngine();
 

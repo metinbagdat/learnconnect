@@ -1,5 +1,5 @@
-import { db } from "./db";
-import * as schema from "@shared/schema";
+import { db } from "./db.js";
+import * as schema from "../shared/schema.js";
 import Anthropic from "@anthropic-ai/sdk";
 import { eq, and } from "drizzle-orm";
 

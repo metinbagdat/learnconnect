@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { users, aiProfiles, userGoals, aiSuggestions, enhancedInteractionLogs } from "@shared/schema";
+import { db } from "../db.js";
+import { users, aiProfiles, userGoals, aiSuggestions, enhancedInteractionLogs } from "../../shared/schema.js";
 
 export interface SystemHealthStatus {
   status: "healthy" | "degraded" | "critical";

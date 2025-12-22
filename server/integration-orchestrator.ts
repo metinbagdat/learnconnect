@@ -4,10 +4,10 @@
  * Manages dependency graphs, execution sequencing, and optimization
  */
 
-import { db } from './db';
-import { moduleDependencyGraph, learningEcosystemState } from '@shared/schema';
+import { db } from './db.js';
+import { moduleDependencyGraph, learningEcosystemState } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
-import { ecosystemStateManager } from './ecosystem-state-manager';
+import { ecosystemStateManager } from './ecosystem-state-manager.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface IntegrationTrigger {

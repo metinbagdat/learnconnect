@@ -2,7 +2,7 @@
 // Provides real-time tracking of user engagement, academic performance, and system metrics
 
 import { Express } from "express";
-import { successMetricsTracker } from "../success-metrics-tracker";
+import { successMetricsTracker } from "../success-metrics-tracker.js";
 
 export function registerSuccessMetricsEndpoints(app: Express) {
   // Get user engagement metrics

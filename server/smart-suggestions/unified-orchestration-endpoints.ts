@@ -2,8 +2,8 @@
 // Integrates curriculum generation, study planning, and enrollment
 
 import { Express } from "express";
-import { orchestrationEngine } from "../orchestration-engine";
-import { aiCurriculumGenerator, type CurriculumGenerationRequest } from "../ai-curriculum-generator";
+import { orchestrationEngine } from "../orchestration-engine.js";
+import { aiCurriculumGenerator, type CurriculumGenerationRequest } from "../ai-curriculum-generator.js";
 
 export function registerUnifiedOrchestrationEndpoints(app: Express) {
   // Trigger full orchestration on course enrollment

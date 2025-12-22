@@ -1,7 +1,7 @@
 import { Express } from "express";
-import { learnConnectAISystem } from "./core-ai-system";
-import { db } from "../db";
-import { users } from "@shared/schema";
+import { learnConnectAISystem } from "./core-ai-system.js";
+import { db } from "../db.js";
+import { users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export function registerAISystemEndpoints(app: Express) {

@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { studyProgress, studyGoals } from "@shared/schema";
+import { db } from "./db.js";
+import { studyProgress, studyGoals } from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 

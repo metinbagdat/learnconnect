@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { aiProfiles, userGoals, aiSuggestions, enhancedInteractionLogs, userCourses } from "@shared/schema";
+import { db } from "../db.js";
+import { aiProfiles, userGoals, aiSuggestions, enhancedInteractionLogs, userCourses } from "../../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
 
 export interface DashboardOverview {

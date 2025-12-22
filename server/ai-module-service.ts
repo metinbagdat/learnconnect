@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { storage } from './storage';
+import { storage } from './storage.js';
 
 // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
 const anthropic = new Anthropic({

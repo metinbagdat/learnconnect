@@ -1,7 +1,7 @@
-import { db } from "./db";
-import * as schema from "@shared/schema";
+import { db } from "./db.js";
+import * as schema from "../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
-import { aiIntegration } from "./ai-integration";
+import { aiIntegration } from "./ai-integration.js";
 
 interface PerformanceData {
   assignmentId: number;

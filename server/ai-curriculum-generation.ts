@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import { 
   courses, 
   userCourses, 
@@ -7,7 +7,7 @@ import {
   curriculumSkills,
   userCurriculums,
   userCurriculumTasks
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { eq, and, desc, asc, sql } from "drizzle-orm";
 
 interface UserContext {

@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { dataFlowController } from "./data-flow-controller";
+import { dataFlowController } from "./data-flow-controller.js";
 
 export function registerDataFlowEndpoints(app: Express) {
   // Create pipeline

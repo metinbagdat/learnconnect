@@ -1,11 +1,11 @@
-import { courseManager } from "./course-manager";
-import { contentManager } from "./content-manager";
-import { enrollmentManager } from "./enrollment-manager";
-import { recommendationEngine } from "./recommendation-engine";
-import { courseAnalytics } from "./course-analytics";
-import { coursePermissions } from "./course-permissions";
-import { interactionChainManager } from "./interaction-chain-manager";
-import type { Course } from "@shared/schema";
+import { courseManager } from "./course-manager.js";
+import { contentManager } from "./content-manager.js";
+import { enrollmentManager } from "./enrollment-manager.js";
+import { recommendationEngine } from "./recommendation-engine.js";
+import { courseAnalytics } from "./course-analytics.js";
+import { coursePermissions } from "./course-permissions.js";
+import { interactionChainManager } from "./interaction-chain-manager.js";
+import type { Course } from "../../shared/schema.js";
 
 export class CourseControl {
   // Unified course operations

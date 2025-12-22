@@ -1,4 +1,4 @@
-import { callAIWithFallback, parseAIJSON } from "./ai-provider-service";
+import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
 
 /*
 <important_code_snippet_instructions>

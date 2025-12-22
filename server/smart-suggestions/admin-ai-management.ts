@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { users, aiProfiles, aiSuggestions, enhancedInteractionLogs, userGoals } from "@shared/schema";
+import { db } from "../db.js";
+import { users, aiProfiles, aiSuggestions, enhancedInteractionLogs, userGoals } from "../../shared/schema.js";
 import { count, eq } from "drizzle-orm";
 
 export interface AISystemOverview {

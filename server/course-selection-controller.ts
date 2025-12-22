@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { courses, userCourses } from "@shared/schema";
+import { db } from "./db.js";
+import { courses, userCourses } from "../shared/schema.js";
 import { eq, inArray } from "drizzle-orm";
 
 interface CourseAnalysis {

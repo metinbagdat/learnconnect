@@ -3,13 +3,13 @@
  * Automatically triggers study planner based on curriculum
  */
 
-import { db } from './db';
+import { db } from './db.js';
 import {
   memoryEnhancedCurricula,
   courses,
   users,
   courseIntegrationState,
-} from '@shared/schema';
+} from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 interface CourseAnalysis {

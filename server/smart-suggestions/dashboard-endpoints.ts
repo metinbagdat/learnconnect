@@ -1,9 +1,9 @@
 // Step 4: Dashboard Endpoints - Student and Admin
 
 import { Express } from "express";
-import { db } from "../db";
+import { db } from "../db.js";
 import { eq } from "drizzle-orm";
-import { userCourses, courses, users, assignments, userAssignments, memoryEnhancedCurricula } from "@shared/schema";
+import { userCourses, courses, users, assignments, userAssignments, memoryEnhancedCurricula } from "../../shared/schema.js";
 
 export function registerDashboardEndpoints(app: Express) {
   // Student Dashboard

@@ -1,7 +1,7 @@
 // Step 8.1: Memory-Enhanced Curriculum API Endpoints
 
 import { Express } from "express";
-import { MemoryEnhancedCurriculumEngine } from "../ml-models/memory-enhanced-curriculum-engine";
+import { MemoryEnhancedCurriculumEngine } from "../ml-models/memory-enhanced-curriculum-engine.js";
 
 const memoryEnhancedEngine = new MemoryEnhancedCurriculumEngine();
 

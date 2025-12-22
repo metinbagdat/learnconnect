@@ -1,5 +1,5 @@
 import { storage } from "../storage.js";
-import type { Module, Lesson } from "@shared/schema";
+import type { Module, Lesson } from "../../shared/schema.js";
 
 export class ContentManager {
   async createModule(courseId: number, moduleData: any): Promise<Module | undefined> {

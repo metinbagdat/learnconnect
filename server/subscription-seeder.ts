@@ -1,5 +1,5 @@
-import { db } from "./db";
-import { subscriptionPlans } from "@shared/schema";
+import { db } from "./db.js";
+import { subscriptionPlans } from "../shared/schema.js";
 
 export async function seedSubscriptionPlans() {
   try {

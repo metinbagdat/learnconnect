@@ -1,7 +1,7 @@
 import { Express } from "express";
-import { db } from "../db";
-import { userGoals, userInterests, studyPlans, studyMilestones, courseSuggestions, goalSuggestions, courses, userCourses } from "@shared/schema";
-import { aiSuggestionEngine } from "./ai-suggestion-engine";
+import { db } from "../db.js";
+import { userGoals, userInterests, studyPlans, studyMilestones, courseSuggestions, goalSuggestions, courses, userCourses } from "../../shared/schema.js";
+import { aiSuggestionEngine } from "./ai-suggestion-engine.js";
 import { eq, and } from "drizzle-orm";
 
 export function registerSuggestionsEndpoints(app: Express) {

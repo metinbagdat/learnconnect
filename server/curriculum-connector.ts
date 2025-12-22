@@ -3,14 +3,14 @@
  * Connects course enrollment to curriculum generation with AI-powered personalization
  */
 
-import { db } from './db';
+import { db } from './db.js';
 import {
   memoryEnhancedCurricula,
   courses,
   users,
   courseIntegrationState,
   aiRecommendationState,
-} from '@shared/schema';
+} from '../shared/schema.js';
 import { eq, and, inArray, not } from 'drizzle-orm';
 
 interface CourseAnalysis {

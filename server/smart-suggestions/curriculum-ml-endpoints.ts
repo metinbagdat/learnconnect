@@ -1,8 +1,8 @@
 // Step 7.1: Curriculum ML Model Endpoints
 
 import { Express } from "express";
-import { storage } from "../storage";
-import { CurriculumGeneratorModel } from "../ml-models/curriculum-generator-model";
+import { storage } from "../storage.js";
+import { CurriculumGeneratorModel } from "../ml-models/curriculum-generator-model.js";
 import { v4 as uuidv4 } from "uuid";
 
 const curriculumModel = new CurriculumGeneratorModel();

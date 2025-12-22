@@ -1,9 +1,9 @@
 // Step 5: Forms and Lists Endpoints
 
 import { Express } from "express";
-import { db } from "../db";
+import { db } from "../db.js";
 import { eq, and } from "drizzle-orm";
-import { courses, userCourses, memoryEnhancedCurricula, assignments, userAssignments, users } from "@shared/schema";
+import { courses, userCourses, memoryEnhancedCurricula, assignments, userAssignments, users } from "../../shared/schema.js";
 
 export function registerFormsAndListsEndpoints(app: Express) {
   // List available courses

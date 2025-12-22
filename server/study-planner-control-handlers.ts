@@ -1,6 +1,6 @@
-import { studyPlannerControl } from "./study-planner-control";
-import { apiRequest } from "../client/src/lib/queryClient";
-import { getModuleController } from "./module-controllers";
+import { studyPlannerControl } from "./study-planner-control.js";
+import { apiRequest } from "../client/src/lib/queryClient.js";
+import { getModuleController } from "./module-controllers.js";
 
 export class ControlHandlers {
   private controlSystem = studyPlannerControl;

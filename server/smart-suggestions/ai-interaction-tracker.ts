@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { enhancedInteractionLogs, aiProfiles, userGoals, userCourses, users } from "@shared/schema";
+import { db } from "../db.js";
+import { enhancedInteractionLogs, aiProfiles, userGoals, userCourses, users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export interface ContextSnapshot {

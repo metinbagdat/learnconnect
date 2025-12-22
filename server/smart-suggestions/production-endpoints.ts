@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { productionManager } from '../production-manager';
+import { productionManager } from '../production-manager.js';
 
 export const productionRouter = Router();
 

@@ -1,4 +1,4 @@
-import type { UserGoal, UserInterest, StudyPlan, CourseSuggestion, GoalSuggestion } from "@shared/schema";
+import type { UserGoal, UserInterest, StudyPlan, CourseSuggestion, GoalSuggestion } from "../../shared/schema.js";
 
 // Pre-defined goal suggestions based on career paths
 const CAREER_GOAL_MAPPINGS: Record<string, string[]> = {

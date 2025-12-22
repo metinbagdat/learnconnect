@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { aiDataFlowManagement } from "./ai-data-flow-management";
+import { aiDataFlowManagement } from "./ai-data-flow-management.js";
 
 export function registerDataFlowEndpoints(app: Express) {
   // Initialize data flow

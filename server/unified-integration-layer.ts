@@ -2,11 +2,11 @@
 // Connects all modules into a single coherent AI-powered ecosystem
 // Ensures every action triggers cascading updates across curriculum, study plans, assignments, and adaptation
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, and } from "drizzle-orm";
-import { userCourses, courses, memoryEnhancedCurricula, assignments as assignmentTable, userAssignments } from "@shared/schema";
+import { userCourses, courses, memoryEnhancedCurricula, assignments as assignmentTable, userAssignments } from "../shared/schema.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { parseAIJSON } from "./ai-provider-service";
+import { parseAIJSON } from "./ai-provider-service.js";
 
 export class UnifiedIntegrationLayer {
   private client: Anthropic;

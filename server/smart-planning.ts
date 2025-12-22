@@ -1,7 +1,7 @@
 import { db } from "./db.js";
 import { eq, desc, gte } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
-import { studyGoals, studySessions, studyPrograms } from "@shared/schema";
+import { studyGoals, studySessions, studyPrograms } from "../shared/schema.js";
 import { storage } from "./storage.js";
 
 const anthropic = new Anthropic({

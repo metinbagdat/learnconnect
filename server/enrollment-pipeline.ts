@@ -1,8 +1,8 @@
-import { db } from "./db";
-import * as schema from "@shared/schema";
+import { db } from "./db.js";
+import * as schema from "../shared/schema.js";
 import { eq } from "drizzle-orm";
-import { aiCurriculumGenerator } from "./ai-curriculum-generator";
-import { aiPersonalization } from "./ai-personalization";
+import { aiCurriculumGenerator } from "./ai-curriculum-generator.js";
+import { aiPersonalization } from "./ai-personalization.js";
 
 interface EnrollmentResult {
   success: boolean;

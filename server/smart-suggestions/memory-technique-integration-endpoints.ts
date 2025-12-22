@@ -1,7 +1,7 @@
 // Step 2.1: Memory Technique Integration System Endpoints
 
 import { Express } from "express";
-import { MemoryTechniqueIntegrator } from "../ml-models/memory-technique-integrator";
+import { MemoryTechniqueIntegrator } from "../ml-models/memory-technique-integrator.js";
 
 const integrator = new MemoryTechniqueIntegrator();
 

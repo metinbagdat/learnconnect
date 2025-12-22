@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { studentDashboardSystem } from "./student-dashboard-system";
+import { studentDashboardSystem } from "./student-dashboard-system.js";
 
 export function registerStudentDashboardEndpoints(app: Express) {
   // Get dashboard overview

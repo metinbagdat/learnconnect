@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { aiInteractionTracker } from "./ai-interaction-tracker";
+import { aiInteractionTracker } from "./ai-interaction-tracker.js";
 
 export function registerInteractionTrackingEndpoints(app: Express) {
   // Log AI interaction

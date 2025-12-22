@@ -1,7 +1,7 @@
 // Step 6.2: AI-Powered Integration Engine Endpoints
 
 import { Express } from "express";
-import { AIIntegrationEngine } from "../ml-models/ai-integration-engine";
+import { AIIntegrationEngine } from "../ml-models/ai-integration-engine.js";
 
 const aiEngine = new AIIntegrationEngine();
 

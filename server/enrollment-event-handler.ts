@@ -1,11 +1,11 @@
 // Enrollment Event Handler - Triggers system-wide updates on course enrollment
 // Implements Signal/Event system for automatic curriculum generation and planning
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq } from "drizzle-orm";
-import { userCourses, courses, users } from "@shared/schema";
-import { orchestrationEngine } from "./orchestration-engine";
-import { unifiedIntegrationLayer } from "./unified-integration-layer";
+import { userCourses, courses, users } from "../shared/schema.js";
+import { orchestrationEngine } from "./orchestration-engine.js";
+import { unifiedIntegrationLayer } from "./unified-integration-layer.js";
 
 /**
  * Event handler triggered when user enrolls in course

@@ -1,9 +1,9 @@
 // Success Metrics Tracker
 // Tracks user engagement, academic performance, and system performance
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, gte, lte, and } from "drizzle-orm";
-import { users, userCourses, assignments, userAssignments, memoryEnhancedCurricula } from "@shared/schema";
+import { users, userCourses, assignments, userAssignments, memoryEnhancedCurricula } from "../shared/schema.js";
 
 export interface EngagementMetrics {
   userId: number;

@@ -1,5 +1,5 @@
 import { Anthropic } from '@anthropic-ai/sdk';
-import { getTopicsByCriteria } from '../shared/bilingual-topics';
+import { getTopicsByCriteria } from '../shared/bilingual-topics.js';
 
 const anthropic = new Anthropic();
 

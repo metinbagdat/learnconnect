@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { aiAdaptationSystem } from "./ai-adaptation-system";
+import { aiAdaptationSystem } from "./ai-adaptation-system.js";
 
 export function registerAIAdaptationEndpoints(app: Express) {
   // Adapt based on interaction

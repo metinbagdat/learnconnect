@@ -1,6 +1,6 @@
 import { Express } from "express";
-import { db } from "../db";
-import { aiProfiles, aiSuggestions, enhancedInteractionLogs, users } from "@shared/schema";
+import { db } from "../db.js";
+import { aiProfiles, aiSuggestions, enhancedInteractionLogs, users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export function registerEnhancedAIEndpoints(app: Express) {

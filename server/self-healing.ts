@@ -1,6 +1,6 @@
-import { alertSystem } from "./alert-system";
-import { controlHandlers } from "./study-planner-control-handlers";
-import { predictiveMaintenanceEngine } from "./predictive-maintenance";
+import { alertSystem } from "./alert-system.js";
+import { controlHandlers } from "./study-planner-control-handlers.js";
+import { predictiveMaintenanceEngine } from "./predictive-maintenance.js";
 
 export class SelfHealingEngine {
   private healingInProgress: boolean = false;

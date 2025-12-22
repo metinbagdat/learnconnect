@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import { db } from "./db";
-import * as schema from "@shared/schema";
+import { db } from "./db.js";
+import * as schema from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 // Initialize OpenAI client only if API key is provided

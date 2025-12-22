@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { aiSuggestions, userGoals, userInterests } from "@shared/schema";
+import { db } from "../db.js";
+import { aiSuggestions, userGoals, userInterests } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
 export interface AIControlState {

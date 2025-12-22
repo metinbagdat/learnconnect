@@ -1,8 +1,8 @@
 import { Express } from "express";
-import { db } from "../db";
-import { userGoals, userInterests, aiProfiles } from "@shared/schema";
+import { db } from "../db.js";
+import { userGoals, userInterests, aiProfiles } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
-import { preCourseAIGuidanceProcessor } from "./pre-course-ai-guidance-processor";
+import { preCourseAIGuidanceProcessor } from "./pre-course-ai-guidance-processor.js";
 
 export function registerPreCourseAIEndpoints(app: Express) {
   // Get pre-course AI guidance

@@ -1,7 +1,7 @@
-import { db } from "./db";
-import * as schema from "@shared/schema";
+import { db } from "./db.js";
+import * as schema from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
-import { notificationsService } from "./notifications-service";
+import { notificationsService } from "./notifications-service.js";
 
 /**
  * Study Plan Management Service

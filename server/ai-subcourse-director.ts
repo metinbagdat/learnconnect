@@ -3,13 +3,13 @@
  * AI system that generates and directs users through subcourses
  */
 
-import { db } from './db';
+import { db } from './db.js';
 import {
   courses,
   modules,
   memoryEnhancedCurricula,
   users,
-} from '@shared/schema';
+} from '../shared/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 interface Subcourse {

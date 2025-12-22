@@ -1,9 +1,9 @@
 // Step 7.2: Real-time Curriculum Adaptation Endpoints
 
 import { Express } from "express";
-import { storage } from "../storage";
-import { RealTimeAdaptationEngine } from "../ml-models/real-time-adaptation-engine";
-import { FeedbackProcessor, InteractionData } from "../ml-models/feedback-processor";
+import { storage } from "../storage.js";
+import { RealTimeAdaptationEngine } from "../ml-models/real-time-adaptation-engine.js";
+import { FeedbackProcessor, InteractionData } from "../ml-models/feedback-processor.js";
 
 const adaptationEngine = new RealTimeAdaptationEngine();
 const feedbackProcessor = new FeedbackProcessor();

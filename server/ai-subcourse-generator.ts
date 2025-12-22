@@ -1,11 +1,11 @@
 // Step 3: AI-Powered Subcourse (Module) Generator
 // Breaks down courses into intelligently structured modules/subcourses
 
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq } from "drizzle-orm";
-import { courses, modules } from "@shared/schema";
+import { courses, modules } from "../shared/schema.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { parseAIJSON } from "./ai-provider-service";
+import { parseAIJSON } from "./ai-provider-service.js";
 
 export class AISubcourseGenerator {
   private client: Anthropic;

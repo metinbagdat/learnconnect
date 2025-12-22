@@ -1,5 +1,5 @@
 import { storage } from "../storage.js";
-import type { Course } from "@shared/schema";
+import type { Course } from "../../shared/schema.js";
 
 export class RecommendationEngine {
   async recommendCourses(userId: number, limit: number = 5): Promise<Course[]> {

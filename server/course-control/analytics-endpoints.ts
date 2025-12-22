@@ -1,6 +1,6 @@
 import { Express } from "express";
-import { interactionTracker } from "./interaction-tracker";
-import { integrationManager } from "./integration-manager";
+import { interactionTracker } from "./interaction-tracker.js";
+import { integrationManager } from "./integration-manager.js";
 
 export function registerAnalyticsEndpoints(app: Express) {
   // Comprehensive analytics endpoint

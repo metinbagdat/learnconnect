@@ -1,5 +1,5 @@
 import { Express } from "express";
-import { permissionController, UserRole, CourseAction } from "./permission-controller";
+import { permissionController, UserRole, CourseAction } from "./permission-controller.js";
 
 export function registerPermissionEndpoints(app: Express) {
   // Check if user can perform action

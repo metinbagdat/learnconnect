@@ -5,12 +5,12 @@ import {
   UserContext as FEUserContext,
   CourseSelection as FECourseSelection,
   ExtractedFeatures,
-} from "./curriculum-feature-extractor";
+} from "./curriculum-feature-extractor.js";
 import {
   CurriculumOptimizer,
   CurriculumOption,
   UserContext as OptUserContext,
-} from "./curriculum-optimizer";
+} from "./curriculum-optimizer.js";
 
 export interface Constraint {
   maxDurationHours?: number;

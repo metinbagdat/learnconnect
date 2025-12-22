@@ -1,7 +1,7 @@
 import { Router, type Express } from 'express';
-import { curriculumAIEngine } from '../ai-curriculum-generation';
-import { db } from '../db';
-import { userCurriculums, courses } from '@shared/schema';
+import { curriculumAIEngine } from '../ai-curriculum-generation.js';
+import { db } from '../db.js';
+import { userCurriculums, courses } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 export const curriculumGenerationRouter = Router();

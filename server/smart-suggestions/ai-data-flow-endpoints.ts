@@ -1,7 +1,7 @@
 import { Express } from "express";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { v4 as uuidv4 } from "uuid";
-import { aiDataModels } from "./ai-data-models";
+import { aiDataModels } from "./ai-data-models.js";
 
 export function registerAIDataFlowEndpoints(app: Express) {
   // Update AI user profile
