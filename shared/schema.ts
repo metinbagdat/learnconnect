@@ -638,7 +638,26 @@ export const goalSuggestions = pgTable("goal_suggestions", { id: serial("id").pr
 export const aiProfiles = pgTable("ai_profiles", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const aiSuggestions = pgTable("ai_suggestions", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const enhancedInteractionLogs = pgTable("enhanced_interaction_logs", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const skillChallenges = pgTable("skill_challenges", { id: serial("id").primaryKey(), title: text("title").notNull() });
+// Skill challenges table - minimal columns were originally defined just for types.
+// We extend this definition to include the fields that are actually used in the
+// server routes. These additional columns are optional so that the database can
+// evolve gradually without breaking type-checking.
+export const skillChallenges = pgTable("skill_challenges", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  // Optional metadata fields used in challenge endpoints
+  description: text("description"),
+  type: text("type"),
+  difficulty: text("difficulty"),
+  category: text("category"),
+  isActive: boolean("is_active").default(true),
+  timeLimit: integer("time_limit"), // in seconds
+  points: integer("points"),
+  xpReward: integer("xp_reward"),
+  bonusMultiplier: numeric("bonus_multiplier"),
+  streakBonus: integer("streak_bonus"),
+  tags: text("tags"), // simple comma-separated tags
+});
 export const reminders = pgTable("reminders", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 
 // Insert schemas for missing tables
@@ -688,10 +707,45 @@ export type Reminder = typeof reminders.$inferSelect;
 export type InsertReminder = z.infer<typeof insertReminderSchema>;
 
 // Challenge & Skill system tables
-export const challengeLearningPaths = pgTable("challenge_learning_paths", { id: serial("id").primaryKey(), title: text("title").notNull(), isActive: boolean("is_active").default(true), category: text("category"), difficulty: text("difficulty") });
-export const challengePathSteps = pgTable("challenge_path_steps", { id: serial("id").primaryKey(), pathId: integer("path_id").notNull(), stepOrder: integer("step_order").notNull() });
-export const userChallengeStreaks = pgTable("user_challenge_streaks", { id: serial("id").primaryKey(), userId: integer("user_id").notNull(), streakCount: integer("streak_count").default(0) });
-export const userSkillChallengeAttempts = pgTable("user_skill_challenge_attempts", { id: serial("id").primaryKey(), userId: integer("user_id").notNull(), challengeId: integer("challenge_id").notNull() });
+export const challengeLearningPaths = pgTable("challenge_learning_paths", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  isActive: boolean("is_active").default(true),
+  category: text("category"),
+  difficulty: text("difficulty"),
+});
+
+export const challengePathSteps = pgTable("challenge_path_steps", {
+  id: serial("id").primaryKey(),
+  pathId: integer("path_id").notNull(),
+  stepOrder: integer("step_order").notNull(),
+  // Optional linkage to specific challenges and extra metadata used in routes
+  challengeId: integer("challenge_id"),
+  isRequired: boolean("is_required").default(true),
+  unlockConditions: json("unlock_conditions"),
+});
+
+export const userChallengeStreaks = pgTable("user_challenge_streaks", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  streakCount: integer("streak_count").default(0),
+  // Optional fields used by streak logic in routes.ts
+  category: text("category"),
+  currentStreak: integer("current_streak"),
+  maxStreak: integer("max_streak"),
+  lastCorrectAt: timestamp("last_correct_at"),
+  streakStartedAt: timestamp("streak_started_at"),
+  pathId: integer("path_id"),
+});
+
+export const userSkillChallengeAttempts = pgTable("user_skill_challenge_attempts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  challengeId: integer("challenge_id").notNull(),
+  attemptedAt: timestamp("attempted_at").notNull().defaultNow(),
+  isCorrect: boolean("is_correct"),
+  timeSpent: integer("time_spent"),
+});
 
 // Schemas for challenge tables
 export const insertChallengeLearningPathSchema = z.object({ title: z.string(), isActive: z.boolean().optional(), category: z.string().optional(), difficulty: z.string().optional() });

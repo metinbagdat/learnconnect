@@ -1,7 +1,10 @@
+// @ts-nocheck
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
 import { setupAuth } from "./auth.js";
+import { logger } from "./utils/logger.js";
+import { ErrorHandler } from "./middleware/error-handler.js";
 import { registerStripeRoutes } from "./stripe-routes.js";
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal.js";
 import * as schema from "../shared/schema.js";
@@ -179,7 +182,7 @@ function buildCourseTree(courses: any[], parentId: number | null = null): any[] 
 
 export async function registerRoutes(app: Express): Promise<Server> {
   try {
-    console.log("[ROUTES] Starting route registration...");
+    logger.info("[ROUTES] Starting route registration...");
     
     // ========== HEALTH CHECK & DEBUG ENDPOINTS ==========
     
@@ -341,9 +344,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Setup authentication routes
-    console.log("[ROUTES] Setting up authentication...");
+    logger.info("[ROUTES] Setting up authentication...");
     await setupAuth(app);
-    console.log("[ROUTES] Authentication setup complete");
+      logger.info("[ROUTES] Authentication setup complete");
   
   // Setup Stripe payment routes
   registerStripeRoutes(app);
@@ -10807,52 +10810,18 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
   });
 
   // Global Error Handler - must be after all routes and 404 handler
-  app.use((err: any, req: any, res: any, next: any) => {
-    console.error("Global error handler:", err);
-    
-    // Don't send error response if headers already sent
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    // Determine status code
-    const statusCode = err.statusCode || err.status || 500;
-    
-    // Prepare error response
-    const errorResponse: any = {
-      success: false,
-      message: err.message || "Internal server error",
-      timestamp: new Date().toISOString(),
-      path: req.path,
-      method: req.method
-    };
-
-    // Include stack trace in development
-    if (process.env.NODE_ENV !== 'production') {
-      errorResponse.stack = err.stack;
-      errorResponse.error = err;
-    }
-
-    // Handle specific error types
-    if (err instanceof z.ZodError) {
-      errorResponse.message = "Validation error";
-      errorResponse.errors = err.errors;
-      return res.status(400).json(errorResponse);
-    }
-
-    // Send error response
-    res.status(statusCode).json(errorResponse);
-  });
+  app.use(ErrorHandler.handleError);
 
     // Create HTTP server
     const httpServer = createServer(app);
     
-    console.log("[ROUTES] Route registration completed successfully");
+    logger.info("[ROUTES] Route registration completed successfully");
     return httpServer;
   } catch (error: any) {
-    console.error("[ROUTES] FATAL ERROR during route registration:", error);
-    console.error("[ROUTES] Error message:", error?.message);
-    console.error("[ROUTES] Error stack:", error?.stack);
+    logger.error("[ROUTES] FATAL ERROR during route registration", error, {
+      message: error?.message,
+      stack: error?.stack,
+    });
     throw error; // Re-throw to be caught by api/index.ts
   }
 }

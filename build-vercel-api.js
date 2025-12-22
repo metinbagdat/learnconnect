@@ -21,7 +21,7 @@ const PROJECT_ROOT = path.resolve(__dirname, '..');
 const aliasPlugin = {
   name: 'alias',
   setup(build) {
-    // Handle @shared/* imports
+    // Handle @shared/* imports - resolve to actual file paths
     build.onResolve({ filter: /^@shared\// }, (args) => {
       const sharedPath = args.path.replace('@shared/', 'shared/');
       const fullPath = path.resolve(PROJECT_ROOT, sharedPath);
@@ -44,6 +44,15 @@ const aliasPlugin = {
         };
       }
       
+      // If no extension, try both
+      if (fs.existsSync(fullPath + '.ts')) {
+        return {
+          path: fullPath + '.ts',
+          namespace: 'file',
+        };
+      }
+      
+      console.warn(`⚠️  Warning: Could not resolve @shared import: ${args.path}`);
       return {
         path: fullPath,
         namespace: 'file',

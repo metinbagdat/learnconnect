@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
 import { logger } from '../utils/logger.js';
 
 export interface AppError extends Error {
@@ -42,10 +43,16 @@ export class ErrorHandler {
       message = error.message;
       errorCode = error.code;
       details = error.details;
-    } else if (error.name === 'ValidationError') {
+    } else if (error instanceof ZodError || error.name === 'ValidationError' || error.name === 'ZodError') {
       statusCode = 400;
-      message = error.message;
+      message = 'Validation error';
       errorCode = 'VALIDATION_ERROR';
+      if (error instanceof ZodError) {
+        details = error.errors.map(e => ({
+          path: e.path.join('.'),
+          message: e.message,
+        }));
+      }
     } else if (error.name === 'UnauthorizedError') {
       statusCode = 401;
       message = error.message || 'Unauthorized';

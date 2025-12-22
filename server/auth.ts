@@ -29,24 +29,27 @@ async function hashPassword(password: string) {
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
-    console.log(`[HASH] Comparing passwords, stored format check...`);
+    logger.debug(`[HASH] Comparing passwords, stored format check...`);
     // Handle plaintext passwords (for new registrations)
     if (!stored.includes('.')) {
-      console.log(`[HASH] Plaintext comparison: ${supplied === stored}`);
+      logger.debug(`[HASH] Plaintext comparison: ${supplied === stored}`);
       return supplied === stored;
     }
     // Handle hashed passwords (old format)
     const parts = stored.split(".");
     if (parts.length !== 2) {
-      console.error(`[HASH] Invalid password hash format. Expected 2 parts, got ${parts.length}`);
+      logger.error('Invalid password hash format', undefined, {
+        expectedParts: 2,
+        actualParts: parts.length,
+      });
       return false;
     }
     const [hashed, salt] = parts;
-    console.log(`[HASH] Hash length: ${hashed.length}, Salt length: ${salt.length}`);
+    logger.debug(`[HASH] Hash length: ${hashed.length}, Salt length: ${salt.length}`);
     const hashedBuf = Buffer.from(hashed, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
     const isEqual = timingSafeEqual(hashedBuf, suppliedBuf);
-    console.log(`[HASH] Buffers equal: ${isEqual}`);
+    logger.debug(`[HASH] Buffers equal: ${isEqual}`);
     return isEqual;
   } catch (error: any) {
     logger.error('Password comparison error', error);
@@ -67,7 +70,7 @@ export async function setupAuth(app: Express) {
           displayName: "Test User",
           role: "student"
         });
-        console.log("✓ Seeded test user: testuser / password123 (PLAINTEXT FOR TESTING)");
+        logger.info("Seeded test user: testuser / password123 (PLAINTEXT FOR TESTING)");
       }
       // Also ensure admin user exists
       const adminUser = await storage.getUserByUsername("admin");
@@ -78,10 +81,10 @@ export async function setupAuth(app: Express) {
           displayName: "Admin User",
           role: "admin"
         });
-        console.log("✓ Seeded admin user: admin / password123");
+        logger.info("Seeded admin user: admin / password123");
       }
-    } catch (err) {
-      console.log("Could not seed test user:", err);
+    } catch (err: any) {
+      logger.error("Could not seed test user", err);
     }
   })();
 
@@ -101,7 +104,7 @@ export async function setupAuth(app: Express) {
     try {
       actualPool = getPoolInstance();
     } catch (poolError: any) {
-      console.warn("⚠️ Failed to get pool instance:", poolError?.message || poolError);
+      logger.warn("Failed to get pool instance", { error: poolError?.message || poolError });
       throw poolError; // Re-throw to trigger fallback to memory store
     }
     
@@ -113,14 +116,14 @@ export async function setupAuth(app: Express) {
         tableName: 'session', // Table name for sessions
         createTableIfMissing: true, // Automatically create table if missing
       });
-      console.log("✓ Using PostgreSQL session store (sessions will persist across serverless invocations)");
+      logger.info("Using PostgreSQL session store (sessions will persist across serverless invocations)");
     } catch (pgStoreError: any) {
-      console.warn("⚠️ Failed to initialize PgStore:", pgStoreError?.message || pgStoreError);
+      logger.warn("Failed to initialize PgStore", { error: pgStoreError?.message || pgStoreError });
       throw pgStoreError; // Re-throw to trigger fallback to memory store
     }
   } catch (error: any) {
     // Fallback to memory store if database is not available
-    console.warn("⚠️ PostgreSQL session store unavailable, falling back to memory store:", error?.message || error);
+    logger.warn("PostgreSQL session store unavailable, falling back to memory store", { error: error?.message || error });
     // Use memory store as fallback (even in production if DB connection fails)
     try {
       // Try to use memorystore for better memory management (optional dependency)
@@ -130,12 +133,12 @@ export async function setupAuth(app: Express) {
       sessionStore = new MemoryStoreClass({
         checkPeriod: 86400000 // prune expired entries every 24h
       });
-      console.log("⚠️ Using memory store (sessions will not persist across serverless invocations)");
+      logger.info("Using memory store (sessions will not persist across serverless invocations)");
     } catch (memError: any) {
       // If memorystore also fails, use basic memory store from express-session
-      console.warn("⚠️ Memorystore package not available, using basic MemoryStore:", memError?.message || memError);
+      logger.warn("Memorystore package not available, using basic MemoryStore", { error: memError?.message || memError });
       sessionStore = new MemoryStore();
-      console.log("⚠️ Using basic memory session store");
+      logger.info("Using basic memory session store");
     }
   }
 
@@ -145,14 +148,15 @@ export async function setupAuth(app: Express) {
   
   // Log SESSION_SECRET status (without exposing the actual secret)
   if (process.env.SESSION_SECRET) {
-    console.log("✓ SESSION_SECRET is set (length: " + process.env.SESSION_SECRET.length + " chars)");
+    logger.info("SESSION_SECRET is set", { length: process.env.SESSION_SECRET.length });
   } else {
     if (process.env.NODE_ENV === 'production') {
-      console.error("❌ ERROR: SESSION_SECRET not set in production! This is a security issue.");
-      console.error("   Please set SESSION_SECRET in Vercel environment variables.");
+      logger.error("SESSION_SECRET not set in production! This is a security issue.", undefined, {
+        message: "Please set SESSION_SECRET in Vercel environment variables.",
+      });
       // Don't throw here - let it use the default but log the error clearly
     } else {
-      console.warn("⚠️ SESSION_SECRET not set, using default (dev only)");
+      logger.warn("SESSION_SECRET not set, using default (dev only)");
     }
   }
 
@@ -283,7 +287,8 @@ export async function setupAuth(app: Express) {
 
         req.login(user, (err) => {
           if (err) {
-            console.error("[AUTH] Login error after registration:", err);
+            const requestId = (req as any)?.requestId || 'unknown';
+            logger.error("Login error after registration", err, { requestId, username });
             return res.status(500).json({ message: "Registration successful but login failed. Please try logging in." });
           }
           // Return user without password
@@ -502,7 +507,7 @@ export async function setupAuth(app: Express) {
           const requestId = (req as any)?.requestId || 'unknown';
           logger.error('Database error fetching user in /api/user', dbError, {
             requestId,
-            userId: userIdHeader,
+            userIdHeader: typeof userIdHeader === 'string' ? userIdHeader : userIdHeader[0],
           });
           // Return 401 instead of 500 for database errors
           return res.status(401).json({ message: "Unauthorized" });
