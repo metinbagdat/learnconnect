@@ -60,8 +60,7 @@
   ],
   "functions": {
     "api/index.js": {
-      "maxDuration": 30,
-      "runtime": "vercel/node@20.x"
+      "maxDuration": 30
     }
   },
   "build": {
