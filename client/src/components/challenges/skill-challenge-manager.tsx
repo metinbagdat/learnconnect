@@ -232,7 +232,7 @@ export function SkillChallengeManager({
 
           {/* Action Button */}
           <Button 
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.preventDefault();
               e.stopPropagation();
               startRandomChallenge();

@@ -177,7 +177,7 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
                           "p-4 rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-all cursor-pointer",
                           selectedLesson?.id === lesson.id && "border-blue-500 bg-blue-50"
                         )}
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.preventDefault();
                           e.stopPropagation();
                           setSelectedLesson(lesson);
@@ -245,7 +245,7 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
             </p>
             <Button 
               variant="outline" 
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 window.location.reload();
@@ -335,7 +335,7 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
               </div>
 
               {/* Action Button */}
-              <Button className="w-full" onClick={(e) => {
+              <Button className="w-full" onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 e.stopPropagation();
                 navigate(`/lessons/${selectedLesson.id}`);
