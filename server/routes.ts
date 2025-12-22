@@ -265,15 +265,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Check @shared/schema
           try {
-            const schema = await import("@shared/schema");
+            const schema = await import("../../shared/schema.js");
             moduleChecks.checks.push({
-              module: "@shared/schema",
+              module: "../../shared/schema.js",
               status: "ok",
               exports: Object.keys(schema).slice(0, 10), // First 10 exports
             });
           } catch (error: any) {
             moduleChecks.checks.push({
-              module: "@shared/schema",
+              module: "../../shared/schema.js",
               status: "error",
               error: error.message,
             });

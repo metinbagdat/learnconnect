@@ -59,11 +59,14 @@
     }
   ],
   "functions": {
-    "api/index.ts": {
+    "api/index.js": {
       "maxDuration": 30,
       "runtime": "nodejs20.x"
     }
   },
+  "ignore": [
+    "api/index.ts"
+  ],
   "build": {
     "env": {
       "NODE_ENV": "production"

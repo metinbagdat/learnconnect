@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "dev:debug": "NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && node build-server.js",
+    "build": "vite build && node build-server.js && node build-vercel-api.js",
     "start": "NODE_ENV=production node dist/index.js",
     "test:system": "tsx test-system.js",
     "test:local": "node scripts/test-local.js",
