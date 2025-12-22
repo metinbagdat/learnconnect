@@ -13,6 +13,7 @@ import { useLanguage } from "@/contexts/consolidated-language-context";
 interface ModuleTreeProps {
   courseId: number;
   userId: number;
+  onLessonSelect?: (lesson: AIEnhancedLesson) => void;
 }
 
 interface AIEnhancedLesson {
@@ -48,7 +49,7 @@ interface AIEnhancedModule {
   };
 }
 
-export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
+export function ModuleTree({ courseId, userId, onLessonSelect }: ModuleTreeProps) {
   const [expandedModules, setExpandedModules] = useState<Set<number>>(new Set());
   const [selectedLesson, setSelectedLesson] = useState<AIEnhancedLesson | null>(null);
   const [, navigate] = useLocation();
@@ -104,9 +105,9 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
       <div className="lg:col-span-2 space-y-4">
         <div className="flex items-center gap-2 mb-6">
           <Brain className="h-6 w-6 text-blue-600" />
-          <h2 className="text-2xl font-bold">{t('aiPoweredModules')}</h2>
+          <h2 className="text-2xl font-bold">{t('aiPoweredModules') || 'AI-Powered Modules'}</h2>
           <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-            {t('personalizedContent')}
+            {t('personalizedContent') || 'Personalized Content'}
           </Badge>
         </div>
 
@@ -181,7 +182,12 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
                           e.preventDefault();
                           e.stopPropagation();
                           setSelectedLesson(lesson);
-                          navigate(`/lessons/${lesson.id}`);
+                          // Call callback for in-page viewing if provided
+                          if (onLessonSelect) {
+                            onLessonSelect(lesson);
+                          }
+                          // Still allow navigation to separate page
+                          // User can choose by clicking the "View Lesson" button in the detail panel
                         }}
                       >
                         <div className="flex items-center justify-between mb-2">
@@ -239,9 +245,9 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
         )) : (
           <div className="text-center py-12">
             <Brain className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No AI Modules Available</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('noAIModulesAvailable') || 'No AI Modules Available'}</h3>
             <p className="text-gray-600 mb-4">
-              This course doesn't have AI-enhanced modules yet. Content will be generated automatically as you progress.
+              {t('noAIModulesDescription') || 'This course doesn\'t have AI-enhanced modules yet. Content will be generated automatically as you progress.'}
             </p>
             <Button 
               variant="outline" 
@@ -251,7 +257,7 @@ export function ModuleTree({ courseId, userId }: ModuleTreeProps) {
                 window.location.reload();
               }}
             >
-              Refresh Content
+              {t('refreshContent') || 'Refresh Content'}
             </Button>
           </div>
         )}

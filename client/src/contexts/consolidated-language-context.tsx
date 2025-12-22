@@ -186,6 +186,15 @@ const translations = {
     selectLessonForContent: 'Select a lesson to see AI-personalized content',
     personalizedContentAvailable: 'Personalized content available',
     
+    // Course Detail - Additional Keys
+    'course.learningPath': 'Course Learning Path',
+    'course.aiPersonalized': 'AI-Personalized',
+    aiPoweredModules: 'AI-Powered Modules',
+    personalizedContent: 'Personalized Content',
+    noAIModulesAvailable: 'No AI Modules Available',
+    noAIModulesDescription: 'This course doesn\'t have AI-enhanced modules yet. Content will be generated automatically as you progress.',
+    refreshContent: 'Refresh Content',
+    
     // Course Generator
     generateCourse: 'Generate Course',
     courseTitle: 'Course Title',
@@ -759,6 +768,15 @@ const translations = {
     aiAdaptedContent: 'AI Uyarlanmış İçerik',
     selectLessonForContent: 'AI-kişiselleştirilmiş içeriği görmek için bir ders seçin',
     personalizedContentAvailable: 'Kişiselleştirilmiş içerik mevcut',
+    
+    // Course Detail - Additional Keys
+    'course.learningPath': 'Kurs Öğrenme Yolu',
+    'course.aiPersonalized': 'AI-Kişiselleştirilmiş',
+    aiPoweredModules: 'AI Destekli Modüller',
+    personalizedContent: 'Kişiselleştirilmiş İçerik',
+    noAIModulesAvailable: 'AI Modülleri Mevcut Değil',
+    noAIModulesDescription: 'Bu kursun henüz AI-destekli modülleri yok. İçerik ilerledikçe otomatik olarak oluşturulacaktır.',
+    refreshContent: 'İçeriği Yenile',
     
     // Course Generator
     generateCourse: 'Kurs Oluştur',

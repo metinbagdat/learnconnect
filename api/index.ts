@@ -47,9 +47,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Error handler middleware - must come after routes are registered
-app.use(ErrorHandler.handleError);
-
 // Initialize app
 let appInitialized = false;
 let initializationPromise: Promise<void> | null = null;
@@ -95,12 +92,8 @@ async function initializeApp() {
       await registerRoutes(app);
       logger.info("✓ Routes registered successfully", { requestId: initId });
       
-      // 404 handler - must be AFTER all routes are registered
-      app.use((_req: Request, res: Response) => {
-        if (!res.headersSent) {
-          res.status(404).json({ error: "Not Found" });
-        }
-      });
+      // Note: 404 handler and error handler are registered inside registerRoutes()
+      // So we don't need to register them here again
       
       appInitialized = true;
       const initDuration = Date.now() - initStartTime;
@@ -198,8 +191,7 @@ export default async function handler(req: any, res: any) {
     // Get path without query string for path matching
     const apiPathWithoutQuery = apiPath.split('?')[0];
 
-    // Generate request ID for tracking
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Store request ID for tracking
     (req as any).requestId = requestId;
     
     logger.debug("Incoming request", {
@@ -222,17 +214,33 @@ export default async function handler(req: any, res: any) {
       ]);
       logger.debug("App initialization completed", { requestId });
     } catch (initError: any) {
-      logger.error("Initialization error", initError, { requestId });
+      logger.error("Initialization error", initError, { 
+        requestId,
+        message: initError?.message,
+        stack: initError?.stack,
+        name: initError?.name,
+        code: initError?.code,
+      });
       // If initialization fails completely, return error immediately
       if (!appInitialized) {
         logger.error("App not initialized - returning 503", { requestId });
         if (!res.headersSent) {
-          return res.status(503).json({ 
+          const errorResponse: any = {
             error: "Service unavailable", 
             message: initError?.message || "Server initialization failed. Please try again later.",
-            details: process.env.NODE_ENV === 'development' ? initError?.stack : undefined,
             requestId,
-          });
+          };
+          
+          // Include stack trace in development
+          if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEBUG === 'true') {
+            errorResponse.details = {
+              stack: initError?.stack,
+              name: initError?.name,
+              code: initError?.code,
+            };
+          }
+          
+          return res.status(503).json(errorResponse);
         }
         return;
       }
@@ -319,13 +327,39 @@ export default async function handler(req: any, res: any) {
       });
     });
   } catch (error: any) {
-    const requestId = (req as any)?.requestId || 'unknown';
-    logger.error("Handler error", error, { requestId });
+    // Log the error with as much context as possible
+    logger.error("Handler error (top-level catch)", error, { 
+      requestId,
+      message: error?.message,
+      stack: error?.stack,
+      name: error?.name,
+      code: error?.code,
+      type: typeof error,
+    });
+    
+    // Always try to send an error response if headers haven't been sent
     if (!res.headersSent) {
       try {
-        res.status(500).json({ error: "Internal server error" });
-      } catch (e) {
-        logger.error("Error sending error response in catch", e, { requestId });
+        const errorResponse: any = {
+          error: "Internal server error",
+          message: error?.message || "An unexpected error occurred",
+          requestId,
+        };
+        
+        // Include more details in development
+        if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEBUG === 'true') {
+          errorResponse.details = {
+            name: error?.name,
+            code: error?.code,
+            stack: error?.stack,
+          };
+        }
+        
+        res.status(500).json(errorResponse);
+      } catch (e: any) {
+        // If we can't even send the error response, log it
+        console.error("[FATAL] Could not send error response:", e);
+        console.error("[FATAL] Original error:", error);
       }
     }
   }

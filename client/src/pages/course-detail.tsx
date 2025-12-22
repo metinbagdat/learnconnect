@@ -319,13 +319,20 @@ export default function CourseDetail() {
                       <ModuleTree 
                         courseId={parseInt(courseId!)} 
                         userId={user.id}
+                        onLessonSelect={(lesson: any) => {
+                          // Find the module for this lesson to get module title
+                          const module = modules.find(m => 
+                            m.id && moduleIdToLessons[m.id]?.some((l: Lesson) => l.id === lesson.id)
+                          );
+                          generateLessonContent(lesson.id, lesson.title, module?.title || '');
+                        }}
                       />
                     </div>
                     <div className="lg:col-span-1 space-y-6">
                       <SkillChallengeManager
                         courseId={parseInt(courseId!)}
                         category={course?.category}
-                        onChallengeComplete={(points, xp) => {
+                        onChallengeComplete={(points: number, xp: number) => {
                           toast({
                             title: "Challenge completed!",
                             description: `Earned ${points} points and ${xp} XP`,
@@ -344,17 +351,17 @@ export default function CourseDetail() {
                 )}
               </div>
               
-              {/* Traditional fallback for when AI modules aren't available */}
+              {/* Traditional Module View - Always visible alongside AI modules */}
               <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left side - Traditional Module List */}
                 <div className="lg:col-span-1">
                   <div className="bg-white rounded-lg shadow-sm">
                     <div className="p-4 border-b border-neutral-100">
                       <h2 className="text-lg font-semibold">
-                        {language === 'tr' ? 'Modül Listesi' : 'Traditional Module View'}
+                        {language === 'tr' ? 'Geleneksel Modül Listesi' : 'Traditional Module View'}
                       </h2>
                       <p className="text-sm text-gray-600 mt-1">
-                        {language === 'tr' ? 'Standart kurs yapısı' : 'Standard course structure without AI personalization'}
+                        {language === 'tr' ? 'Standart kurs yapısı - AI kişiselleştirme olmadan' : 'Standard course structure without AI personalization'}
                       </p>
                     </div>
                     <div className="p-2">
@@ -362,7 +369,7 @@ export default function CourseDetail() {
                         type="single" 
                         collapsible
                         value={expandedModule || ''}
-                        onValueChange={(value) => {
+                        onValueChange={(value: string) => {
                           setExpandedModule(value);
                           // Extract module ID from the value and load lessons
                           const moduleId = parseInt(value?.replace('module-', '') || '0');
