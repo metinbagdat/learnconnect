@@ -191,7 +191,8 @@ export default async function handler(req: any, res: any) {
     // Get path without query string for path matching
     const apiPathWithoutQuery = apiPath.split('?')[0];
 
-    // Store request ID for tracking
+    // Create request ID for tracking (create early so it's available for all logging)
+    const requestId = (req as any).requestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     (req as any).requestId = requestId;
     
     logger.debug("Incoming request", {
@@ -327,6 +328,9 @@ export default async function handler(req: any, res: any) {
       });
     });
   } catch (error: any) {
+    // Get requestId if available, otherwise create a fallback for error logging
+    const requestId = (req as any)?.requestId || `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     // Log the error with as much context as possible
     logger.error("Handler error (top-level catch)", error, { 
       requestId,

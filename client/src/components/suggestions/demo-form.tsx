@@ -60,14 +60,11 @@ export const SuggestionDemoForm = forwardRef(function SuggestionDemoForm(_props,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Send data in format expected by AI generation endpoint
     const pathData = {
-      title: `${learningGoal} - ${careerField}`,
-      description: `Learn ${courseTopic} in ${careerField} field within ${timeframe}`,
       goal: learningGoal,
-      field: careerField,
-      topic: courseTopic,
-      timeframe: timeframe,
-      difficulty: 'intermediate'
+      careerField: careerField || '',
+      timeframe: timeframe || '6 months'
     };
 
     createLearningPathMutation.mutate(pathData);

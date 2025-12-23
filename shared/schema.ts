@@ -391,16 +391,30 @@ export const challenges = pgTable("challenges", {
   description: text("description"),
   difficulty: text("difficulty"),
   points: integer("points").default(0),
+  pointsReward: integer("points_reward"),
+  xpReward: integer("xp_reward"),
+  type: text("type"),
+  category: text("category"),
+  requirements: json("requirements"),
+  isActive: boolean("is_active").default(true),
+  courseId: integer("course_id"),
+  lessonId: integer("lesson_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
 });
 
 export const userChallenges = pgTable("user_challenges", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   challengeId: integer("challenge_id").notNull(),
+  progress: integer("progress").notNull().default(0),
+  isCompleted: boolean("is_completed").default(false),
   completed: boolean("completed").default(false),
   score: integer("score").default(0),
+  pointsEarned: integer("points_earned"),
+  xpEarned: integer("xp_earned"),
   completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const dailyTasks = pgTable("daily_tasks", {
@@ -430,6 +444,10 @@ export const learningPathSteps = pgTable("learning_path_steps", {
   courseId: integer("course_id"),
   title: text("title").notNull(),
   description: text("description"),
+  completed: boolean("completed").default(false),
+  required: boolean("required").default(true),
+  notes: text("notes"),
+  order: integer("order"),
 });
 
 // Stub tables for backward compatibility
@@ -439,7 +457,17 @@ export const courseRecommendations = pgTable("course_recommendations", { id: ser
 export const userActivityLogs = pgTable("user_activity_logs", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const courseAnalytics = pgTable("course_analytics", { id: serial("id").primaryKey(), courseId: integer("course_id").notNull() });
 export const userProgressSnapshots = pgTable("user_progress_snapshots", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const userLevels = pgTable("user_levels", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const userLevels = pgTable("user_levels", { 
+  id: serial("id").primaryKey(), 
+  userId: integer("user_id").notNull().unique(),
+  level: integer("level").notNull().default(1),
+  currentXp: integer("current_xp").notNull().default(0),
+  totalXp: integer("total_xp").notNull().default(0),
+  nextLevelXp: integer("next_level_xp").notNull().default(100),
+  streak: integer("streak").notNull().default(0),
+  lastActivityDate: date("last_activity_date"),
+  totalPoints: integer("total_points").notNull().default(0),
+});
 export const leaderboards = pgTable("leaderboards", { id: serial("id").primaryKey(), title: text("title").notNull() });
 export const leaderboardEntries = pgTable("leaderboard_entries", { id: serial("id").primaryKey(), leaderboardId: integer("leaderboard_id").notNull() });
 export const lessonTrails = pgTable("lesson_trails", { id: serial("id").primaryKey(), title: text("title").notNull() });
@@ -449,8 +477,52 @@ export const personalizedRecommendations = pgTable("personalized_recommendations
 export const learningAnalytics = pgTable("learning_analytics", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const learningMilestones = pgTable("learning_milestones", { id: serial("id").primaryKey(), title: text("title").notNull() });
 export const emojiReactions = pgTable("emoji_reactions", { id: serial("id").primaryKey(), emoji: text("emoji").notNull() });
-export const mentors = pgTable("mentors", { id: serial("id").primaryKey(), name: text("name").notNull() });
-export const userMentors = pgTable("user_mentors", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const mentors = pgTable("mentors", { 
+  id: serial("id").primaryKey(), 
+  name: text("name").notNull(),
+  specialization: text("specialization"),
+  isAiMentor: boolean("is_ai_mentor").default(false),
+  userId: integer("user_id"), // Link to users table if mentor is a user
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export const userMentors = pgTable("user_mentors", { 
+  id: serial("id").primaryKey(), 
+  userId: integer("user_id").notNull(),
+  mentorId: integer("mentor_id"),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+});
+
+// Educational Materials System
+export const educationalMaterials = pgTable("educational_materials", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  titleEn: text("title_en").notNull().default(""),
+  titleTr: text("title_tr").notNull().default(""),
+  description: text("description"),
+  descriptionEn: text("description_en").notNull().default(""),
+  descriptionTr: text("description_tr").notNull().default(""),
+  materialType: text("material_type").notNull(), // 'book' | 'slide' | 'text' | 'document' | 'video' | 'link' | 'image'
+  mentorId: integer("mentor_id"), // null if AI-generated
+  courseId: integer("course_id"), // nullable - genel materyaller için null
+  uploadId: integer("upload_id"), // Reference to uploads table
+  isAiGenerated: boolean("is_ai_generated").default(false),
+  isPublic: boolean("is_public").default(false), // Paylaşımlı mı
+  tags: text("tags").array().default([]),
+  subjectArea: text("subject_area"),
+  externalUrl: text("external_url"), // For links or external resources
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const mentorMaterialAssignments = pgTable("mentor_material_assignments", {
+  id: serial("id").primaryKey(),
+  mentorId: integer("mentor_id").notNull(),
+  materialId: integer("material_id").notNull(),
+  studentId: integer("student_id").notNull(),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+  notes: text("notes"),
+});
 export const studyPrograms = pgTable("study_programs", { id: serial("id").primaryKey(), title: text("title").notNull() });
 export const programSchedules = pgTable("program_schedules", { id: serial("id").primaryKey(), programId: integer("program_id").notNull() });
 export const userProgramProgress = pgTable("user_program_progress", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
@@ -461,9 +533,30 @@ export const studySessions = pgTable("study_sessions", {
   duration: integer("duration"),
   completedAt: timestamp("completed_at")
 });
-export const levelAssessments = pgTable("level_assessments", { id: serial("id").primaryKey(), title: text("title").notNull() });
-export const assessmentQuestions = pgTable("assessment_questions", { id: serial("id").primaryKey(), assessmentId: integer("assessment_id").notNull() });
-export const userSkillLevels = pgTable("user_skill_levels", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const levelAssessments = pgTable("level_assessments", { 
+  id: serial("id").primaryKey(), 
+  title: text("title").notNull(),
+  userId: integer("user_id"),
+  subject: text("subject"),
+  subCategory: text("sub_category"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export const assessmentQuestions = pgTable("assessment_questions", { 
+  id: serial("id").primaryKey(), 
+  assessmentId: integer("assessment_id").notNull(),
+  questionText: text("question_text"),
+  questionType: text("question_type"),
+  options: json("options"),
+  correctAnswer: text("correct_answer"),
+  order: integer("order"),
+});
+export const userSkillLevels = pgTable("user_skill_levels", { 
+  id: serial("id").primaryKey(), 
+  userId: integer("user_id").notNull(),
+  skillId: integer("skill_id"),
+  level: integer("level"),
+  progress: integer("progress"),
+});
 export const userAssignments = pgTable("user_assignments", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const dailyStudyTasks = pgTable("daily_study_tasks", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 
@@ -543,6 +636,26 @@ export const insertAiReviewLogSchema = z.object({ userId: z.number() });
 export const insertAiCurriculumGenerationSessionSchema = z.object({ userId: z.number() });
 export const insertCurriculumProductionArchiveSchema = z.object({ userId: z.number() });
 export const insertAiLearningDataSchema = z.object({ userId: z.number() });
+export const insertLevelAssessmentSchema = z.object({ 
+  userId: z.number().optional(),
+  title: z.string(),
+  subject: z.string().optional(),
+  subCategory: z.string().optional(),
+});
+export const insertAssessmentQuestionSchema = z.object({
+  assessmentId: z.number(),
+  questionText: z.string().optional(),
+  questionType: z.string().optional(),
+  options: z.any().optional(),
+  correctAnswer: z.string().optional(),
+  order: z.number().optional(),
+});
+export const insertUserSkillLevelSchema = z.object({
+  userId: z.number(),
+  skillId: z.number().optional(),
+  level: z.number().optional(),
+  progress: z.number().optional(),
+});
 
 // Type stubs for backward compatibility
 export type TytStudentProfile = typeof tytStudentProfiles.$inferSelect;
@@ -613,6 +726,9 @@ export type CurriculumProductionArchive = typeof curriculumProductionArchives.$i
 export type InsertCurriculumProductionArchive = z.infer<typeof insertCurriculumProductionArchiveSchema>;
 export type AiLearningDataRecord = typeof aiLearningData.$inferSelect;
 export type InsertAiLearningData = z.infer<typeof insertAiLearningDataSchema>;
+export type InsertLevelAssessment = z.infer<typeof insertLevelAssessmentSchema>;
+export type InsertAssessmentQuestion = z.infer<typeof insertAssessmentQuestionSchema>;
+export type InsertUserSkillLevel = z.infer<typeof insertUserSkillLevelSchema>;
 
 // Missing system tables - Subscription & Goals
 export const subscriptionPlans = pgTable("subscription_plans", { id: serial("id").primaryKey(), name: text("name").notNull() });
@@ -831,10 +947,20 @@ export const insertStudySchedule = insertStudyScheduleSchema; // Alias for backw
 export type InsertStudySchedule = z.infer<typeof insertStudyScheduleSchema>;
 export type StudySchedule = typeof studySchedules.$inferSelect;
 
-export const insertMentorSchema = createInsertSchema(mentors).omit({ id: true });
+export const insertMentorSchema = safeOmit(createInsertSchema(mentors), { id: true, createdAt: true, updatedAt: true });
 export type InsertMentor = z.infer<typeof insertMentorSchema>;
+export type Mentor = typeof mentors.$inferSelect;
 export const insertUserMentorSchema = createInsertSchema(userMentors).omit({ id: true });
 export type InsertUserMentor = z.infer<typeof insertUserMentorSchema>;
+
+// Educational Materials Schemas
+export const insertEducationalMaterialSchema = safeOmit(createInsertSchema(educationalMaterials), { id: true, createdAt: true, updatedAt: true });
+export type InsertEducationalMaterial = z.infer<typeof insertEducationalMaterialSchema>;
+export type EducationalMaterial = typeof educationalMaterials.$inferSelect;
+
+export const insertMentorMaterialAssignmentSchema = safeOmit(createInsertSchema(mentorMaterialAssignments), { id: true, assignedAt: true });
+export type InsertMentorMaterialAssignment = z.infer<typeof insertMentorMaterialAssignmentSchema>;
+export type MentorMaterialAssignment = typeof mentorMaterialAssignments.$inferSelect;
 export const insertStudyProgramSchema = createInsertSchema(studyPrograms).omit({ id: true });
 export type InsertStudyProgram = z.infer<typeof insertStudyProgramSchema>;
 export const insertProgramScheduleSchema = createInsertSchema(programSchedules).omit({ id: true });

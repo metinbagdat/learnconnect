@@ -129,6 +129,25 @@ export function Sidebar() {
           </SidebarLink>
           
           <SidebarLink 
+            href="/educational-materials" 
+            icon={<FileText className="h-5 w-5" />}
+            isActive={location === '/educational-materials'}
+          >
+            Eğitim Materyalleri
+          </SidebarLink>
+          
+          {/* Only show for instructors, mentors and admins */}
+          {(user?.role === "instructor" || user?.role === "mentor" || user?.role === "admin") && (
+            <SidebarLink 
+              href="/advisor-materials" 
+              icon={<FileText className="h-5 w-5" />}
+              isActive={location === '/advisor-materials'}
+            >
+              Materyal Yönetimi
+            </SidebarLink>
+          )}
+          
+          <SidebarLink 
             href="/learning-trails" 
             icon={<Map className="h-5 w-5" />}
             isActive={location === '/learning-trails'}

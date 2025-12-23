@@ -87,9 +87,6 @@ jobs:
 
   create_neon_branch:
     name: Create Neon Branch & Run Migrations
-    outputs:
-      db_url: ${{ steps.create_neon_branch.outputs.db_url }}
-      db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
       migration_status: ${{ steps.verify_migration.outputs.status }}
     needs: setup
     if: |
@@ -344,19 +341,22 @@ jobs:
 
       - name: Debug Branch Creation Outputs
         id: debug_branch_outputs
+        env:
+          DB_URL: ${{ steps.create_neon_branch.outputs.db_url }}
+          DB_URL_WITH_POOLER: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
         run: |
           echo "🔍 Debugging branch creation outputs..."
           echo "Checking if outputs exist..."
-          DB_URL_EXISTS="${{ steps.create_neon_branch.outputs.db_url != '' && 'yes' || 'no' }}"
-          DB_URL_POOLER_EXISTS="${{ steps.create_neon_branch.outputs.db_url_with_pooler != '' && 'yes' || 'no' }}"
+          if [ -n "$DB_URL" ]; then DB_URL_EXISTS="yes"; else DB_URL_EXISTS="no"; fi
+          if [ -n "$DB_URL_WITH_POOLER" ]; then DB_URL_POOLER_EXISTS="yes"; else DB_URL_POOLER_EXISTS="no"; fi
           echo "db_url exists: ${DB_URL_EXISTS}"
           echo "db_url_with_pooler exists: ${DB_URL_POOLER_EXISTS}"
           
           if [ "$DB_URL_POOLER_EXISTS" = "no" ]; then
             echo "⚠️ WARNING: db_url_with_pooler is empty, falling back to db_url"
-            echo "DATABASE_URL=${{ steps.create_neon_branch.outputs.db_url }}" >> "$GITHUB_ENV"
+            echo "DATABASE_URL=${DB_URL}" >> "$GITHUB_ENV"
           else
-            echo "DATABASE_URL=${{ steps.create_neon_branch.outputs.db_url_with_pooler }}" >> "$GITHUB_ENV"
+            echo "DATABASE_URL=${DB_URL_WITH_POOLER}" >> "$GITHUB_ENV"
           fi
           
           echo "✅ Database URL prepared for subsequent steps"
@@ -367,8 +367,8 @@ jobs:
             echo "❌ ERROR: DATABASE_URL is empty!"
             echo ""
             echo "Branch creation outputs:"
-            echo "db_url: ${{ steps.create_neon_branch.outputs.db_url }}"
-            echo "db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+            echo "db_url: ${DB_URL}"
+            echo "db_url_with_pooler: ${DB_URL_WITH_POOLER}"
             echo ""
             echo "Checking if Neon API credentials are set..."
             echo "NEON_PROJECT_ID: ${NEON_PROJECT_ID:+SET}" 
@@ -383,6 +383,8 @@ jobs:
           fi
         env:
           DATABASE_URL: "${{ env.DATABASE_URL }}"
+          DB_URL: ${{ steps.create_neon_branch.outputs.db_url }}
+          DB_URL_WITH_POOLER: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
 
       - name: Verify Migration Script Exists
         run: |

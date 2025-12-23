@@ -99,6 +99,8 @@ import { SmartStudentDashboard } from "@/pages/dashboard-smart";
 import StudyPlanDashboard from "@/pages/study-plan-dashboard";
 import AdminEnrollmentDashboard from "@/pages/admin-enrollment-dashboard";
 import StudentEnrollmentDashboard from "@/pages/student-enrollment-dashboard";
+import EducationalMaterials from "@/pages/educational-materials";
+import AdvisorMaterialDashboard from "@/pages/advisor-material-dashboard";
 
 function Router() {
   return (
@@ -122,6 +124,8 @@ function Router() {
       <ProtectedRoute path="/assignments" component={Assignments} />
       <ProtectedRoute path="/calendar" component={Calendar} />
       <ProtectedRoute path="/resources" component={Resources} />
+      <ProtectedRoute path="/educational-materials" component={EducationalMaterials} />
+      <ProtectedRoute path="/advisor-materials" component={AdvisorMaterialDashboard} />
       <ProtectedRoute path="/profile" component={Profile} />
       <ProtectedRoute path="/course-generator" component={CourseGenerator} />
       <ProtectedRoute path="/learning-paths" component={LearningPathPage} />
@@ -213,7 +217,7 @@ import { GamificationProvider } from "./hooks/use-gamification-tracker";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { ErrorBoundary } from "./components/error-states/error-boundary";
-import { Analytics } from "@vercel/analytics/react";
+import { SafeAnalytics } from "./components/analytics-wrapper";
 
 function App() {
   return (
@@ -226,7 +230,7 @@ function App() {
                 <Navbar />
                 <Router />
                 <Toaster />
-                <Analytics />
+                <SafeAnalytics />
               </SkillChallengeProvider>
             </GamificationProvider>
           </LanguageProvider>

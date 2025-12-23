@@ -944,15 +944,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.isAuthenticated() && req.user) {
       userId = (req.user as User).id;
     }
-
+    
     if (!userId && req.headers["x-user-id"]) {
       userId = parseInt(req.headers["x-user-id"] as string);
     }
-
+    
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-
+    
     try {
       const userCourses = await storage.getUserCourses(userId);
       const allCourses = await storage.getCourses();
@@ -10200,7 +10200,7 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
 
       const validation = z
         .object({
-          courseId: z.number(),
+        courseId: z.number(),
         })
         .safeParse(req.body);
 
@@ -10249,8 +10249,8 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       });
     } catch (error) {
       console.error("Enrollment pipeline error:", error);
-      res.status(500).json({
-        message: "Enrollment pipeline failed",
+      res.status(500).json({ 
+        message: "Enrollment pipeline failed", 
         error: error instanceof Error ? error.message : String(error),
       });
     }

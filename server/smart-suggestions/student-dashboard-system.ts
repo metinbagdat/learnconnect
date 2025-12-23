@@ -2,6 +2,36 @@ import { db } from "../db.js";
 import { aiProfiles, userGoals, aiSuggestions, enhancedInteractionLogs, userCourses } from "../../shared/schema.js";
 import { eq, desc } from "drizzle-orm";
 
+// Type for aiProfiles row with expected properties
+interface AIProfileRow {
+  id: number;
+  userId: number;
+  personalizationScore?: number | string;
+}
+
+// Type for userGoals row with expected properties  
+interface UserGoalRow {
+  id: number;
+  userId: number;
+  goalText: string;
+  progress?: number;
+  completed?: boolean;
+  targetDate?: Date | string;
+  courseIds?: number[];
+  status?: string;
+}
+
+// Type for aiSuggestions row with expected properties
+interface AISuggestionRow {
+  id: number;
+  userId: number;
+  suggestionType?: string;
+  title?: string;
+  description?: string;
+  confidenceScore?: number | string;
+  reasoning?: string;
+}
+
 export interface DashboardOverview {
   userId: number;
   userName: string;
@@ -76,14 +106,17 @@ class StudentDashboardSystem {
       db.select().from(userGoals).where(eq(userGoals.userId, userId)),
     ]);
 
-    const activeGoals = goals.filter((g) => !g.completed).length;
-    const avgProgress = goals.length > 0 ? goals.reduce((sum, g) => sum + (g.progress || 0), 0) / goals.length : 0;
+    const typedProfile = profile[0] as unknown as AIProfileRow;
+    const typedGoals = goals as unknown as UserGoalRow[];
+
+    const activeGoals = typedGoals.filter((g: UserGoalRow) => !g.completed).length;
+    const avgProgress = typedGoals.length > 0 ? typedGoals.reduce((sum: number, g: UserGoalRow) => sum + (g.progress || 0), 0) / typedGoals.length : 0;
 
     return {
       userId,
       userName: `User ${userId}`,
-      personalizationLevel: profile[0]?.personalizationScore ? parseFloat(profile[0].personalizationScore) * 100 : 75,
-      totalGoals: goals.length,
+      personalizationLevel: typedProfile?.personalizationScore ? parseFloat(String(typedProfile.personalizationScore)) * 100 : 75,
+      totalGoals: typedGoals.length,
       activeGoals,
       avgProgress: Math.round(avgProgress),
       lastUpdated: new Date(),
@@ -96,13 +129,14 @@ class StudentDashboardSystem {
    */
   async getDashboardGoals(userId: number): Promise<DashboardGoals> {
     const goals = await db.select().from(userGoals).where(eq(userGoals.userId, userId));
+    const typedGoals = goals as unknown as UserGoalRow[];
 
     return {
-      totalGoals: goals.length,
-      goals: goals
-        .filter((g) => !g.completed)
+      totalGoals: typedGoals.length,
+      goals: typedGoals
+        .filter((g: UserGoalRow) => !g.completed)
         .slice(0, 5)
-        .map((g) => ({
+        .map((g: UserGoalRow) => ({
           id: g.id,
           text: g.goalText,
           progress: g.progress || 0,
@@ -132,38 +166,39 @@ class StudentDashboardSystem {
    */
   async getDashboardSuggestions(userId: number): Promise<DashboardSuggestions> {
     const suggestions = await db.select().from(aiSuggestions).where(eq(aiSuggestions.userId, userId));
+    const typedSuggestions = suggestions as unknown as AISuggestionRow[];
 
-    const courseRecs = suggestions
-      .filter((s) => s.suggestionType === "course")
+    const courseRecs = typedSuggestions
+      .filter((s: AISuggestionRow) => s.suggestionType === "course")
       .slice(0, 3)
-      .map((s) => ({
+      .map((s: AISuggestionRow) => ({
         id: s.id.toString(),
-        title: s.title,
-        description: s.description,
-        confidence: parseFloat(s.confidenceScore),
-        reasoning: s.reasoning,
+        title: s.title || "",
+        description: s.description || "",
+        confidence: parseFloat(String(s.confidenceScore || 0)),
+        reasoning: s.reasoning || "",
         estimatedTime: "6-8 weeks",
       }));
 
-    const studyPlans = suggestions
-      .filter((s) => s.suggestionType === "study_plan")
+    const studyPlans = typedSuggestions
+      .filter((s: AISuggestionRow) => s.suggestionType === "study_plan")
       .slice(0, 2)
-      .map((s) => ({
+      .map((s: AISuggestionRow) => ({
         id: s.id.toString(),
-        title: s.title,
+        title: s.title || "",
         schedule: "5 days/week, 2 hours/day",
         estimatedDuration: "12 weeks",
-        confidence: parseFloat(s.confidenceScore),
+        confidence: parseFloat(String(s.confidenceScore || 0)),
       }));
 
-    const goalSuggs = suggestions
-      .filter((s) => s.suggestionType === "goal")
+    const goalSuggs = typedSuggestions
+      .filter((s: AISuggestionRow) => s.suggestionType === "goal")
       .slice(0, 2)
-      .map((s) => ({
+      .map((s: AISuggestionRow) => ({
         id: s.id.toString(),
-        goal: s.title,
+        goal: s.title || "",
         timeline: "4-6 weeks",
-        confidence: parseFloat(s.confidenceScore),
+        confidence: parseFloat(String(s.confidenceScore || 0)),
       }));
 
     return {

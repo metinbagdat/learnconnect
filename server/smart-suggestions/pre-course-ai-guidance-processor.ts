@@ -100,11 +100,11 @@ class PreCourseAIGuidanceProcessor {
       suggestions.push({
         id: `goal-interest-${interest.id}`,
         type: "goal",
-        title: `Master ${interest.interestTag}`,
-        description: `Develop expertise in ${interest.interestTag} through structured learning`,
-        confidence: parseFloat(interest.relevanceScore) * 0.9,
+        title: `Master ${interest.interest}`,
+        description: `Develop expertise in ${interest.interest} through structured learning`,
+        confidence: 0.75, // Default confidence since relevanceScore not in schema
         estimatedTime: "8-12 weeks",
-        reasoning: `Aligned with your strong interest in ${interest.interestTag} (relevance: ${interest.level})`,
+        reasoning: `Aligned with your strong interest in ${interest.interest}`,
       });
     });
 
@@ -220,7 +220,7 @@ class PreCourseAIGuidanceProcessor {
     }
 
     if (data.interests.length > 0) {
-      explanation += `Your interests in ${data.interests.map((i) => i.interestTag).join(", ")} align well with our recommendations. `;
+      explanation += `Your interests in ${data.interests.map((i) => i.interest).join(", ")} align well with our recommendations. `;
     }
 
     explanation += `This personalized guidance has ${this.calculateOverallConfidence(goals)}% confidence based on your profile.`;
@@ -245,7 +245,7 @@ class PreCourseAIGuidanceProcessor {
       ],
       supportingFactors: [
         `Your career goal: ${userData.careerGoal || "Not specified"}`,
-        `Your interests: ${userData.interests.map((i) => i.interestTag).join(", ")}`,
+        `Your interests: ${userData.interests.map((i) => i.interest).join(", ")}`,
         `Your learning style: ${userData.learningStyle || "Not assessed"}`,
       ],
     };

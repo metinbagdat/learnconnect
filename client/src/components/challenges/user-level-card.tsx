@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 
 interface UserLevelCardProps {
   hideTitle?: boolean;
@@ -17,8 +18,7 @@ export function UserLevelCard({ hideTitle = false }: UserLevelCardProps) {
   const { data: userLevel, isLoading, error } = useQuery({
     queryKey: ["/api/user/level"],
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error("Failed to load user level");
+      const response = await apiRequest("GET", queryKey[0] as string);
       return await response.json();
     },
   });

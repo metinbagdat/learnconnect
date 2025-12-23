@@ -31,6 +31,14 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 2000, // Increase limit to 2MB to reduce warnings
     rollupOptions: {
+      // Externalize @vercel/analytics to prevent build failures when package is not installed
+      // The wrapper component will handle runtime loading gracefully
+      external: (id) => {
+        if (id === '@vercel/analytics/react' || id.startsWith('@vercel/analytics/')) {
+          return true;
+        }
+        return false;
+      },
       output: {
         manualChunks: {
           // Separate vendor chunks

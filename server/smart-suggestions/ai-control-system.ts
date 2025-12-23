@@ -2,6 +2,33 @@ import { db } from "../db.js";
 import { aiSuggestions, userGoals, userInterests } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
+// Type for aiSuggestions row with expected properties (schema stub only has id/userId)
+interface AISuggestionRow {
+  id: number;
+  userId: number;
+  suggestionType?: string;
+  accepted?: boolean;
+  implemented?: boolean;
+  confidenceScore?: string | number;
+  title?: string;
+  description?: string;
+  reasoning?: string;
+  feedback?: string;
+  createdAt?: Date;
+}
+
+// Type for userGoals row with expected properties
+interface UserGoalRow {
+  id: number;
+  userId: number;
+  goalText: string;
+  progress?: number;
+  completed?: boolean;
+  targetDate?: Date;
+  courseIds?: number[];
+  status?: string;
+}
+
 export interface AIControlState {
   moduleName: string;
   status: "active" | "paused" | "degraded";
@@ -47,16 +74,19 @@ class AIControlDashboard {
     const suggestions = await db.select().from(aiSuggestions).where(eq(aiSuggestions.userId, userId));
     const goals = await db.select().from(userGoals).where(eq(userGoals.userId, userId));
 
-    const goalSuggestions = suggestions.filter((s) => s.suggestionType === "goal");
-    const courseSuggestions = suggestions.filter((s) => s.suggestionType === "course");
-    const studyPlanSuggestions = suggestions.filter((s) => s.suggestionType === "study_plan");
+    const typedSuggestions = suggestions as unknown as AISuggestionRow[];
+    const typedGoals = goals as unknown as UserGoalRow[];
 
-    const calculateStats = (sggestions: typeof suggestions) => {
-      const accepted = sggestions.filter((s) => s.accepted).length;
-      const implemented = sggestions.filter((s) => s.implemented).length;
+    const goalSuggestions = typedSuggestions.filter((s: AISuggestionRow) => s.suggestionType === "goal");
+    const courseSuggestions = typedSuggestions.filter((s: AISuggestionRow) => s.suggestionType === "course");
+    const studyPlanSuggestions = typedSuggestions.filter((s: AISuggestionRow) => s.suggestionType === "study_plan");
+
+    const calculateStats = (suggestions: AISuggestionRow[]) => {
+      const accepted = suggestions.filter((s: AISuggestionRow) => s.accepted).length;
+      const implemented = suggestions.filter((s: AISuggestionRow) => s.implemented).length;
       const avgConfidence =
-        sggestions.length > 0
-          ? sggestions.reduce((sum, s) => sum + parseFloat(s.confidenceScore), 0) / sggestions.length
+        suggestions.length > 0
+          ? suggestions.reduce((sum: number, s: AISuggestionRow) => sum + parseFloat(String(s.confidenceScore || 0)), 0) / suggestions.length
           : 0;
 
       return {
@@ -77,7 +107,7 @@ class AIControlDashboard {
       goalRecommendationsControl: this.createControlState(
         "Goal Recommendations",
         goalStats,
-        goals.length
+        typedGoals.length
       ),
       courseSuggestionsControl: this.createControlState(
         "Course Suggestions",
@@ -101,7 +131,7 @@ class AIControlDashboard {
         feedbackIncorporation: true,
         confidenceThreshold: 75,
       },
-      recentFeedback: this.generateRecentFeedback(suggestions),
+      recentFeedback: this.generateRecentFeedback(typedSuggestions),
     };
   }
 
@@ -147,7 +177,7 @@ class AIControlDashboard {
   /**
    * Generate recent feedback items
    */
-  private generateRecentFeedback(suggestions: any[]): UserFeedback[] {
+  private generateRecentFeedback(suggestions: AISuggestionRow[]): UserFeedback[] {
     return suggestions
       .filter((s) => s.feedback)
       .slice(0, 5)
@@ -156,7 +186,7 @@ class AIControlDashboard {
         rating: 4,
         comment: s.feedback || "No comment",
         feedback_type: "helpful",
-        createdAt: s.createdAt,
+        createdAt: s.createdAt || new Date(),
       }));
   }
 
@@ -169,12 +199,13 @@ class AIControlDashboard {
     status: string;
   }> {
     const suggestions = await db.select().from(aiSuggestions).where(eq(aiSuggestions.userId, userId));
+    const typedSuggestions = suggestions as unknown as AISuggestionRow[];
 
     return {
-      refreshedCount: suggestions.length,
-      newConfidenceLevel: suggestions.length > 0
+      refreshedCount: typedSuggestions.length,
+      newConfidenceLevel: typedSuggestions.length > 0
         ? Math.round(
-            suggestions.reduce((sum, s) => sum + parseFloat(s.confidenceScore), 0) / suggestions.length * 100
+            typedSuggestions.reduce((sum, s) => sum + parseFloat(String(s.confidenceScore || 0)), 0) / typedSuggestions.length * 100
           )
         : 0,
       status: "Suggestions refreshed successfully",
@@ -190,7 +221,8 @@ class AIControlDashboard {
     affectedSuggestions: number;
   }> {
     const suggestions = await db.select().from(aiSuggestions).where(eq(aiSuggestions.userId, userId));
-    const affectedCount = suggestions.filter((s) => parseFloat(s.confidenceScore) >= newThreshold / 100).length;
+    const typedSuggestions = suggestions as unknown as AISuggestionRow[];
+    const affectedCount = typedSuggestions.filter((s) => parseFloat(String(s.confidenceScore || 0)) >= newThreshold / 100).length;
 
     return {
       oldThreshold: 75,
@@ -217,42 +249,43 @@ class AIControlDashboard {
     }>;
   }> {
     const suggestions = await db.select().from(aiSuggestions).where(eq(aiSuggestions.userId, userId));
+    const typedSuggestions = suggestions as unknown as AISuggestionRow[];
 
     const suggestionsByType = {
-      goal: suggestions.filter((s) => s.suggestionType === "goal").length,
-      course: suggestions.filter((s) => s.suggestionType === "course").length,
-      study_plan: suggestions.filter((s) => s.suggestionType === "study_plan").length,
-      intervention: suggestions.filter((s) => s.suggestionType === "intervention").length,
+      goal: typedSuggestions.filter((s) => s.suggestionType === "goal").length,
+      course: typedSuggestions.filter((s) => s.suggestionType === "course").length,
+      study_plan: typedSuggestions.filter((s) => s.suggestionType === "study_plan").length,
+      intervention: typedSuggestions.filter((s) => s.suggestionType === "intervention").length,
     };
 
     const acceptanceRateByType = {
-      goal: this.calculateAcceptanceRate(suggestions.filter((s) => s.suggestionType === "goal")),
-      course: this.calculateAcceptanceRate(suggestions.filter((s) => s.suggestionType === "course")),
-      study_plan: this.calculateAcceptanceRate(suggestions.filter((s) => s.suggestionType === "study_plan")),
-      intervention: this.calculateAcceptanceRate(suggestions.filter((s) => s.suggestionType === "intervention")),
+      goal: this.calculateAcceptanceRate(typedSuggestions.filter((s) => s.suggestionType === "goal")),
+      course: this.calculateAcceptanceRate(typedSuggestions.filter((s) => s.suggestionType === "course")),
+      study_plan: this.calculateAcceptanceRate(typedSuggestions.filter((s) => s.suggestionType === "study_plan")),
+      intervention: this.calculateAcceptanceRate(typedSuggestions.filter((s) => s.suggestionType === "intervention")),
     };
 
     return {
       suggestionsByType,
       acceptanceRateByType,
-      timeSeriesData: this.generateTimeSeriesData(suggestions),
-      topPerformingSuggestions: this.getTopPerformers(suggestions),
+      timeSeriesData: this.generateTimeSeriesData(typedSuggestions),
+      topPerformingSuggestions: this.getTopPerformers(typedSuggestions),
     };
   }
 
   /**
    * Calculate acceptance rate for suggestions
    */
-  private calculateAcceptanceRate(suggestions: any[]): number {
+  private calculateAcceptanceRate(suggestions: AISuggestionRow[]): number {
     if (suggestions.length === 0) return 0;
-    return Math.round((suggestions.filter((s) => s.accepted).length / suggestions.length) * 100);
+    return Math.round((suggestions.filter((s: AISuggestionRow) => s.accepted).length / suggestions.length) * 100);
   }
 
   /**
    * Generate time series data for analytics
    */
   private generateTimeSeriesData(
-    suggestions: any[]
+    suggestions: AISuggestionRow[]
   ): Array<{ date: string; suggestions: number; acceptanceRate: number }> {
     const data = [];
     for (let i = 6; i >= 0; i--) {
@@ -270,17 +303,17 @@ class AIControlDashboard {
   /**
    * Get top performing suggestions
    */
-  private getTopPerformers(suggestions: any[]): Array<{
+  private getTopPerformers(suggestions: AISuggestionRow[]): Array<{
     type: string;
     confidence: number;
     accepted: boolean;
   }> {
     return suggestions
-      .sort((a, b) => parseFloat(b.confidenceScore) - parseFloat(a.confidenceScore))
+      .sort((a, b) => parseFloat(String(b.confidenceScore || 0)) - parseFloat(String(a.confidenceScore || 0)))
       .slice(0, 5)
       .map((s) => ({
-        type: s.suggestionType,
-        confidence: parseFloat(s.confidenceScore),
+        type: s.suggestionType || "unknown",
+        confidence: parseFloat(String(s.confidenceScore || 0)),
         accepted: s.accepted || false,
       }));
   }

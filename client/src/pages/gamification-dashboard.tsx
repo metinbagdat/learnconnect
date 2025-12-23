@@ -22,6 +22,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useGamificationTracker } from "@/hooks/use-gamification-tracker";
+import { apiRequest } from "@/lib/queryClient";
 import { LeaderboardTable } from "@/components/gamification/leaderboard-table";
 import { AchievementCard } from "@/components/gamification/achievement-card";
 import { AchievementUnlockModal } from "@/components/gamification/achievement-unlock-modal";
@@ -59,9 +60,9 @@ export default function GamificationDashboard() {
   // Fetch user level
   const { data: userLevel, isLoading: levelLoading } = useQuery({
     queryKey: ["/api/user/level"],
+    enabled: !!user,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error("Failed to load user level");
+      const response = await apiRequest("GET", queryKey[0] as string);
       return await response.json();
     },
   });
@@ -69,9 +70,9 @@ export default function GamificationDashboard() {
   // Fetch all leaderboards
   const { data: leaderboards, isLoading: leaderboardsLoading } = useQuery({
     queryKey: ["/api/leaderboards"],
+    enabled: !!user,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error("Failed to load leaderboards");
+      const response = await apiRequest("GET", queryKey[0] as string);
       return await response.json();
     },
   });
@@ -79,9 +80,9 @@ export default function GamificationDashboard() {
   // Fetch user's achievements
   const { data: achievements, isLoading: achievementsLoading } = useQuery({
     queryKey: ["/api/user/achievements"],
+    enabled: !!user,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error("Failed to load achievements");
+      const response = await apiRequest("GET", queryKey[0] as string);
       return await response.json();
     },
   });
@@ -89,9 +90,9 @@ export default function GamificationDashboard() {
   // Fetch all available achievements
   const { data: allAchievements, isLoading: allAchievementsLoading } = useQuery({
     queryKey: ["/api/achievements"],
+    enabled: !!user,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error("Failed to load all achievements");
+      const response = await apiRequest("GET", queryKey[0] as string);
       return await response.json();
     },
   });
@@ -99,9 +100,9 @@ export default function GamificationDashboard() {
   // Determine user ranks
   const { data: userRankings, isLoading: rankingsLoading } = useQuery({
     queryKey: ["/api/user/rankings"],
+    enabled: !!user,
     queryFn: async ({ queryKey }) => {
-      const response = await fetch(queryKey[0]);
-      if (!response.ok) throw new Error("Failed to load user rankings");
+      const response = await apiRequest("GET", queryKey[0] as string);
       return await response.json();
     },
   });
@@ -109,11 +110,11 @@ export default function GamificationDashboard() {
   // Fetch recent activities
   const { data: recentActivities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["/api/user/activities", { limit: 5 }],
+    enabled: !!user,
     queryFn: async ({ queryKey }) => {
       const [url, params] = queryKey;
       const limit = typeof params === 'object' && 'limit' in params ? params.limit : 5;
-      const response = await fetch(`${url}?limit=${limit}`);
-      if (!response.ok) throw new Error("Failed to load activities");
+      const response = await apiRequest("GET", `${url}?limit=${limit}`);
       return await response.json();
     },
   });

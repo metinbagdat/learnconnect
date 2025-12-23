@@ -23,7 +23,7 @@ export class AISuggestionEngine {
     careerGoal: string,
     interests: string[]
   ): { goal: string; type: string; confidence: number; relatedCourses: string[] }[] {
-    const suggestions = [];
+    const suggestions: Array<{ goal: string; type: string; confidence: number; relatedCourses: string[] }> = [];
 
     // Get career-based goals
     if (careerGoal && CAREER_GOAL_MAPPINGS[careerGoal.toLowerCase()]) {
@@ -58,7 +58,7 @@ export class AISuggestionEngine {
     interests: UserInterest[],
     allCourses: any[]
   ): { courseId: number; reason: string; confidence: number }[] {
-    const suggestions = [];
+    const suggestions: Array<{ courseId: number; reason: string; confidence: number }> = [];
     const matchedCourses = new Set<number>();
 
     // Goal-based suggestions
@@ -84,14 +84,14 @@ export class AISuggestionEngine {
     interests.forEach((interest) => {
       allCourses.forEach((course) => {
         const courseTagsStr = (course.tags || "").toLowerCase();
-        const interestStr = interest.interestTag.toLowerCase();
+        const interestStr = interest.interest.toLowerCase();
 
         if (courseTagsStr.includes(interestStr)) {
           if (!matchedCourses.has(course.id)) {
             suggestions.push({
               courseId: course.id,
-              reason: `Matches your interest in ${interest.interestTag}`,
-              confidence: parseFloat(interest.relevanceScore) * 0.8,
+              reason: `Matches your interest in ${interest.interest}`,
+              confidence: 0.75, // Default confidence since relevanceScore not in schema
             });
             matchedCourses.add(course.id);
           }
@@ -143,13 +143,14 @@ export class AISuggestionEngine {
 
   // Calculate goal progress
   calculateGoalProgress(goal: UserGoal, userCourses: any[]): number {
-    if (!goal.courseIds || goal.courseIds.length === 0) return 0;
+    const goalWithExtras = goal as UserGoal & { courseIds?: number[] };
+    if (!goalWithExtras.courseIds || goalWithExtras.courseIds.length === 0) return 0;
 
     const completedCourses = userCourses.filter(
-      (uc) => goal.courseIds.includes(uc.courseId) && uc.completed
+      (uc) => goalWithExtras.courseIds!.includes(uc.courseId) && uc.completed
     ).length;
 
-    return Math.round((completedCourses / goal.courseIds.length) * 100);
+    return Math.round((completedCourses / goalWithExtras.courseIds.length) * 100);
   }
 
   // Generate recommendations based on user behavior
@@ -159,7 +160,7 @@ export class AISuggestionEngine {
     enrolledCourses: any[],
     completedCourses: any[]
   ): { type: string; recommendation: string; urgency: "low" | "medium" | "high" }[] {
-    const recommendations = [];
+    const recommendations: Array<{ type: string; recommendation: string; urgency: "low" | "medium" | "high" }> = [];
 
     // Check for stalled courses
     enrolledCourses.forEach((course) => {
@@ -167,18 +168,19 @@ export class AISuggestionEngine {
         recommendations.push({
           type: "resume_course",
           recommendation: `Resume "${course.courseTitle}" - you're ${course.progress}% through`,
-          urgency: "high",
+          urgency: "high" as const,
         });
       }
     });
 
     // Check for goals without courses
     userGoals.forEach((goal) => {
-      if (goal.status === "active" && (!goal.courseIds || goal.courseIds.length === 0)) {
+      const goalWithExtras = goal as UserGoal & { status?: string; courseIds?: number[] };
+      if (goalWithExtras.status === "active" && (!goalWithExtras.courseIds || goalWithExtras.courseIds.length === 0)) {
         recommendations.push({
           type: "enroll_course",
           recommendation: `Enroll in a course to progress on your goal: "${goal.goalText}"`,
-          urgency: "medium",
+          urgency: "medium" as const,
         });
       }
     });
@@ -188,7 +190,7 @@ export class AISuggestionEngine {
       recommendations.push({
         type: "new_course",
         recommendation: "Great progress! Consider enrolling in a new course",
-        urgency: "low",
+        urgency: "low" as const,
       });
     }
 
