@@ -333,7 +333,9 @@ jobs:
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
-        continue-on-error: false
+        # 422 (branch already exists) is a common, non-fatal case for PR previews.
+        # We rely on the presence of db_url outputs instead and validate below.
+        continue-on-error: true
         with:
           project_id: ${{ env.NEON_PROJECT_ID }}
           branch_name: ${{ steps.sanitize_branch.outputs.neon_branch_name }}
