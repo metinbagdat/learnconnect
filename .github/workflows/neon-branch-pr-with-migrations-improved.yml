@@ -341,6 +341,7 @@ jobs:
           expires_at: ${{ steps.get_expiration_date.outputs.expires_at }}
 
       - name: Debug Branch Creation Outputs
+        id: debug_branch_outputs
         run: |
           echo "🔍 Debugging branch creation outputs..."
           echo "Checking if outputs exist..."
@@ -350,22 +351,13 @@ jobs:
           echo "db_url_with_pooler exists: ${DB_URL_POOLER_EXISTS}"
           
           if [ "$DB_URL_POOLER_EXISTS" = "no" ]; then
-            echo "❌ ERROR: db_url_with_pooler is empty!"
-            echo ""
-            echo "This means the Neon branch creation failed or didn't return a URL"
-            echo "Possible causes:"
-            echo "1. Invalid NEON_API_KEY"
-            echo "2. Invalid NEON_PROJECT_ID"
-            echo "3. Neon API rate limit exceeded"
-            echo "4. Network connectivity issues"
-            echo ""
-            echo "Check the 'Create Neon Branch' step above for detailed error messages"
-            exit 1
+            echo "⚠️ WARNING: db_url_with_pooler is empty, falling back to db_url"
+            echo "DATABASE_URL=${{ steps.create_neon_branch.outputs.db_url }}" >> "$GITHUB_ENV"
+          else
+            echo "DATABASE_URL=${{ steps.create_neon_branch.outputs.db_url_with_pooler }}" >> "$GITHUB_ENV"
           fi
-          echo "✅ Database URL received from Neon branch creation"
-        env:
-          DB_URL: "${{ steps.create_neon_branch.outputs.db_url }}"
-          DB_URL_WITH_POOLER: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          
+          echo "✅ Database URL prepared for subsequent steps"
 
       - name: Verify Database URL
         run: |
@@ -388,7 +380,7 @@ jobs:
             echo "Last 10 chars: ...${DATABASE_URL: -10}"
           fi
         env:
-          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          DATABASE_URL: "${{ env.DATABASE_URL }}"
 
       - name: Verify Migration Script Exists
         run: |
@@ -437,7 +429,7 @@ jobs:
             exit $MIGRATION_EXIT_CODE
           fi
         env:
-          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          DATABASE_URL: "${{ env.DATABASE_URL }}"
 
       - name: Verify Migration Success
         id: verify_migration
@@ -468,7 +460,7 @@ jobs:
           echo "🌱 Seeding database..."
           npm run seed:meb
         env:
-          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          DATABASE_URL: "${{ env.DATABASE_URL }}"
         continue-on-error: true
 
       - name: Post Schema Diff Comment to PR

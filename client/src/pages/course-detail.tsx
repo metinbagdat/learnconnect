@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/consolidated-language-context";
 import { useSkillChallenge } from "@/hooks/use-skill-challenge";
-import { Book, CheckCircle, Clock, FileText, LucideIcon, Play, User, Brain, TreePine, Globe, DollarSign, Calendar, Target, ChevronRight, ChevronLeft, Bookmark } from "lucide-react";
+import { Book, CheckCircle, Clock, FileText, LucideIcon, Play, User, Brain, TreePine, Globe, DollarSign, Calendar, Target, ChevronRight, ChevronLeft, Bookmark, FileText as FileTextIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
@@ -310,11 +310,53 @@ export default function CourseDetail() {
                       {t('course.aiPersonalized') || 'AI-Personalized'}
                     </Badge>
                   </div>
-                  <LanguageSwitcher />
+                  <div className="flex items-center gap-3">
+                    <Tabs defaultValue="ai" className="hidden sm:block">
+                      <TabsList>
+                        <TabsTrigger
+                          value="ai"
+                          onClick={() => {
+                            const el = document.getElementById('ai-modules-section');
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                        >
+                          {t('course.aiPersonalized') || 'AI-Personalized'}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="traditional"
+                          onClick={() => {
+                            const el = document.getElementById('traditional-modules-section');
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                        >
+                          {language === 'tr' ? 'Geleneksel Modüller' : 'Traditional Modules'}
+                        </TabsTrigger>
+                        <TabsTrigger
+                          value="materials"
+                          onClick={() => {
+                            const el = document.getElementById('course-materials-section');
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                        >
+                          {language === 'tr' ? 'Materyaller' : 'Materials'}
+                        </TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                    <LanguageSwitcher />
+                  </div>
                 </div>
                 
                 {user && courseId && (
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                  <div
+                    id="ai-modules-section"
+                    className="grid grid-cols-1 lg:grid-cols-4 gap-6"
+                  >
                     <div className="lg:col-span-3">
                       <ModuleTree 
                         courseId={parseInt(courseId!)} 
@@ -352,7 +394,10 @@ export default function CourseDetail() {
               </div>
               
               {/* Traditional Module View - Always visible alongside AI modules */}
-              <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div
+                id="traditional-modules-section"
+                className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6"
+              >
                 {/* Left side - Traditional Module List */}
                 <div className="lg:col-span-1">
                   <div className="bg-white rounded-lg shadow-sm">

@@ -65,6 +65,11 @@ export default function Dashboard() {
     retry: 3,
   });
 
+  const { data: userSummary } = useQuery<any>({
+    queryKey: ["/api/user/summary"],
+    enabled: !!user,
+  });
+
   // Fetch user level for gamification
   const { data: userLevel = {} } = useQuery<any>({
     queryKey: ["/api/user/level"],
@@ -109,11 +114,11 @@ export default function Dashboard() {
   
   // Compute stats with memoization to prevent infinite loops
   const stats = useMemo(() => ({
-    coursesInProgress: userCourses.filter(uc => !uc.completed).length,
-    completedCourses: userCourses.filter(uc => uc.completed).length,
-    pendingAssignments: assignments.length,
-    achievementsCount: userAchievements.length,
-  }), [userCourses, assignments, userAchievements]);
+    coursesInProgress: userSummary?.coursesInProgress ?? userCourses.filter(uc => !uc.completed).length,
+    completedCourses: userSummary?.completedCourses ?? userCourses.filter(uc => uc.completed).length,
+    pendingAssignments: userSummary?.pendingAssignments ?? assignments.length,
+    achievementsCount: userSummary?.achievementsCount ?? userAchievements.length,
+  }), [userSummary, userCourses, assignments, userAchievements]);
   
   // Get in-progress courses with memoization
   const inProgressCourses = useMemo(() => 

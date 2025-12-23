@@ -113,15 +113,20 @@ export default function Courses() {
       await apiRequest("POST", "/api/pipeline/enroll-and-generate", { courseId });
       toast({
         title: t('enrollmentSuccessful'),
-        description: "Study plan and assignments are being generated for you!",
+        description: t('enrollmentSuccessDescription', "Study plan and assignments are being generated for you!"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user/courses/tree"] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses/tree"] });
       queryClient.invalidateQueries({ queryKey: ["/api/courses/by-exam-category"] });
-    } catch (error) {
+    } catch (error: any) {
+      const message = error instanceof Error ? error.message : '';
+      const description =
+        message && message.toLowerCase().includes("already enrolled")
+          ? t('enrolledSuccessfully', "You are already enrolled in this course")
+          : t('enrollmentFailedDescription');
       toast({
         title: t('enrollmentFailed'),
-        description: t('enrollmentFailedDescription'),
+        description,
         variant: "destructive",
       });
     }

@@ -68,6 +68,8 @@ import {
   insertLearningPathSchema,
   insertMentorSchema,
   insertUserMentorSchema,
+  insertEducationalMaterialSchema,
+  insertMentorMaterialAssignmentSchema,
   insertStudyProgramSchema,
   insertProgramScheduleSchema,
   insertUserProgramProgressSchema,
@@ -343,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
 
-    // Setup authentication routes
+  // Setup authentication routes
     logger.info("[ROUTES] Setting up authentication...");
     await setupAuth(app);
       logger.info("[ROUTES] Authentication setup complete");
@@ -936,25 +938,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // User Courses API
+  // User Courses API - returns enrollments with joined course data
   app.get("/api/user/courses", async (req, res) => {
     let userId: number | null = null;
     if (req.isAuthenticated() && req.user) {
       userId = (req.user as User).id;
     }
-    
-    if (!userId && req.headers['x-user-id']) {
-      userId = parseInt(req.headers['x-user-id'] as string);
+
+    if (!userId && req.headers["x-user-id"]) {
+      userId = parseInt(req.headers["x-user-id"] as string);
     }
-    
+
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    
+
     try {
       const userCourses = await storage.getUserCourses(userId);
-      return res.json(userCourses);
+      const allCourses = await storage.getCourses();
+
+      const courseMap = new Map(allCourses.map((c: any) => [c.id, c]));
+
+      const validUserCourses = userCourses.filter(
+        (uc: any) => courseMap.has(uc.courseId),
+      );
+      const invalidUserCourses = userCourses.filter(
+        (uc: any) => !courseMap.has(uc.courseId),
+      );
+
+      if (invalidUserCourses.length > 0) {
+        console.warn(
+          "[User Courses] WARNING: Found user_courses linked to missing courses:",
+          invalidUserCourses.map((uc: any) => ({
+            id: uc.id,
+            courseId: uc.courseId,
+            userId: uc.userId,
+          })),
+        );
+      }
+
+      const result = validUserCourses.map((uc: any) => ({
+        ...uc,
+        course: courseMap.get(uc.courseId),
+      }));
+
+      return res.json(result);
     } catch (error) {
+      console.error("[User Courses] Failed to fetch user courses:", error);
       return res.status(500).json({ message: "Failed to fetch user courses" });
     }
   });
@@ -1310,6 +1340,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in assignments endpoint:', error);
       return res.json([]);
+    }
+  });
+
+  // Aggregated user summary for dashboard (courses, assignments, achievements)
+  app.get("/api/user/summary", async (req, res) => {
+    try {
+      let userId: number | null = null;
+      if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+        userId = (req.user as User).id;
+      }
+      if (!userId && req.headers["x-user-id"]) {
+        userId = parseInt(req.headers["x-user-id"] as string);
+      }
+
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const [userCourses, assignments, achievements] = await Promise.all([
+        storage.getUserCourses(userId),
+        storage.getUserAssignments(userId),
+        storage.getUserAchievements(userId),
+      ]);
+
+      const coursesInProgress = userCourses.filter((uc: any) => !uc.completed).length;
+      const completedCourses = userCourses.filter((uc: any) => uc.completed).length;
+      const pendingAssignments = assignments.length;
+      const achievementsCount = achievements.length;
+
+      return res.json({
+        userId,
+        coursesInProgress,
+        completedCourses,
+        pendingAssignments,
+        achievementsCount,
+      });
+    } catch (error) {
+      console.error("[User Summary] Error:", error);
+      return res.status(500).json({ message: "Failed to fetch user summary" });
     }
   });
   
@@ -4627,11 +4696,49 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         // Auto-assign a mentor if none exists
         const autoAssigned = await storage.autoAssignMentor(req.user.id);
         const newUserMentor = await storage.getUserMentor(req.user.id);
-        return res.json(newUserMentor);
+        
+        // If still no mentor assigned (AI mentor), generate initial AI materials
+        if (!newUserMentor) {
+          try {
+            const { generateEducationalMaterial, createAIGeneratedMaterial } = await import("./ai-material-service.js");
+            
+            // Generate initial set of materials for the student
+            const initialMaterialTypes: Array<'text' | 'document' | 'video'> = ['text', 'document'];
+            
+            for (const materialType of initialMaterialTypes) {
+              try {
+                const generatedContent = await generateEducationalMaterial({
+                  userId: req.user.id,
+                  materialType,
+                  language: 'tr',
+                });
+                
+                await createAIGeneratedMaterial({
+                  userId: req.user.id,
+                  materialType,
+                }, generatedContent);
+              } catch (materialError: any) {
+                logger.warn(`Failed to generate ${materialType} material for user ${req.user.id}`, { 
+                  error: materialError?.message,
+                  userId: req.user.id,
+                  materialType,
+                });
+              }
+            }
+          } catch (aiError: any) {
+            logger.warn("Failed to generate initial AI materials", { 
+              error: aiError?.message,
+              userId: req.user.id,
+            });
+            // Continue even if AI generation fails
+          }
+        }
+        
+        return res.json(newUserMentor || { isAiMentor: true });
       }
       res.json(userMentor);
-    } catch (error) {
-      console.error("Error fetching user mentor:", error);
+    } catch (error: any) {
+      logger.error("Error fetching user mentor", error, { userId: req.user?.id });
       res.status(500).json({ message: "Failed to fetch mentor" });
     }
   });
@@ -4676,6 +4783,360 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     } catch (error) {
       console.error("Error creating mentor:", error);
       res.status(500).json({ message: "Failed to create mentor" });
+    }
+  });
+
+  // Educational Materials Management API Endpoints
+
+  // Get all materials (for mentor/instructor)
+  app.get("/api/materials", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { mentorId, courseId, materialType, isPublic, isAiGenerated } = req.query;
+      const filters: any = {};
+
+      // If user is mentor/instructor, filter by their mentor ID
+      if (["instructor", "mentor"].includes(req.user.role)) {
+        // Get mentor ID from user
+        const mentors = await storage.getMentors({ userId: req.user.id });
+        if (mentors.length > 0) {
+          filters.mentorId = mentors[0].id;
+        }
+      } else if (mentorId) {
+        filters.mentorId = parseInt(mentorId as string);
+      }
+
+      if (courseId !== undefined) {
+        filters.courseId = courseId === 'null' ? null : parseInt(courseId as string);
+      }
+      if (materialType) {
+        filters.materialType = materialType as string;
+      }
+      if (isPublic !== undefined) {
+        filters.isPublic = isPublic === 'true';
+      }
+      if (isAiGenerated !== undefined) {
+        filters.isAiGenerated = isAiGenerated === 'true';
+      }
+
+      const materials = await storage.getEducationalMaterials(filters);
+      res.json(materials);
+    } catch (error: any) {
+      console.error("Error fetching materials:", error);
+      res.status(500).json({ message: "Failed to fetch materials" });
+    }
+  });
+
+  // Get material by ID
+  app.get("/api/materials/:id", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const materialId = parseInt(req.params.id);
+      const material = await storage.getEducationalMaterial(materialId);
+      
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      res.json(material);
+    } catch (error: any) {
+      console.error("Error fetching material:", error);
+      res.status(500).json({ message: "Failed to fetch material" });
+    }
+  });
+
+  // Create new material (mentor/instructor only)
+  app.post("/api/materials", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["instructor", "mentor", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    try {
+      const materialData = insertEducationalMaterialSchema.parse(req.body);
+      
+      // Get mentor ID for instructor/mentor users
+      if (["instructor", "mentor"].includes(req.user.role)) {
+        const mentors = await storage.getMentors({ userId: req.user.id });
+        if (mentors.length > 0) {
+          materialData.mentorId = mentors[0].id;
+        }
+      }
+
+      const newMaterial = await storage.createEducationalMaterial(materialData);
+      res.status(201).json(newMaterial);
+    } catch (error: any) {
+      console.error("Error creating material:", error);
+      res.status(500).json({ message: "Failed to create material" });
+    }
+  });
+
+  // Update material (mentor/instructor only)
+  app.put("/api/materials/:id", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["instructor", "mentor", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    try {
+      const materialId = parseInt(req.params.id);
+      const material = await storage.getEducationalMaterial(materialId);
+      
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Check ownership if not admin
+      if (req.user.role !== "admin" && material.mentorId) {
+        const mentors = await storage.getMentors({ userId: req.user.id });
+        const mentor = mentors.find((m: any) => m.id === material.mentorId);
+        if (!mentor) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      const updates = insertEducationalMaterialSchema.partial().parse(req.body);
+      const updatedMaterial = await storage.updateEducationalMaterial(materialId, updates);
+      res.json(updatedMaterial);
+    } catch (error: any) {
+      console.error("Error updating material:", error);
+      res.status(500).json({ message: "Failed to update material" });
+    }
+  });
+
+  // Delete material (mentor/instructor only)
+  app.delete("/api/materials/:id", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["instructor", "mentor", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    try {
+      const materialId = parseInt(req.params.id);
+      const material = await storage.getEducationalMaterial(materialId);
+      
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Check ownership if not admin
+      if (req.user.role !== "admin" && material.mentorId) {
+        const mentors = await storage.getMentors({ userId: req.user.id });
+        const mentor = mentors.find((m: any) => m.id === material.mentorId);
+        if (!mentor) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      await storage.deleteEducationalMaterial(materialId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting material:", error);
+      res.status(500).json({ message: "Failed to delete material" });
+    }
+  });
+
+  // Assign material to student
+  app.post("/api/materials/:id/assign", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["instructor", "mentor", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    try {
+      const materialId = parseInt(req.params.id);
+      const { studentId, notes } = req.body;
+
+      if (!studentId) {
+        return res.status(400).json({ message: "Student ID is required" });
+      }
+
+      // Get mentor ID
+      const mentors = await storage.getMentors({ userId: req.user.id });
+      if (mentors.length === 0) {
+        return res.status(403).json({ message: "Mentor not found" });
+      }
+      const mentor = mentors[0];
+
+      const assignment = await storage.assignMaterialToStudent(materialId, studentId, mentor.id, notes);
+      res.json(assignment);
+    } catch (error: any) {
+      console.error("Error assigning material:", error);
+      res.status(500).json({ message: "Failed to assign material" });
+    }
+  });
+
+  // Student endpoints
+  // Get materials for student
+  app.get("/api/student/materials", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const materials = await storage.getMaterialsForStudent(req.user.id);
+      res.json(materials);
+    } catch (error: any) {
+      console.error("Error fetching student materials:", error);
+      res.status(500).json({ message: "Failed to fetch materials" });
+    }
+  });
+
+  // Get AI-generated materials for student
+  app.get("/api/student/materials/ai", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const materials = await storage.getAIGeneratedMaterials(req.user.id);
+      res.json(materials);
+    } catch (error: any) {
+      console.error("Error fetching AI materials:", error);
+      res.status(500).json({ message: "Failed to fetch AI materials" });
+    }
+  });
+
+  // Request material (triggers AI generation if no mentor)
+  app.post("/api/student/materials/:id/request", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const materialId = parseInt(req.params.id);
+      const material = await storage.getEducationalMaterial(materialId);
+      
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Material is already accessible, just return it
+      res.json(material);
+    } catch (error: any) {
+      console.error("Error requesting material:", error);
+      res.status(500).json({ message: "Failed to request material" });
+    }
+  });
+
+  // Get public materials
+  app.get("/api/materials/public", async (req, res) => {
+    try {
+      const materials = await storage.getPublicMaterials();
+      res.json(materials);
+    } catch (error: any) {
+      console.error("Error fetching public materials:", error);
+      res.status(500).json({ message: "Failed to fetch public materials" });
+    }
+  });
+
+  // Get course-specific materials
+  app.get("/api/materials/course/:courseId", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const courseId = parseInt(req.params.courseId);
+      const materials = await storage.getEducationalMaterials({ courseId });
+      res.json(materials);
+    } catch (error: any) {
+      console.error("Error fetching course materials:", error);
+      res.status(500).json({ message: "Failed to fetch course materials" });
+    }
+  });
+
+  // AI Material Generation endpoint
+  app.post("/api/materials/ai/generate", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { generateEducationalMaterial, createAIGeneratedMaterial } = await import("./ai-material-service.js");
+      const { materialType, courseId, subjectArea, title, description, language } = req.body;
+
+      if (!materialType) {
+        return res.status(400).json({ message: "Material type is required" });
+      }
+
+      // Generate material content
+      const generatedContent = await generateEducationalMaterial({
+        userId: req.user.id,
+        materialType,
+        courseId,
+        subjectArea,
+        title,
+        description,
+        language: language || 'tr',
+      });
+
+      // Save to database
+      const material = await createAIGeneratedMaterial({
+        userId: req.user.id,
+        materialType,
+        courseId,
+        subjectArea,
+      }, generatedContent);
+
+      res.status(201).json(material);
+    } catch (error: any) {
+      console.error("Error generating AI material:", error);
+      res.status(500).json({ message: "Failed to generate material" });
+    }
+  });
+
+  // Material file upload endpoint
+  app.post("/api/materials/:id/upload", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!["instructor", "mentor", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    try {
+      const materialId = parseInt(req.params.id);
+      const material = await storage.getEducationalMaterial(materialId);
+      
+      if (!material) {
+        return res.status(404).json({ message: "Material not found" });
+      }
+
+      // Check ownership if not admin
+      if (req.user.role !== "admin" && material.mentorId) {
+        const mentors = await storage.getMentors({ userId: req.user.id });
+        const mentor = mentors.find((m: any) => m.id === material.mentorId);
+        if (!mentor) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      // This endpoint expects file upload handled by existing upload endpoint
+      // The file should be uploaded first, then material updated with uploadId
+      res.status(400).json({ message: "Please use /api/uploads to upload file, then update material with uploadId" });
+    } catch (error: any) {
+      console.error("Error uploading material file:", error);
+      res.status(500).json({ message: "Failed to upload material file" });
     }
   });
   
@@ -9722,28 +10183,59 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   });
 
   // PIPELINE: Automated Enrollment → Curriculum → StudyPlan → Assignments → Notifications
-  app.post("/api/pipeline/enroll-and-generate", (app as any).ensureAuthenticated, async (req, res) => {
+  app.post("/api/pipeline/enroll-and-generate", async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
+      // Support both session-based and header-based auth (for SPA + API usage)
+      let userId: number | null = null;
+      if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+        userId = (req.user as User).id;
+      }
+      if (!userId && req.headers["x-user-id"]) {
+        userId = parseInt(req.headers["x-user-id"] as string);
+      }
+
+      if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const validation = z.object({
-        courseId: z.number(),
-      }).safeParse(req.body);
+      const validation = z
+        .object({
+          courseId: z.number(),
+        })
+        .safeParse(req.body);
 
       if (!validation.success) {
-        return res.status(400).json({ message: "Validation error", errors: validation.error.errors });
+        return res
+          .status(400)
+          .json({ message: "Validation error", errors: validation.error.errors });
       }
 
       const { courseId } = validation.data;
-      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-      const userId = (req.user as User).id;
 
       // Verify course exists
-      const [course] = await db.select().from(schema.courses).where(eq(schema.courses.id, courseId));
+      const [course] = await db
+        .select()
+        .from(schema.courses)
+        .where(eq(schema.courses.id, courseId));
       if (!course) {
         return res.status(404).json({ message: "Course not found" });
+      }
+
+      // Prevent duplicate enrollments
+      const existingEnrollment = await db
+        .select()
+        .from(schema.userCourses)
+        .where(
+          and(
+            eq(schema.userCourses.userId, userId),
+            eq(schema.userCourses.courseId, courseId),
+          ),
+        );
+
+      if (existingEnrollment.length > 0) {
+        return res.status(409).json({
+          message: "You are already enrolled in this course",
+        });
       }
 
       // Execute enrollment pipeline
@@ -9751,14 +10243,15 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
 
       res.json({
         success: true,
-        message: "Enrollment completed successfully: created enrollment, generated curriculum, created study plan, generated assignments, sent notifications",
+        message:
+          "Enrollment completed successfully: created enrollment, generated curriculum, created study plan, generated assignments, sent notifications",
         data: result,
       });
     } catch (error) {
       console.error("Enrollment pipeline error:", error);
-      res.status(500).json({ 
-        message: "Enrollment pipeline failed", 
-        error: error instanceof Error ? error.message : String(error) 
+      res.status(500).json({
+        message: "Enrollment pipeline failed",
+        error: error instanceof Error ? error.message : String(error),
       });
     }
   });
@@ -10812,11 +11305,11 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
   // Global Error Handler - must be after all routes and 404 handler
   app.use(ErrorHandler.handleError);
 
-    // Create HTTP server
-    const httpServer = createServer(app);
-    
+  // Create HTTP server
+  const httpServer = createServer(app);
+
     logger.info("[ROUTES] Route registration completed successfully");
-    return httpServer;
+  return httpServer;
   } catch (error: any) {
     logger.error("[ROUTES] FATAL ERROR during route registration", error, {
       message: error?.message,

@@ -7,6 +7,8 @@
     "noEmit": false,
     "outDir": "./.vercel-output"
   },
-  "include": ["api/**/*", "server/**/*", "shared/**/*"]
+  // Vercel sadece API handler'ını (api/index.ts) ve paylaşılan tipleri derlesin;
+  // gelişmiş backend servisleri ayrı build sürecinde zaten JS'e çevriliyor.
+  "include": ["api/**/*", "shared/**/*"]
 }
 

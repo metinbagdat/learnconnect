@@ -38,6 +38,11 @@ const {
   learningEcosystemState,
   userCourses,
   userAchievements,
+  educationalMaterials,
+  mentorMaterialAssignments,
+  mentors,
+  userMentors,
+  uploads,
 } = schema;
 
 export interface IStorage {
@@ -70,6 +75,22 @@ export interface IStorage {
   createFeedbackLoop(loop: any): Promise<any>;
   getFeedbackLoops(designId: number): Promise<any[]>;
   updateFeedbackLoop(id: number, updates: any): Promise<any>;
+  // Educational Materials Methods
+  createEducationalMaterial(material: any): Promise<any>;
+  getEducationalMaterials(filters?: any): Promise<any[]>;
+  getEducationalMaterial(id: number): Promise<any>;
+  updateEducationalMaterial(id: number, updates: any): Promise<any>;
+  deleteEducationalMaterial(id: number): Promise<any>;
+  getMaterialsForStudent(userId: number): Promise<any[]>;
+  getAIGeneratedMaterials(userId: number): Promise<any[]>;
+  getMentorMaterials(mentorId: number): Promise<any[]>;
+  getPublicMaterials(): Promise<any[]>;
+  assignMaterialToStudent(materialId: number, studentId: number, mentorId: number, notes?: string): Promise<any>;
+  getUserMentor(userId: number): Promise<any>;
+  getMentors(filters?: any): Promise<any[]>;
+  autoAssignMentor(userId: number): Promise<any>;
+  assignMentorToUser(userId: number, mentorId: number, options?: any): Promise<any>;
+  createMentor(mentorData: any): Promise<any>;
 }
 
 class DatabaseStorage implements IStorage {
@@ -127,9 +148,43 @@ class DatabaseStorage implements IStorage {
 
   async getUserAssignments(userId: number) {
     try {
-      return await db.select().from(assignments).where(eq(assignments.userId, userId));
+      // Get all courses the user is enrolled in
+      const userCourseRows = await db
+        .select()
+        .from(userCourses)
+        .where(eq(userCourses.userId, userId));
+
+      if (userCourseRows.length === 0) {
+        return [];
+      }
+
+      const courseIds = userCourseRows.map((uc) => uc.courseId);
+
+      // Fetch assignments linked to those courses, together with course metadata
+      const rows = await db
+        .select({
+          id: assignments.id,
+          title: assignments.title,
+          description: assignments.description,
+          courseId: assignments.courseId,
+          studyPlanId: assignments.studyPlanId,
+          lessonId: assignments.lessonId,
+          points: assignments.points,
+          dueDate: assignments.dueDate,
+          status: assignments.status,
+          createdAt: assignments.createdAt,
+          course: courses,
+        })
+        .from(assignments)
+        .leftJoin(courses, eq(assignments.courseId, courses.id))
+        .where(inArray(assignments.courseId, courseIds));
+
+      return rows;
     } catch (error: any) {
-      console.error(`[STORAGE] Error getting assignments for user ${userId}:`, error?.message || error);
+      console.error(
+        `[STORAGE] Error getting assignments for user ${userId}:`,
+        error?.message || error,
+      );
       return [];
     }
   }
@@ -301,7 +356,126 @@ class DatabaseStorage implements IStorage {
   }
 
   async getUserMentor(userId: number) {
-    return null;
+    try {
+      const [userMentor] = await db
+        .select()
+        .from(userMentors)
+        .where(eq(userMentors.userId, userId))
+        .limit(1);
+      
+      if (!userMentor || !userMentor.mentorId) {
+        return null;
+      }
+
+      // Get mentor details
+      const [mentor] = await db
+        .select()
+        .from(mentors)
+        .where(eq(mentors.id, userMentor.mentorId));
+
+      return mentor ? { ...userMentor, mentor } : null;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error getting user mentor for ${userId}:`, error?.message || error);
+      return null;
+    }
+  }
+
+  async getMentors(filters?: { isAiMentor?: boolean; isActive?: boolean; specialization?: string; userId?: number }) {
+    try {
+      let query = db.select().from(mentors);
+      const conditions: any[] = [];
+
+      if (filters?.isAiMentor !== undefined) {
+        conditions.push(eq(mentors.isAiMentor, filters.isAiMentor));
+      }
+      if (filters?.userId !== undefined) {
+        conditions.push(eq(mentors.userId, filters.userId));
+      }
+      if (filters?.specialization) {
+        conditions.push(eq(mentors.specialization, filters.specialization));
+      }
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as any;
+      }
+
+      return await query;
+    } catch (error: any) {
+      console.error('[STORAGE] Error getting mentors:', error?.message || error);
+      return [];
+    }
+  }
+
+  async autoAssignMentor(userId: number) {
+    try {
+      // Check if user already has a mentor
+      const existing = await this.getUserMentor(userId);
+      if (existing) {
+        return existing;
+      }
+
+      // Find an AI mentor or available mentor
+      const [aiMentor] = await db
+        .select()
+        .from(mentors)
+        .where(eq(mentors.isAiMentor, true))
+        .limit(1);
+
+      if (aiMentor) {
+        const [assignment] = await db
+          .insert(userMentors)
+          .values({
+            userId,
+            mentorId: aiMentor.id,
+            assignedAt: new Date(),
+          })
+          .returning();
+
+        return { ...assignment, mentor: aiMentor };
+      }
+
+      return null;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error auto-assigning mentor for ${userId}:`, error?.message || error);
+      return null;
+    }
+  }
+
+  async assignMentorToUser(userId: number, mentorId: number, options?: { preferredCommunication?: string; communicationLanguage?: string; notes?: string }) {
+    try {
+      // Remove existing assignment
+      await db.delete(userMentors).where(eq(userMentors.userId, userId));
+
+      // Create new assignment
+      const [assignment] = await db
+        .insert(userMentors)
+        .values({
+          userId,
+          mentorId,
+          assignedAt: new Date(),
+        })
+        .returning();
+
+      const [mentor] = await db
+        .select()
+        .from(mentors)
+        .where(eq(mentors.id, mentorId));
+
+      return mentor ? { ...assignment, mentor } : assignment;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error assigning mentor to user ${userId}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to assign mentor'}`);
+    }
+  }
+
+  async createMentor(mentorData: any) {
+    try {
+      const [created] = await db.insert(mentors).values(mentorData).returning();
+      return created;
+    } catch (error: any) {
+      console.error('[STORAGE] Error creating mentor:', error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to create mentor'}`);
+    }
   }
 
   async getUserWeeklyStats(userId: number) {
@@ -405,6 +579,246 @@ class DatabaseStorage implements IStorage {
     }
   }
 
+  // Educational Materials Methods
+  async createEducationalMaterial(material: any) {
+    try {
+      const [created] = await db.insert(educationalMaterials).values({
+        ...material,
+        updatedAt: new Date(),
+      }).returning();
+      return created;
+    } catch (error: any) {
+      console.error('[STORAGE] Error creating educational material:', error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to create educational material'}`);
+    }
+  }
+
+  async getEducationalMaterials(filters?: {
+    mentorId?: number;
+    courseId?: number | null;
+    materialType?: string;
+    isPublic?: boolean;
+    isAiGenerated?: boolean;
+  }) {
+    try {
+      let query = db.select().from(educationalMaterials);
+
+      const conditions = [];
+      if (filters?.mentorId !== undefined) {
+        conditions.push(eq(educationalMaterials.mentorId, filters.mentorId));
+      }
+      if (filters?.courseId !== undefined) {
+        if (filters.courseId === null) {
+          conditions.push(sql`${educationalMaterials.courseId} IS NULL`);
+        } else {
+          conditions.push(eq(educationalMaterials.courseId, filters.courseId));
+        }
+      }
+      if (filters?.materialType) {
+        conditions.push(eq(educationalMaterials.materialType, filters.materialType));
+      }
+      if (filters?.isPublic !== undefined) {
+        conditions.push(eq(educationalMaterials.isPublic, filters.isPublic));
+      }
+      if (filters?.isAiGenerated !== undefined) {
+        conditions.push(eq(educationalMaterials.isAiGenerated, filters.isAiGenerated));
+      }
+
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions)) as any;
+      }
+
+      return await query.orderBy(desc(educationalMaterials.createdAt));
+    } catch (error: any) {
+      console.error('[STORAGE] Error getting educational materials:', error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get educational materials'}`);
+    }
+  }
+
+  async getEducationalMaterial(id: number) {
+    try {
+      const [material] = await db.select().from(educationalMaterials).where(eq(educationalMaterials.id, id));
+      return material || null;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error getting educational material ${id}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get educational material'}`);
+    }
+  }
+
+  async updateEducationalMaterial(id: number, updates: any) {
+    try {
+      const [updated] = await db
+        .update(educationalMaterials)
+        .set({
+          ...updates,
+          updatedAt: new Date(),
+        })
+        .where(eq(educationalMaterials.id, id))
+        .returning();
+      return updated;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error updating educational material ${id}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to update educational material'}`);
+    }
+  }
+
+  async deleteEducationalMaterial(id: number) {
+    try {
+      await db.delete(educationalMaterials).where(eq(educationalMaterials.id, id));
+      return { success: true };
+    } catch (error: any) {
+      console.error(`[STORAGE] Error deleting educational material ${id}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to delete educational material'}`);
+    }
+  }
+
+  async getMaterialsForStudent(userId: number) {
+    try {
+      // Get student's mentor
+      const [userMentor] = await db
+        .select()
+        .from(userMentors)
+        .where(eq(userMentors.userId, userId))
+        .limit(1);
+
+      // Get materials assigned to this student
+      const assignedMaterialIds = userMentor
+        ? await db
+            .select({ materialId: mentorMaterialAssignments.materialId })
+            .from(mentorMaterialAssignments)
+            .where(eq(mentorMaterialAssignments.studentId, userId))
+        : [];
+
+      const assignedIds = assignedMaterialIds.map(a => a.materialId);
+
+      // Get all materials student can access:
+      // 1. AI-generated materials for this user (if no mentor assigned)
+      // 2. Materials assigned by mentor
+      // 3. Public materials
+      // 4. Course-specific materials for courses student is enrolled in
+      const userCoursesList = await db.select().from(userCourses).where(eq(userCourses.userId, userId));
+      const enrolledCourseIds = userCoursesList.map(uc => uc.courseId);
+
+      const conditions = [];
+      
+      // If no mentor, get AI materials
+      if (!userMentor) {
+        conditions.push(and(
+          eq(educationalMaterials.isAiGenerated, true),
+          sql`${educationalMaterials.courseId} IS NULL`
+        ));
+      }
+
+      // Assigned materials
+      if (assignedIds.length > 0) {
+        conditions.push(inArray(educationalMaterials.id, assignedIds));
+      }
+
+      // Public materials
+      conditions.push(eq(educationalMaterials.isPublic, true));
+
+      // Course-specific materials
+      if (enrolledCourseIds.length > 0) {
+        conditions.push(inArray(educationalMaterials.courseId, enrolledCourseIds));
+      }
+
+      if (conditions.length === 0) {
+        return [];
+      }
+
+      const materials = await db
+        .select()
+        .from(educationalMaterials)
+        .where(or(...conditions))
+        .orderBy(desc(educationalMaterials.createdAt));
+
+      return materials;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error getting materials for student ${userId}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get materials for student'}`);
+    }
+  }
+
+  async getAIGeneratedMaterials(userId: number) {
+    try {
+      // Get AI-generated materials for user (non-course specific)
+      const materials = await db
+        .select()
+        .from(educationalMaterials)
+        .where(and(
+          eq(educationalMaterials.isAiGenerated, true),
+          sql`${educationalMaterials.courseId} IS NULL`
+        ))
+        .orderBy(desc(educationalMaterials.createdAt));
+
+      return materials;
+    } catch (error: any) {
+      console.error(`[STORAGE] Error getting AI materials for user ${userId}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get AI materials'}`);
+    }
+  }
+
+  async getMentorMaterials(mentorId: number) {
+    try {
+      return await db
+        .select()
+        .from(educationalMaterials)
+        .where(eq(educationalMaterials.mentorId, mentorId))
+        .orderBy(desc(educationalMaterials.createdAt));
+    } catch (error: any) {
+      console.error(`[STORAGE] Error getting mentor materials for ${mentorId}:`, error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get mentor materials'}`);
+    }
+  }
+
+  async getPublicMaterials() {
+    try {
+      return await db
+        .select()
+        .from(educationalMaterials)
+        .where(eq(educationalMaterials.isPublic, true))
+        .orderBy(desc(educationalMaterials.createdAt));
+    } catch (error: any) {
+      console.error('[STORAGE] Error getting public materials:', error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to get public materials'}`);
+    }
+  }
+
+  async assignMaterialToStudent(materialId: number, studentId: number, mentorId: number, notes?: string) {
+    try {
+      // Check if assignment already exists
+      const existing = await db
+        .select()
+        .from(mentorMaterialAssignments)
+        .where(and(
+          eq(mentorMaterialAssignments.materialId, materialId),
+          eq(mentorMaterialAssignments.studentId, studentId),
+          eq(mentorMaterialAssignments.mentorId, mentorId)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        return existing[0];
+      }
+
+      const [assignment] = await db
+        .insert(mentorMaterialAssignments)
+        .values({
+          materialId,
+          studentId,
+          mentorId,
+          notes: notes || null,
+          assignedAt: new Date(),
+        })
+        .returning();
+
+      return assignment;
+    } catch (error: any) {
+      console.error('[STORAGE] Error assigning material to student:', error?.message || error);
+      throw new Error(`Database error: ${error?.message || 'Failed to assign material'}`);
+    }
+  }
+
   // Assignment methods
   async createAssignment(assignmentData: any) {
     const [created] = await db.insert(assignments).values(assignmentData).returning();
@@ -471,6 +885,22 @@ class InMemoryStorage implements IStorage {
   async getModules(_courseId: number) { return []; }
   async getLessons(_moduleId: number) { return []; }
   async getUserLessons(_userId: number) { return []; }
+  // Educational Materials Methods - Stubs
+  async createEducationalMaterial(_material: any) { return { id: this.nextId++, ..._material }; }
+  async getEducationalMaterials(_filters?: any) { return []; }
+  async getEducationalMaterial(_id: number) { return null; }
+  async updateEducationalMaterial(_id: number, _updates: any) { return { id: _id, ..._updates }; }
+  async deleteEducationalMaterial(_id: number) { return { success: true }; }
+  async getMaterialsForStudent(_userId: number) { return []; }
+  async getAIGeneratedMaterials(_userId: number) { return []; }
+  async getMentorMaterials(_mentorId: number) { return []; }
+  async getPublicMaterials() { return []; }
+  async assignMaterialToStudent(_materialId: number, _studentId: number, _mentorId: number, _notes?: string) { return { id: this.nextId++ }; }
+  async getUserMentor(_userId: number) { return null; }
+  async getMentors(_filters?: any) { return []; }
+  async autoAssignMentor(_userId: number) { return null; }
+  async assignMentorToUser(_userId: number, _mentorId: number, _options?: any) { return { id: this.nextId++ }; }
+  async createMentor(_mentorData: any) { return { id: this.nextId++, ..._mentorData }; }
 }
 
 const useDatabase = !!process.env.DATABASE_URL;
