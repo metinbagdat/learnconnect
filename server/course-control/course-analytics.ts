@@ -3,7 +3,7 @@ import { storage } from "../storage.js";
 export class CourseAnalytics {
   async getCourseStats(courseId: number) {
     try {
-      const allEnrollments = await storage.getAllUserCourses?.() || [];
+      const allEnrollments = await storage.getUserCourses?.() || [];
       const courseEnrollments = allEnrollments.filter((e: any) => e.courseId === courseId);
 
       const completedCount = courseEnrollments.filter((e: any) => e.completed).length;
@@ -56,7 +56,7 @@ export class CourseAnalytics {
 
   async getProgressDistribution(courseId: number) {
     try {
-      const allEnrollments = await storage.getAllUserCourses?.() || [];
+      const allEnrollments = await storage.getUserCourses?.() || [];
       const courseEnrollments = allEnrollments.filter((e: any) => e.courseId === courseId);
 
       const distribution = {
@@ -94,7 +94,7 @@ export class CourseAnalytics {
 
   async getTopPerformers(courseId: number, limit: number = 10) {
     try {
-      const allEnrollments = await storage.getAllUserCourses?.() || [];
+      const allEnrollments = await storage.getUserCourses?.() || [];
       const courseEnrollments = allEnrollments
         .filter((e: any) => e.courseId === courseId)
         .sort((a: any, b: any) => b.progress - a.progress)
@@ -107,6 +107,35 @@ export class CourseAnalytics {
     } catch (error) {
       console.error("[CourseAnalytics] Error getting top performers:", error);
       return null;
+    }
+  }
+
+  async getEnrollmentTrends(courseId: number) {
+    try {
+      const allEnrollments = await storage.getUserCourses?.() || [];
+      const courseEnrollments = allEnrollments.filter((e: any) => e.courseId === courseId);
+
+      // Group by date
+      const trends = courseEnrollments.reduce(
+        (acc: any[], enrollment: any) => {
+          const date = new Date(enrollment.enrolledAt).toISOString().split("T")[0];
+          const existing = acc.find(t => t.date === date);
+
+          if (existing) {
+            existing.count++;
+          } else {
+            acc.push({ date, count: 1 });
+          }
+
+          return acc;
+        },
+        [] as { date: string; count: number }[]
+      );
+
+      return trends.sort((a, b) => a.date.localeCompare(b.date));
+    } catch (error) {
+      console.error("[CourseAnalytics] Error getting enrollment trends:", error);
+      return [];
     }
   }
 }

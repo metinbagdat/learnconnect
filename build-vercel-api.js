@@ -102,14 +102,25 @@ async function buildVercelAPI() {
   
   console.log('🔨 Building Vercel API function...\n');
   
+  // Pre-build checks
+  const entryPoint = path.resolve(PROJECT_ROOT, 'api/index.ts');
+  
+  // Check if entry point exists - skip build if not found (optional)
+  if (!fs.existsSync(entryPoint)) {
+    console.log('⏭️  Skipping Vercel API build - api/index.ts not found');
+    console.log('   This is normal if you\'re not using Vercel API routes');
+    return;
+  }
+  
+  // Ensure output directory exists
+  const apiDir = path.join(PROJECT_ROOT, 'api');
+  if (!fs.existsSync(apiDir)) {
+    fs.mkdirSync(apiDir, { recursive: true });
+    console.log('   Created api directory');
+  }
+  
   try {
-    // Output to api/index.js so Vercel can find it
-    const apiDir = path.join(PROJECT_ROOT, 'api');
-    if (!fs.existsSync(apiDir)) {
-      fs.mkdirSync(apiDir, { recursive: true });
-    }
-    
-    await build({
+    const result = await build({
       entryPoints: ['api/index.ts'],
       bundle: true, // Bundle everything into a single file - no runtime imports!
       platform: 'node',
@@ -130,14 +141,57 @@ async function buildVercelAPI() {
       // packages: 'external' automatically handles node_modules
     });
     
+    // Post-build validation
+    const outputFile = path.join(apiDir, 'index.js');
+    if (!fs.existsSync(outputFile)) {
+      throw new Error(`Build completed but output file not found: ${outputFile}`);
+    }
+    
+    const stats = fs.statSync(outputFile);
+    const fileSizeMB = (stats.size / 1024 / 1024).toFixed(2);
+    
+    if (stats.size === 0) {
+      throw new Error('Build output file is empty!');
+    }
+    
+    // Vercel has a 50MB function size limit (compressed)
+    if (parseFloat(fileSizeMB) > 45) {
+      console.warn(`   ⚠️  Warning: Output file is very large (${fileSizeMB} MB)`);
+      console.warn(`   Vercel functions must be under 50MB compressed. Consider optimizing.`);
+    }
+    
     const buildTime = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log(`\n✅ Vercel API build completed in ${buildTime}s`);
-    console.log(`   Output: api/index.js`);
+    console.log(`   Output: api/index.js (${fileSizeMB} MB)`);
     console.log(`\n📝 Note: Vercel will use this pre-built JavaScript file instead of bundling TypeScript`);
     console.log(`   All imports are bundled - no runtime module resolution needed!`);
   } catch (error) {
-    console.error('❌ Vercel API build failed:');
-    console.error(error);
+    console.error('\n❌ Vercel API build failed:\n');
+    
+    // Enhanced error reporting
+    if (error.errors && Array.isArray(error.errors)) {
+      error.errors.forEach((err, index) => {
+        console.error(`  Error ${index + 1}:`);
+        console.error(`    ${err.text}`);
+        if (err.location) {
+          console.error(`    Location: ${err.location.file}:${err.location.line}:${err.location.column}`);
+          if (err.location.lineText) {
+            console.error(`    Code: ${err.location.lineText}`);
+          }
+        }
+        console.error('');
+      });
+    } else {
+      console.error(`  ${error.message || error}`);
+      if (error.stack) {
+        console.error('\n  Stack trace:');
+        console.error(`  ${error.stack.split('\n').slice(0, 5).join('\n  ')}`);
+      }
+    }
+    
+    console.error('\n💡 Tip: Check that all dependencies are installed: npm install');
+    console.error('💡 Tip: Verify TypeScript types: npm run check');
+    console.error('💡 Tip: Ensure api/index.ts exists and exports the handler function');
     process.exit(1);
   }
 }

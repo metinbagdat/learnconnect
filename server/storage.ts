@@ -511,7 +511,7 @@ class DatabaseStorage implements IStorage {
   async getSuccessMetrics(designId: number) {
     try {
       const metrics = await db.select().from(curriculumSuccessMetrics).where(eq((curriculumSuccessMetrics as any).designId, designId));
-      return metrics;
+    return metrics;
     } catch (error: any) {
       console.error(`[STORAGE] Error getting success metrics:`, error?.message || error);
       return [];
@@ -555,7 +555,7 @@ class DatabaseStorage implements IStorage {
     return db.select().from(aiRecommendationState).where(eq(aiRecommendationState.userId, userId));
   }
 
-  async saveCourseRecommendations(userId: number, recommendations: any) {
+  async saveCourseRecommendations(userId: number, recommendations: any[]) {
     const existing = await db.select().from(aiRecommendationState).where(eq(aiRecommendationState.userId, userId));
     if (existing.length > 0) {
       await db.update(aiRecommendationState).set({ recommendedItems: recommendations }).where(eq(aiRecommendationState.userId, userId));
@@ -573,7 +573,7 @@ class DatabaseStorage implements IStorage {
         .limit(1);
       
       if (!userMentor || !userMentor.mentorId) {
-        return null;
+    return null;
       }
 
       // Get mentor details

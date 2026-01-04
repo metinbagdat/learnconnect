@@ -283,7 +283,7 @@ class LearnConnectAISystem {
     return {
       totalActiveUsers: this.userJourneyStates.size,
       aiModelsStatus: this.aiModels,
-      systemHealth: this.userJourneyStates.size > 0 ? "healthy" : "idle",
+      systemHealth: this.userJourneyStates.size > 0 ? "healthy" : "degraded",
     };
   }
 }

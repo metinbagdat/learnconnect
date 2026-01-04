@@ -241,8 +241,15 @@ export const studyGoals = pgTable("study_goals", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
   goal: text("goal").notNull(),
+  goalText: text("goal_text"), // alias for goal
+  title: text("title"),
+  examType: text("exam_type"),
+  subjects: text("subjects").array(),
+  targetDate: timestamp("target_date"),
   dueDate: date("due_date"),
   isCompleted: boolean("is_completed").default(false),
+  completed: boolean("completed").default(false), // alias
+  progress: integer("progress").default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -274,6 +281,7 @@ export const memoryEnhancedCurricula = pgTable("memory_enhanced_curricula", {
   mnemonicMappings: json("mnemonic_mappings"),
   cognitiveBreakPoints: json("cognitive_break_points"),
   predictedRetentionRate: text("predicted_retention_rate"),
+  expectedStudyTimeReduction: real("expected_study_time_reduction"),
   personalizationScore: real("personalization_score"),
   completionRate: real("completion_rate").default(0),
   studyDuration: integer("study_duration"),
@@ -288,6 +296,7 @@ export const memoryEnhancedCurricula = pgTable("memory_enhanced_curricula", {
 export const courseIntegrationState = pgTable("course_integration_state", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
+  integrationId: text("integration_id"),
   courseIds: integer("course_ids").array(),
   curriculumIntegrated: boolean("curriculum_integrated").default(false),
   studyPlanGenerated: boolean("study_plan_generated").default(false),
@@ -295,6 +304,7 @@ export const courseIntegrationState = pgTable("course_integration_state", {
   targetsUpdated: boolean("targets_updated").default(false),
   aiRecommendationsGenerated: boolean("ai_recommendations_generated").default(false),
   integrationStatus: text("integration_status").default("pending"),
+  lastIntegrationAt: timestamp("last_integration_at"),
   lastUpdated: timestamp("last_updated").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -557,7 +567,15 @@ export const userSkillLevels = pgTable("user_skill_levels", {
   level: integer("level"),
   progress: integer("progress"),
 });
-export const userAssignments = pgTable("user_assignments", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const userAssignments = pgTable("user_assignments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  assignmentId: integer("assignment_id").notNull(),
+  status: text("status").default("not_started"),
+  submittedAt: timestamp("submitted_at"),
+  grade: integer("grade"),
+  feedback: text("feedback"),
+});
 export const dailyStudyTasks = pgTable("daily_study_tasks", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 
 // AI Logging tables
@@ -599,7 +617,16 @@ export const forumComments = pgTable("forum_comments", { id: serial("id").primar
 export const certificates = pgTable("certificates", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const dailyStudySessions = pgTable("daily_study_sessions", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const studyProgress = pgTable("study_progress", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const learningRecommendations = pgTable("learning_recommendations", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const learningRecommendations = pgTable("learning_recommendations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  integrationStateId: integer("integration_state_id"),
+  recommendationType: text("recommendation_type").notNull(),
+  recommendationData: json("recommendation_data"),
+  priority: integer("priority").default(0),
+  applied: boolean("applied").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 // Insert schema stubs for backward compatibility
 export const insertTytStudentProfileSchema = z.object({ userId: z.number() });
@@ -751,9 +778,44 @@ export const studyPlans = pgTable("study_plans", {
 export const studyMilestones = pgTable("study_milestones", { id: serial("id").primaryKey(), planId: integer("plan_id").notNull() });
 export const courseSuggestions = pgTable("course_suggestions", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
 export const goalSuggestions = pgTable("goal_suggestions", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const aiProfiles = pgTable("ai_profiles", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const aiSuggestions = pgTable("ai_suggestions", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const enhancedInteractionLogs = pgTable("enhanced_interaction_logs", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const aiProfiles = pgTable("ai_profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  learningStyle: json("learning_style"),
+  careerGoals: json("career_goals"),
+  skillGaps: json("skill_gaps"),
+  preferences: json("preferences"),
+  aiProfileData: json("ai_profile_data"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+export const aiSuggestions = pgTable("ai_suggestions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  suggestionType: text("suggestion_type"),
+  suggestionData: json("suggestion_data"),
+  confidenceScore: text("confidence_score"), // stored as text to handle numeric conversion
+  reasoning: text("reasoning"),
+  accepted: boolean("accepted").default(false),
+  implemented: boolean("implemented").default(false),
+  feedback: text("feedback"),
+  responseTime: integer("response_time"), // in milliseconds
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+export const enhancedInteractionLogs = pgTable("enhanced_interaction_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  module: text("module"),
+  action: text("action"),
+  data: json("data"),
+  sessionId: text("session_id"),
+  aiContext: json("ai_context"),
+  responseTime: integer("response_time"), // in milliseconds
+  status: text("status").default("success"),
+  timestamp: timestamp("timestamp").defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 // Skill challenges table - minimal columns were originally defined just for types.
 // We extend this definition to include the fields that are actually used in the
 // server routes. These additional columns are optional so that the database can
@@ -932,6 +994,10 @@ export type Lesson = typeof lessons.$inferSelect;
 export const insertUserCourseSchema = createInsertSchema(userCourses).omit({ id: true, enrolledAt: true });
 export type InsertUserCourse = z.infer<typeof insertUserCourseSchema>;
 export type UserCourse = typeof userCourses.$inferSelect;
+
+export const insertUserLessonSchema = createInsertSchema(userLessons).omit({ id: true });
+export type InsertUserLesson = z.infer<typeof insertUserLessonSchema>;
+export type UserLesson = typeof userLessons.$inferSelect;
 
 export const insertLearningPathSchema = safeOmit(createInsertSchema(learningPaths), { id: true, createdAt: true });
 export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;

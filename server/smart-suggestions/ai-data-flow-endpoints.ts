@@ -57,7 +57,9 @@ export function registerAIDataFlowEndpoints(app: Express) {
   // Get generation session
   app.get("/api/ai/generation-session/:sessionId", (app as any).ensureAuthenticated, async (req, res) => {
     try {
-      const session = await storage.getGenerationSession(req.params.sessionId);
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) return res.status(400).json({ message: "Invalid session ID" });
+      const session = await storage.getGenerationSession(sessionId);
       if (!session) return res.status(404).json({ message: "Session not found" });
       res.json(session);
     } catch (error: any) {
@@ -69,7 +71,7 @@ export function registerAIDataFlowEndpoints(app: Express) {
   app.get("/api/ai/generation-sessions", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-      const sessions = await storage.getUserGenerationSessions(req.user.id, 50);
+      const sessions = await storage.getUserGenerationSessions(req.user.id);
       res.json(sessions);
     } catch (error: any) {
       res.status(500).json({ message: "Failed to fetch sessions", error: error.message });
@@ -80,7 +82,9 @@ export function registerAIDataFlowEndpoints(app: Express) {
   app.post("/api/ai/generation-session/:sessionId/complete", (app as any).ensureAuthenticated, async (req, res) => {
     try {
       const { generatedCurricula, selectedCurriculum, intermediateResults, generationSteps } = req.body;
-      const session = await storage.updateGenerationSession(req.params.sessionId, {
+      const sessionId = parseInt(req.params.sessionId);
+      if (isNaN(sessionId)) return res.status(400).json({ message: "Invalid session ID" });
+      const session = await storage.updateGenerationSession(sessionId, {
         generatedCurricula,
         selectedCurriculum,
         intermediateResults,
@@ -206,11 +210,13 @@ export function registerAIDataFlowEndpoints(app: Express) {
         learningSignals: { userEngagement: "high", recommendationAccuracy: 0.88 }
       });
 
-      // Complete session
-      await storage.updateGenerationSession(sessionId, {
-        status: "completed",
-        generationSteps: pipelineResults
-      });
+      // Complete session (sessionId here is a UUID string, but updateGenerationSession needs numeric id)
+      if (session && session.id) {
+        await storage.updateGenerationSession(session.id, {
+          status: "completed",
+          generationSteps: pipelineResults
+        });
+      }
 
       res.json({
         success: true,

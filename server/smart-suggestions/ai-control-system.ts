@@ -90,10 +90,10 @@ class AIControlDashboard {
           : 0;
 
       return {
-        acceptanceRate: sggestions.length > 0 ? (accepted / sggestions.length) * 100 : 0,
+        acceptanceRate: suggestions.length > 0 ? (accepted / suggestions.length) * 100 : 0,
         implementationRate: accepted > 0 ? (implemented / accepted) * 100 : 0,
         avgConfidence: Math.round(avgConfidence * 100),
-        count: sggestions.length,
+        count: suggestions.length,
       };
     };
 
