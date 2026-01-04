@@ -1,159 +1,97 @@
-# Deployment Checklist - FUNCTION_INVOCATION_FAILED Fix
+# 🚀 Deployment Checklist - AI Pipeline Optimization
 
-## ✅ Critical Bug Fixed
+## ✅ Pre-Deployment Checklist
 
-### Issue
-`FUNCTION_INVOCATION_FAILED` errors on `/api/login` and `/api/user` endpoints.
+### 1. Environment Variables in Vercel
 
-### Root Cause
-In `server/auth.ts`, the LocalStrategy callback was trying to access `req.requestId`, but `req` is not available in that scope, causing a `ReferenceError` that crashed the function.
+**Go to:** https://vercel.com/metinbahdats-projects/learn-connect/settings/environment-variables
 
-### Fix Applied
-- Removed `req` reference from LocalStrategy error handler (line 201)
-- Improved logging throughout auth.ts (replaced console.log with logger)
-- Fixed type issue with userId header parsing
+**Required Variables (Production):**
 
-## ✅ Pre-Deployment Verification
+#### Core Configuration
+- [ ] `DATABASE_URL` - Neon PostgreSQL connection string (pooler)
+- [ ] `SESSION_SECRET` - Session encryption key
+- [ ] `NODE_ENV=production`
 
-### Completed Checks
-- [x] Build debugging passed (`npm run debug:build`)
-- [x] Critical modules verified
-- [x] Build output size acceptable (1.37 MB)
-- [x] Import verification script available (`npm run verify:imports`)
-- [x] Enhanced logging system in place
-- [x] Error handling middleware configured
-- [x] Health check endpoints available
+#### AI Configuration
+- [x] `ANTHROPIC_API_KEY` - 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
+- [x] `ANTHROPIC_MODEL` - claude-3-5-sonnet-20241022
+- [x] `OPENAI_API_KEY` - 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
+- [ ] `DEEPSEEK_API_KEY` - sk-e67063c2b0434270ad78333f531fee7d
 
-### Known Issues (Non-Critical)
-- 87 import warnings for `@shared/schema` missing `.js` extensions
-  - These are likely handled by build system path aliases
-  - Can be addressed incrementally if needed
-- Many `console.log` statements still exist in non-critical files
-  - Can be migrated to logger incrementally
-  - Critical paths (auth, api/index) already use logger
+#### Payment Processing
+- [x] `STRIPE_SECRET_KEY` - sk_test_51RDRaOQx5TUeWOnWh7XgcYRoD2zYdZFa27svPuX3QpWpW6b8De6wbBDBRzf1MPx18I2ZxSFBxKb30lIfOGXR7b19000peRZKCe
+- [x] `STRIPE_PUBLISHABLE_KEY` - pk_test_51RDRaOQx5TUeWOnWAkiLB4exPzJVaZW0jJ2drUUvStLDjuYgHCCL2bKKG3TsmN666TlcV2TbRWu9wGKZlBN83FWY00uPKMLpPx
+
+#### Client-Side Variables (Vite)
+- [x] `VITE_STRIPE_PUBLIC_KEY` - pk_test_51RDRaOQx5TUeWOnWAkiLB4exPzJVaZW0jJ2drUUvStLDjuYgHCCL2bKKG3TsmN666TlcV2TbRWu9wGKZlBN83FWY00uPKMLpPx
+
+### 2. Build Verification
+
+- [x] Build successful (`npm run build`)
+- [x] No linter errors
+- [x] Bundle size optimized
+- [x] Anthropic SDK excluded from client bundle
+
+### 3. Security Features
+
+- [x] Authentication middleware on AI routes
+- [x] Input validation (Zod schema)
+- [x] Rate limiting (10 req/min)
+- [x] Request size limit (100KB)
+- [x] Timeout protection (30s)
+- [x] Error sanitization
 
 ## 🚀 Deployment Steps
 
-### 1. Pre-Deployment
+### Option 1: Git Push (Automatic Deploy)
+
 ```bash
-# Verify imports (optional - may show warnings)
-npm run verify:imports
-
-# Test build
-npm run debug:build
-
-# Check TypeScript compilation
-npm run check
+git push origin main
 ```
 
-### 2. Deploy to Vercel
-- Push changes to your repository
-- Vercel will automatically build and deploy
-- Monitor the deployment logs
+Vercel will automatically:
+- Detect the push
+- Build the project
+- Deploy to production
 
-### 3. Post-Deployment Verification
+### Option 2: Vercel CLI
 
-#### Health Checks
 ```bash
-# Basic health check
-curl https://your-domain.com/api/health
-
-# Detailed diagnostics
-curl https://your-domain.com/api/health/detailed
+vercel --prod
 ```
 
-#### Test Authentication Endpoints
-```bash
-# Test login (should work now)
-curl -X POST https://your-domain.com/api/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"test","password":"test"}' \
-  -c cookies.txt
+### Option 3: Manual Redeploy
 
-# Test user endpoint
-curl https://your-domain.com/api/user \
-  -b cookies.txt
+1. Go to: https://vercel.com/metinbahdats-projects/learn-connect/deployments
+2. Click "..." on latest deployment
+3. Click "Redeploy"
+
+## ✅ Post-Deployment Verification
+
+### 1. Health Check
+Visit: https://eğitim.today/api/health
+Expected: `{"status":"ok","timestamp":"..."}`
+
+### 2. AI Endpoint Test
+```bash
+# Test authentication requirement
+curl https://eğitim.today/api/ai/adaptive-plan
+# Should return: 401 Unauthorized
+
+# Test with authentication (after login)
+# Should return: 200 OK with plan data
 ```
 
-### 4. Monitor Logs
+### 3. Frontend Check
+Visit: https://eğitim.today/
+- [ ] Page loads correctly
+- [ ] No console errors
+- [ ] AI features accessible (after login)
 
-After deployment, check Vercel function logs:
-1. Go to Vercel Dashboard
-2. Select your deployment
-3. Click "Functions" tab
-4. View logs for `api/index.ts`
+## 📝 Notes
 
-Look for:
-- ✅ Successful initialization messages
-- ✅ Request IDs in logs (for correlation)
-- ✅ No `FUNCTION_INVOCATION_FAILED` errors
-- ✅ Proper error messages with context
-
-## 📊 Expected Behavior After Fix
-
-### Before Fix
-- `/api/login` → `FUNCTION_INVOCATION_FAILED` (500)
-- `/api/user` → `FUNCTION_INVOCATION_FAILED` (500)
-- No error context in logs
-
-### After Fix
-- `/api/login` → Should work correctly (200 or 401)
-- `/api/user` → Should work correctly (200 or 401)
-- Detailed error logs with request IDs
-- Better error messages for debugging
-
-## 🔍 Debugging Tools Available
-
-### Health Check Endpoints
-- `GET /api/health` - Basic health check
-- `GET /api/health/detailed` - Detailed system diagnostics
-
-### Debug Endpoints (Development Only)
-- `GET /api/debug/info` - System information
-- `GET /api/debug/modules` - Module resolution status
-- `GET /api/debug/env` - Environment variables (sanitized)
-
-### Local Testing
-```bash
-# Test local server
-npm run test:local
-
-# Debug build issues
-npm run debug:build
-
-# Verify imports
-npm run verify:imports
-```
-
-## 📝 Files Modified
-
-1. **server/auth.ts**
-   - Fixed critical bug (removed req reference)
-   - Enhanced logging (replaced console.log with logger)
-   - Fixed type issues
-
-2. **api/index.ts** (previously modified)
-   - Enhanced logging throughout
-   - Request ID tracking
-   - Better error handling
-
-## ⚠️ Important Notes
-
-1. **Session Configuration**: Ensure session store is properly configured for production
-2. **Database Connection**: Verify database connection strings are set correctly
-3. **Environment Variables**: Check that all required env vars are set in Vercel
-4. **CORS Settings**: Verify CORS is configured correctly for your domain
-
-## 🆘 If Issues Persist
-
-1. Check Vercel function logs for detailed error messages
-2. Use `/api/health/detailed` to check system status
-3. Verify database connection is working
-4. Check that all environment variables are set
-5. Review request IDs in logs to correlate errors
-
-## 📚 Additional Resources
-
-- See `DEBUG_GUIDE.md` for comprehensive debugging guide
-- Use test utilities in `test-utils/` for local testing
-- Check `scripts/` for debugging tools
+- All environment variables must be set in Vercel Dashboard
+- `.env` file is NOT committed (in .gitignore)
+- Production build optimizations are active
+- Security features are enabled
