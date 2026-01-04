@@ -55,6 +55,7 @@ import { registerUnifiedIntegrationEndpoints } from "./smart-suggestions/unified
 import { courseIntegrationEngine } from "./course-integration-engine.js";
 import curriculumGenerationRouter from "./smart-suggestions/curriculum-generation-endpoints.js";
 import productionRouter from "./smart-suggestions/production-endpoints.js";
+import aiRouter from "./routes/ai-routes.js";
 import { realTimeMonitor } from "./real-time-monitor.js";
 import { alertSystem } from "./alert-system.js";
 import { predictiveMaintenanceEngine } from "./predictive-maintenance.js";
@@ -8774,6 +8775,9 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
 
   app.use('/api/curriculum', curriculumGenerationRouter);
   app.use('/api/production', productionRouter);
+  
+  // AI Routes - Anthropic SDK kullanıyor, sadece server'da
+  app.use("/api/ai", aiRouter);
 
   // Real-time Monitoring Endpoints
   app.get("/api/study-planner/metrics", (app as any).ensureAuthenticated, async (req, res) => {
