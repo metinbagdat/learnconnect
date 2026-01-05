@@ -27,18 +27,25 @@ function log(message, color = colors.reset) {
   console.log(`${color}${message}${colors.reset}`);
 }
 
-// Required environment variables for production
+// Required environment variables for production (server will fail without these)
 const REQUIRED_PROD_VARS = [
-  'DATABASE_URL',
-  'SESSION_SECRET',
+  'DATABASE_URL',          // Required by server/db.ts
+  'ANTHROPIC_API_KEY',     // Required by server/ai/ai-reasoning.engine.ts
+  'ANTHROPIC_MODEL',       // Required by server/ai/ai-reasoning.engine.ts
+];
+
+// Highly recommended for production (security/functionality)
+const RECOMMENDED_PROD_VARS = [
+  'SESSION_SECRET',        // Recommended by server/auth.ts (security warning in production)
 ];
 
 // Optional but recommended environment variables
 const OPTIONAL_VARS = [
   'OPENAI_API_KEY',
-  'ANTHROPIC_API_KEY',
+  'DEEPSEEK_API_KEY',
   'STRIPE_SECRET_KEY',
   'STRIPE_PUBLISHABLE_KEY',
+  'VITE_STRIPE_PUBLIC_KEY',
   'PAYPAL_CLIENT_ID',
   'PAYPAL_CLIENT_SECRET',
 ];
@@ -70,12 +77,12 @@ function verifyEnv() {
   let hasErrors = false;
   let hasWarnings = false;
   
-  // Check required variables
-  log('\n📋 Required Variables (Production):', colors.bright);
+  // Check required variables (server will fail without these)
+  log('\n📋 Required Variables (Production - Server will fail without these):', colors.bright);
   for (const varName of REQUIRED_PROD_VARS) {
     const isSet = isEnvVarSet(varName);
     if (isProduction && !isSet) {
-      log(`  ❌ ${varName} - NOT SET (Required for production!)`, colors.red);
+      log(`  ❌ ${varName} - NOT SET (CRITICAL - Server will fail!)`, colors.red);
       hasErrors = true;
     } else if (!isSet) {
       log(`  ⚠️  ${varName} - NOT SET (Required for production)`, colors.yellow);
@@ -87,6 +94,21 @@ function verifyEnv() {
         ? `${value.substring(0, 6)}...${value.substring(value.length - 4)}`
         : '***';
       log(`  ✅ ${varName} - Set (${masked})`, colors.green);
+    }
+  }
+  
+  // Check recommended variables
+  log('\n📋 Recommended Variables (Production - Security/Functionality):', colors.bright);
+  for (const varName of RECOMMENDED_PROD_VARS) {
+    const isSet = isEnvVarSet(varName);
+    if (isProduction && !isSet) {
+      log(`  ⚠️  ${varName} - NOT SET (Recommended for production security)`, colors.yellow);
+      hasWarnings = true;
+    } else if (!isSet) {
+      log(`  ⚠️  ${varName} - NOT SET (Recommended for production)`, colors.yellow);
+      hasWarnings = true;
+    } else {
+      log(`  ✅ ${varName} - Set`, colors.green);
     }
   }
   
