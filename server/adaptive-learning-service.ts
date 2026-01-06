@@ -1,15 +1,7 @@
 import { storage } from "./storage.js";
 import { User } from "../shared/schema.js";
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
-
-// Initialize clients only if API keys are provided
-const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-const anthropic = anthropicKey && anthropicKey.length > 0
-  ? new Anthropic({
-      apiKey: anthropicKey,
-    })
-  : null;
+import OpenAI from "openai";
+import { anthropic } from "./lib/anthropic-client.js";
 
 const openaiKey = process.env.OPENAI_API_KEY?.trim();
 const openai = openaiKey && openaiKey.length > 0
@@ -111,7 +103,7 @@ export async function generateAdaptiveLearningPath(pathId: number, userId: numbe
     
     // Generate insights for each step
     const stepsWithInsights = await Promise.all(
-      learningPath.steps.map(async (step) => {
+      learningPath.steps.map(async (step: any) => {
         const insights = await generateStepInsights(step, user, userCourses, analytics);
         const userLesson = userLessons.find(ul => ul.lesson.courseId === step.courseId);
         
@@ -315,12 +307,12 @@ async function generateStepInsights(
 export async function updateStepProgress(pathId: number, stepId: number, progress: number) {
   try {
     // Update the step progress
-    await storage.markStepAsCompleted(stepId);
+    await storage.markStepAsCompleted(pathId, stepId);
     
     // Recalculate overall path progress
     const learningPath = await storage.getLearningPath(pathId);
     if (learningPath) {
-      const completedSteps = learningPath.steps.filter(step => step.completed).length;
+      const completedSteps = learningPath.steps.filter((step: any) => step.completed).length;
       const overallProgress = Math.round((completedSteps / learningPath.steps.length) * 100);
       
       await storage.updateLearningPathProgress(pathId, overallProgress);
@@ -395,6 +387,9 @@ async function generatePerformanceFeedback(
     }
   } catch (error) {
     console.warn('Anthropic failed, using OpenAI:', error);
+    if (!openai) {
+      return { feedback: 'Keep practicing!', recommendations: ['Review weak areas', 'Increase practice time'] };
+    }
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -448,13 +443,22 @@ export async function analyzeLearningPatterns(
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - daysOfData);
 
-    const recentTasks = await storage.getUserDailyStudyTasks(userId, startDate.toISOString().split('T')[0]);
-    const recentSessions = await storage.getUserStudySessions(userId, startDate.toISOString().split('T')[0]);
+    const recentTasks = await storage.getDailyStudyTasks(userId);
+    const recentSessions = await storage.getStudySessions(userId);
+    // Filter by date in memory since storage methods don't accept date parameter
+    const filteredTasks = recentTasks.filter((task: any) => {
+      const taskDate = task.createdAt || task.date || task.scheduledDate;
+      return taskDate && new Date(taskDate) >= startDate;
+    });
+    const filteredSessions = recentSessions.filter((session: any) => {
+      const sessionDate = session.completedAt || session.createdAt || session.date;
+      return sessionDate && new Date(sessionDate) >= startDate;
+    });
 
     return {
-      optimalStudyTimes: extractOptimalTimes(recentSessions),
-      strongSubjects: extractStrongSubjects(recentTasks),
-      weakSubjects: extractWeakSubjects(recentTasks),
+      optimalStudyTimes: extractOptimalTimes(filteredSessions),
+      strongSubjects: extractStrongSubjects(filteredTasks),
+      weakSubjects: extractWeakSubjects(filteredTasks),
       preferredActivityTypes: extractPreferredActivities(recentTasks),
       averageSessionDuration: calculateAverageSessionDuration(recentSessions),
       consistencyScore: calculateConsistencyScore(recentSessions),

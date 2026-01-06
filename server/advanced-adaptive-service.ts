@@ -1,4 +1,5 @@
 import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
+import { anthropic, ANTHROPIC_MODEL } from "./lib/anthropic-client.js";
 
 /*
 <important_code_snippet_instructions>
@@ -240,13 +241,17 @@ Provide the following information in JSON format:
 
   try {
     const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL_STR,
+      model: ANTHROPIC_MODEL || DEFAULT_MODEL_STR,
       system: systemPrompt,
       max_tokens: 1200,
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const result = JSON.parse(response.content[0].text);
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Expected text response from Anthropic');
+    }
+    const result = JSON.parse(content.text);
     return result as PredictiveAnalytics;
   } catch (error) {
     console.error('Error generating predictive analytics:', error);
@@ -307,13 +312,17 @@ For each insight, provide the following information in JSON array format:
 
   try {
     const response = await anthropic.messages.create({
-      model: DEFAULT_MODEL_STR,
+      model: ANTHROPIC_MODEL || DEFAULT_MODEL_STR,
       system: systemPrompt,
       max_tokens: 1500,
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const result = JSON.parse(response.content[0].text);
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Expected text response from Anthropic');
+    }
+    const result = JSON.parse(content.text);
     return result as AdaptiveInsight[];
   } catch (error) {
     console.error('Error generating adaptive insights:', error);
