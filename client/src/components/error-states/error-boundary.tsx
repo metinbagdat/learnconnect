@@ -2,6 +2,7 @@ import { Component, ReactNode, ErrorInfo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import { errorTracker, ErrorType } from "@/lib/error-tracker";
 
 interface Props {
   children: ReactNode;
@@ -25,6 +26,33 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Error Boundary caught an error:', error, errorInfo);
+    
+    // Detect error type
+    const errorMessage = error.message.toLowerCase();
+    const errorStack = error.stack?.toLowerCase() || '';
+    
+    let errorType: ErrorType = 'runtime';
+    
+    // Check for SES errors
+    if (
+      errorMessage.includes('ses') ||
+      errorMessage.includes('lockdown') ||
+      errorStack.includes('lockdown-install.js') ||
+      errorMessage.includes('ses_uncaught_exception')
+    ) {
+      errorType = 'ses';
+    }
+    // Check for lexical declaration errors
+    else if (
+      errorMessage.includes("can't access lexical declaration") ||
+      errorMessage.includes('before initialization') ||
+      errorMessage.includes('temporal dead zone')
+    ) {
+      errorType = 'lexical';
+    }
+    
+    // Report to error tracker
+    errorTracker.track(error, errorType, undefined, errorInfo.componentStack);
   }
 
   handleRetry = () => {

@@ -1,106 +1,109 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { Toaster } from "@/components/ui/toaster";
 import { LanguageProvider } from "@/contexts/consolidated-language-context";
 import { Navbar } from "@/components/layout/navbar";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
-import Dashboard from "@/pages/dashboard";
-import DashboardStandalone from "@/pages/dashboard-standalone";
-import Courses from "@/pages/courses";
-import CourseDetail from "@/pages/course-detail";
-import LessonPage from "@/pages/lesson-page";
-import Assignments from "@/pages/assignments";
-import Calendar from "@/pages/calendar";
-import Resources from "@/pages/resources";
-import Profile from "@/pages/profile";
-import CourseGenerator from "@/pages/course-generator";
-import AdminPanel from "@/pages/admin-panel";
-import AuthPage from "@/pages/auth-page";
-import LearningPathPage from "@/pages/learning-path-page";
-import AnalyticsDashboard from "@/pages/analytics-dashboard";
-import AdvancedAnalyticsDashboard from "@/pages/advanced-analytics";
-import ChallengesPage from "@/pages/challenges";
-import SuggestionsDemoPage from "@/pages/suggestions-demo";
-import GamificationDashboard from "@/pages/gamification-dashboard";
-import SocialPage from "@/pages/social-page";
-import LearningTrailsPage from "@/pages/learning-trails";
-import ChallengePathsPage from "@/pages/challenge-paths";
-import ChallengeAnalyticsDashboard from "@/pages/challenge-analytics-dashboard";
-import EntranceExamPrep from "@/pages/entrance-exam-prep";
-import AdaptiveLearningDemo from "@/pages/adaptive-learning-demo";
-import AdvancedAdaptiveLearning from "@/pages/advanced-adaptive-learning";
-import EmojiMilestonesDemo from "@/pages/emoji-milestones-demo";
-import AnimatedProgressDemo from "@/pages/animated-progress-demo";
-import PlayfulAnimationsDemo from "@/pages/playful-animations-demo";
-import StudentControlPanel from "@/pages/student-control-panel";
-import MentorControlPanel from "@/pages/mentor-control-panel";
-import StudyPlannerPage from "@/pages/study-planner";
-import AssessmentPage from "@/pages/assessment";
-import Checkout from "@/pages/checkout";
-import SubscriptionPage from "@/pages/subscription";
-import TytDashboard from "@/pages/tyt-dashboard";
-import MyCurriculumPage from "@/pages/my-curriculum";
-import EssaysPage from "@/pages/essays";
-import TimeTracking from "@/pages/time-tracking";
-import AIDailyPlan from "@/pages/ai-daily-plan";
-import LandingPage from "@/pages/landing-page";
-import LearnConnectPortal from "@/pages/learnconnect-portal";
-import LearnConnectExams from "@/pages/learnconnect-exams";
-import LearnConnectAdmin from "@/pages/learnconnect-admin";
-import LearnConnectAI from "@/pages/learnconnect-ai";
-import MarketingDashboard from "@/pages/marketing-dashboard";
-import AffiliateDashboard from "@/pages/affiliate-dashboard";
-import WaitlistManagement from "@/pages/waitlist-management";
-import AnalyticsCharts from "@/pages/analytics-charts";
-import StudyTechniques from "@/pages/study-techniques";
-import ExamAnxietyGuide from "@/pages/exam-anxiety-guide";
-import TestimonialsPage from "@/pages/testimonials";
-import HowItWorks from "@/pages/how-it-works";
-import PremiumPage from "@/pages/premium";
-import SmartPlanningDashboard from "@/pages/smart-planning-dashboard";
-import { OnboardingPage } from "@/pages/onboarding";
-import { PreCourseGuidance } from "@/pages/pre-course-guidance";
-import { AIControlDashboard } from "@/pages/ai-control-dashboard";
-import { InteractionTracking } from "@/pages/interaction-tracking";
-import { StudentAIDashboard } from "@/pages/student-ai-dashboard";
-import { SystemHealth } from "@/pages/system-health";
-import { AdminAIDashboard } from "@/pages/admin-ai-dashboard";
-import { GoalSettingForm } from "@/pages/goal-setting-form";
-import AdaptiveLearning from "@/pages/adaptive-learning";
-import ControlPanel from "@/pages/control-panel";
-import { MonitoringPage } from "@/pages/monitoring";
-import { PermissionsDemoPage } from "@/pages/permissions-demo";
-import { CoursesControlPage } from "@/pages/courses-control";
-import CurriculumGenerationPage from "@/pages/curriculum-generation";
-import CurriculumCustomization from "@/pages/curriculum-customization";
-import StudentCurriculumDashboard from "@/pages/student-curriculum-dashboard";
-import AdminCurriculumDashboard from "@/pages/admin-curriculum-dashboard";
-import CurriculumGenerationForm from "@/pages/curriculum-generation-form";
-import ProductionHistoryList from "@/pages/production-history-list";
-import MemoryEnhancedDashboard from "@/pages/memory-enhanced-dashboard";
-import CognitiveAssessment from "@/pages/cognitive-assessment";
-import StudentCognitiveDashboard from "@/pages/student-cognitive-dashboard";
-import AdminCognitiveDashboard from "@/pages/admin-cognitive-dashboard";
-import CognitivePreferenceForm from "@/pages/cognitive-preference-form";
-import IntegratedDashboard from "@/pages/integrated-dashboard";
-import AdminIntegrationDashboard from "@/pages/admin-integration-dashboard";
-import IntegratedEnrollment from "@/pages/integrated-enrollment";
-import { CurriculumDesigner } from "@/pages/curriculum-designer";
-import { SuccessMetricsDashboard } from "@/pages/success-metrics-dashboard";
-import { CurriculumFrameworkDisplay } from "@/pages/curriculum-framework-display";
-import { CurriculumParametersForm } from "@/pages/curriculum-parameters-form";
-import { KPIDashboard } from "@/pages/kpi-dashboard";
-import { ProgramPlan } from "@/pages/program-plan";
-import { StudentDashboard } from "@/pages/student-dashboard";
-import { AdminDashboard } from "@/pages/admin-dashboard";
-import { AiRecommendations } from "@/pages/ai-recommendations";
-import { AdminCurriculumGenerator } from "@/pages/admin-curriculum-generator";
-import { SmartStudentDashboard } from "@/pages/dashboard-smart";
-import StudyPlanDashboard from "@/pages/study-plan-dashboard";
-import AdminEnrollmentDashboard from "@/pages/admin-enrollment-dashboard";
-import StudentEnrollmentDashboard from "@/pages/student-enrollment-dashboard";
-import EducationalMaterials from "@/pages/educational-materials";
-import AdvisorMaterialDashboard from "@/pages/advisor-material-dashboard";
+
+// Lazy load all pages to reduce initial bundle size and fix module initialization order
+const Dashboard = lazy(() => import("@/pages/dashboard"));
+const DashboardStandalone = lazy(() => import("@/pages/dashboard-standalone"));
+const Courses = lazy(() => import("@/pages/courses"));
+const CourseDetail = lazy(() => import("@/pages/course-detail"));
+const LessonPage = lazy(() => import("@/pages/lesson-page"));
+const Assignments = lazy(() => import("@/pages/assignments"));
+const Calendar = lazy(() => import("@/pages/calendar"));
+const Resources = lazy(() => import("@/pages/resources"));
+const Profile = lazy(() => import("@/pages/profile"));
+const CourseGenerator = lazy(() => import("@/pages/course-generator"));
+const AdminPanel = lazy(() => import("@/pages/admin-panel"));
+const AuthPage = lazy(() => import("@/pages/auth-page"));
+const LearningPathPage = lazy(() => import("@/pages/learning-path-page"));
+const AnalyticsDashboard = lazy(() => import("@/pages/analytics-dashboard"));
+const AdvancedAnalyticsDashboard = lazy(() => import("@/pages/advanced-analytics"));
+const ChallengesPage = lazy(() => import("@/pages/challenges"));
+const SuggestionsDemoPage = lazy(() => import("@/pages/suggestions-demo"));
+const GamificationDashboard = lazy(() => import("@/pages/gamification-dashboard"));
+const SocialPage = lazy(() => import("@/pages/social-page"));
+const LearningTrailsPage = lazy(() => import("@/pages/learning-trails"));
+const ChallengePathsPage = lazy(() => import("@/pages/challenge-paths"));
+const ChallengeAnalyticsDashboard = lazy(() => import("@/pages/challenge-analytics-dashboard"));
+const EntranceExamPrep = lazy(() => import("@/pages/entrance-exam-prep"));
+const AdaptiveLearningDemo = lazy(() => import("@/pages/adaptive-learning-demo"));
+const AdvancedAdaptiveLearning = lazy(() => import("@/pages/advanced-adaptive-learning"));
+const EmojiMilestonesDemo = lazy(() => import("@/pages/emoji-milestones-demo"));
+const AnimatedProgressDemo = lazy(() => import("@/pages/animated-progress-demo"));
+const PlayfulAnimationsDemo = lazy(() => import("@/pages/playful-animations-demo"));
+const StudentControlPanel = lazy(() => import("@/pages/student-control-panel"));
+const MentorControlPanel = lazy(() => import("@/pages/mentor-control-panel"));
+const StudyPlannerPage = lazy(() => import("@/pages/study-planner"));
+const AssessmentPage = lazy(() => import("@/pages/assessment"));
+const Checkout = lazy(() => import("@/pages/checkout"));
+const SubscriptionPage = lazy(() => import("@/pages/subscription"));
+const TytDashboard = lazy(() => import("@/pages/tyt-dashboard"));
+const MyCurriculumPage = lazy(() => import("@/pages/my-curriculum"));
+const EssaysPage = lazy(() => import("@/pages/essays"));
+const TimeTracking = lazy(() => import("@/pages/time-tracking"));
+const AIDailyPlan = lazy(() => import("@/pages/ai-daily-plan"));
+const LandingPage = lazy(() => import("@/pages/landing-page"));
+const LearnConnectPortal = lazy(() => import("@/pages/learnconnect-portal"));
+const LearnConnectExams = lazy(() => import("@/pages/learnconnect-exams"));
+const LearnConnectAdmin = lazy(() => import("@/pages/learnconnect-admin"));
+const LearnConnectAI = lazy(() => import("@/pages/learnconnect-ai"));
+const MarketingDashboard = lazy(() => import("@/pages/marketing-dashboard"));
+const AffiliateDashboard = lazy(() => import("@/pages/affiliate-dashboard"));
+const WaitlistManagement = lazy(() => import("@/pages/waitlist-management"));
+const AnalyticsCharts = lazy(() => import("@/pages/analytics-charts"));
+const StudyTechniques = lazy(() => import("@/pages/study-techniques"));
+const ExamAnxietyGuide = lazy(() => import("@/pages/exam-anxiety-guide"));
+const TestimonialsPage = lazy(() => import("@/pages/testimonials"));
+const HowItWorks = lazy(() => import("@/pages/how-it-works"));
+const PremiumPage = lazy(() => import("@/pages/premium"));
+const SmartPlanningDashboard = lazy(() => import("@/pages/smart-planning-dashboard"));
+const OnboardingPage = lazy(() => import("@/pages/onboarding").then(m => ({ default: m.OnboardingPage })));
+const PreCourseGuidance = lazy(() => import("@/pages/pre-course-guidance").then(m => ({ default: m.PreCourseGuidance })));
+const AIControlDashboard = lazy(() => import("@/pages/ai-control-dashboard").then(m => ({ default: m.AIControlDashboard })));
+const InteractionTracking = lazy(() => import("@/pages/interaction-tracking").then(m => ({ default: m.InteractionTracking })));
+const StudentAIDashboard = lazy(() => import("@/pages/student-ai-dashboard").then(m => ({ default: m.StudentAIDashboard })));
+const SystemHealth = lazy(() => import("@/pages/system-health").then(m => ({ default: m.SystemHealth })));
+const AdminAIDashboard = lazy(() => import("@/pages/admin-ai-dashboard").then(m => ({ default: m.AdminAIDashboard })));
+const GoalSettingForm = lazy(() => import("@/pages/goal-setting-form").then(m => ({ default: m.GoalSettingForm })));
+const AdaptiveLearning = lazy(() => import("@/pages/adaptive-learning"));
+const ControlPanel = lazy(() => import("@/pages/control-panel"));
+const MonitoringPage = lazy(() => import("@/pages/monitoring").then(m => ({ default: m.MonitoringPage })));
+const PermissionsDemoPage = lazy(() => import("@/pages/permissions-demo").then(m => ({ default: m.PermissionsDemoPage })));
+const CoursesControlPage = lazy(() => import("@/pages/courses-control").then(m => ({ default: m.CoursesControlPage })));
+const CurriculumGenerationPage = lazy(() => import("@/pages/curriculum-generation"));
+const CurriculumCustomization = lazy(() => import("@/pages/curriculum-customization"));
+const StudentCurriculumDashboard = lazy(() => import("@/pages/student-curriculum-dashboard"));
+const AdminCurriculumDashboard = lazy(() => import("@/pages/admin-curriculum-dashboard"));
+const CurriculumGenerationForm = lazy(() => import("@/pages/curriculum-generation-form"));
+const ProductionHistoryList = lazy(() => import("@/pages/production-history-list"));
+const MemoryEnhancedDashboard = lazy(() => import("@/pages/memory-enhanced-dashboard"));
+const CognitiveAssessment = lazy(() => import("@/pages/cognitive-assessment"));
+const StudentCognitiveDashboard = lazy(() => import("@/pages/student-cognitive-dashboard"));
+const AdminCognitiveDashboard = lazy(() => import("@/pages/admin-cognitive-dashboard"));
+const CognitivePreferenceForm = lazy(() => import("@/pages/cognitive-preference-form"));
+const IntegratedDashboard = lazy(() => import("@/pages/integrated-dashboard"));
+const AdminIntegrationDashboard = lazy(() => import("@/pages/admin-integration-dashboard"));
+const IntegratedEnrollment = lazy(() => import("@/pages/integrated-enrollment"));
+const CurriculumDesigner = lazy(() => import("@/pages/curriculum-designer").then(m => ({ default: m.CurriculumDesigner })));
+const SuccessMetricsDashboard = lazy(() => import("@/pages/success-metrics-dashboard").then(m => ({ default: m.SuccessMetricsDashboard })));
+const CurriculumFrameworkDisplay = lazy(() => import("@/pages/curriculum-framework-display").then(m => ({ default: m.CurriculumFrameworkDisplay })));
+const CurriculumParametersForm = lazy(() => import("@/pages/curriculum-parameters-form").then(m => ({ default: m.CurriculumParametersForm })));
+const KPIDashboard = lazy(() => import("@/pages/kpi-dashboard").then(m => ({ default: m.KPIDashboard })));
+const ProgramPlan = lazy(() => import("@/pages/program-plan").then(m => ({ default: m.ProgramPlan })));
+const StudentDashboard = lazy(() => import("@/pages/student-dashboard").then(m => ({ default: m.StudentDashboard })));
+const AdminDashboard = lazy(() => import("@/pages/admin-dashboard").then(m => ({ default: m.AdminDashboard })));
+const AiRecommendations = lazy(() => import("@/pages/ai-recommendations").then(m => ({ default: m.AiRecommendations })));
+const AdminCurriculumGenerator = lazy(() => import("@/pages/admin-curriculum-generator").then(m => ({ default: m.AdminCurriculumGenerator })));
+const SmartStudentDashboard = lazy(() => import("@/pages/dashboard-smart").then(m => ({ default: m.SmartStudentDashboard })));
+const StudyPlanDashboard = lazy(() => import("@/pages/study-plan-dashboard"));
+const AdminEnrollmentDashboard = lazy(() => import("@/pages/admin-enrollment-dashboard"));
+const StudentEnrollmentDashboard = lazy(() => import("@/pages/student-enrollment-dashboard"));
+const EducationalMaterials = lazy(() => import("@/pages/educational-materials"));
+const AdvisorMaterialDashboard = lazy(() => import("@/pages/advisor-material-dashboard"));
 
 function Router() {
   return (
@@ -218,6 +221,72 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { ErrorBoundary } from "./components/error-states/error-boundary";
 import { SafeAnalytics } from "./components/analytics-wrapper";
+import { ConnectionErrorProvider, useConnectionError } from "./contexts/connection-error-context";
+import { ConnectionErrorDialog } from "./components/error-states/connection-error-dialog";
+import { setConnectionErrorHandler } from "./lib/queryClient";
+import { initializeGlobalErrorHandler } from "./lib/global-error-handler";
+import { ErrorMetadata } from "./contexts/connection-error-context";
+import { useEffect } from "react";
+
+// Loading fallback component for lazy-loaded routes
+function RouteLoadingFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+function AppContent() {
+  const { isOpen, hideError, requestId, retry, retryLoading, showError, errorMetadata } = useConnectionError();
+  
+  useEffect(() => {
+    // Set up the global connection error handler for API requests
+    setConnectionErrorHandler((requestId: string, metadata?: ErrorMetadata) => {
+      showError(requestId, metadata);
+    });
+    
+    // Initialize global error handler for window.onerror and unhandled rejections
+    const globalHandler = initializeGlobalErrorHandler({
+      showDialogForTypes: ['network', 'ses', 'lexical'],
+      onError: (error, type, errorRequestId) => {
+        const metadata: ErrorMetadata = {
+          type,
+          message: error.message,
+          stack: error.stack,
+        };
+        showError(errorRequestId, metadata);
+      },
+    });
+    
+    // Cleanup on unmount
+    return () => {
+      globalHandler.cleanup();
+    };
+  }, [showError]);
+  
+  return (
+    <>
+      <Navbar />
+      <Suspense fallback={<RouteLoadingFallback />}>
+        <Router />
+      </Suspense>
+      <Toaster />
+      <SafeAnalytics />
+      <ConnectionErrorDialog
+        open={isOpen}
+        onOpenChange={hideError}
+        onRetry={retry}
+        requestId={requestId}
+        retryLoading={retryLoading}
+        errorMetadata={errorMetadata}
+      />
+    </>
+  );
+}
 
 function App() {
   return (
@@ -225,14 +294,13 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <LanguageProvider>
+            <ConnectionErrorProvider>
             <GamificationProvider>
               <SkillChallengeProvider>
-                <Navbar />
-                <Router />
-                <Toaster />
-                <SafeAnalytics />
+                  <AppContent />
               </SkillChallengeProvider>
             </GamificationProvider>
+            </ConnectionErrorProvider>
           </LanguageProvider>
         </AuthProvider>
       </QueryClientProvider>

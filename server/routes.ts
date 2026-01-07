@@ -239,6 +239,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
 
+    // ========== ERROR REPORTING ENDPOINT ==========
+    
+    // Error reporting endpoint for client-side error tracking
+    app.post("/api/errors/report", async (req, res) => {
+      try {
+        const requestId = (req as any).requestId || 'unknown';
+        const errorReport = req.body;
+        
+        // Validate required fields
+        if (!errorReport.type || !errorReport.message) {
+          return res.status(400).json({
+            success: false,
+            message: "Missing required fields: type and message",
+          });
+        }
+        
+        // Log error report
+        logger.error("Client Error Report", {
+          requestId,
+          type: errorReport.type,
+          message: errorReport.message,
+          stack: errorReport.stack,
+          url: errorReport.url,
+          userAgent: errorReport.userAgent,
+          userId: errorReport.userId,
+          timestamp: errorReport.timestamp,
+          source: errorReport.source,
+          line: errorReport.line,
+          column: errorReport.column,
+        });
+        
+        // In the future, you could store this in a database
+        // For now, we just log it
+        
+        res.status(200).json({
+          success: true,
+          message: "Error report received",
+          requestId,
+        });
+      } catch (error: any) {
+        logger.error("Error processing error report", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to process error report",
+        });
+      }
+    });
+
     // Debug endpoints (development only)
     if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEBUG === 'true') {
       // Debug info endpoint

@@ -31,26 +31,60 @@ export default defineConfig({
     // esbuild hoisting'i daha iyi yönetir ve 'A before initialization' hatalarını önler
     minify: 'esbuild',
     
+    // ✅ Optimize for proper variable hoisting
+    // This helps prevent "can't access lexical declaration before initialization" errors
+    target: 'es2020', // Use modern target for better hoisting
+    
     // ✅ Sourcemap'i production'da da aç (debug için)
     sourcemap: true,
     cssCodeSplit: true,
     reportCompressedSize: false,
     
     rollupOptions: {
+      // ✅ Optimize module hoisting to prevent lexical declaration errors
+      // This ensures proper initialization order
+      treeshake: {
+        moduleSideEffects: (id) => {
+          // Preserve side effects for certain modules that need proper initialization
+          if (id.includes('node_modules')) {
+            // Allow side effects for vendor modules
+            return true;
+          }
+          return false;
+        },
+      },
+      
       // ✅ Circular dependency warning'lerini görmezden gel
+      // Lazy loading fixes most circular dependency issues, but some external libraries
+      // (drizzle-orm, zod, d3-interpolate, recharts) may still have circular deps
       onwarn(warning, warn) {
+        // Suppress circular dependency warnings (lazy loading fixes module order)
         if (warning.code === 'CIRCULAR_DEPENDENCY') {
-          // Sadece logla, hata verme
-          console.warn(`⚠️ Circular dependency: ${warning.message}`);
+          const message = warning.message || '';
+          // Suppress known circular dependencies from external libraries
+          if (
+            message.includes('drizzle-orm') ||
+            message.includes('zod') ||
+            message.includes('d3-interpolate') ||
+            message.includes('recharts')
+          ) {
+            // These are from external libraries and don't affect functionality
+            return;
+          }
+          // Log other circular dependencies for awareness
+          console.warn(`⚠️ Circular dependency: ${message}`);
           return;
         }
         
-        // 'A' ile ilgili uyarıları da görmezden gel
-        if (warning.message && warning.message.includes('A') && warning.message.includes('before initialization')) {
-          console.warn(`⚠️ Minification warning: ${warning.message}`);
+        // Track 'A before initialization' warnings for debugging
+        if (warning.message && warning.message.includes('before initialization')) {
+          console.warn(`⚠️ Initialization order warning: ${warning.message}`);
+          // Don't suppress - we want to know about these
+          warn(warning);
           return;
         }
         
+        // Pass through all other warnings
         warn(warning);
       },
       

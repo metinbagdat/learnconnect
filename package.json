@@ -15,6 +15,7 @@
     "test:bundle": "node scripts/test-bundled-api.js",
     "debug:build": "node scripts/debug-build.js",
     "check": "npm exec -- tsc",
+    "check:circular-deps": "node scripts/check-circular-deps.js",
     "db:push": "drizzle-kit push",
     "db:verify": "node verify-db-connection.js",
     "seed:meb": "tsx server/seed/index.ts",
