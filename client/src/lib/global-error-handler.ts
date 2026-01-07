@@ -95,17 +95,34 @@ class GlobalErrorHandler {
     // Detect error type
     const type = this.detectErrorType(errorMessage, source);
 
-    // Track the error
-    errorTracker.track(errorObj, type, undefined, source, lineno, colno);
+    // Track the error (but don't let it block app initialization)
+    // Use setTimeout to defer tracking so it doesn't block execution
+    setTimeout(() => {
+      errorTracker.track(errorObj, type, undefined, source, lineno, colno);
+    }, 0);
 
-    // Check if we should show dialog
-    if (this.config.showDialogForTypes?.includes(type)) {
+    // For SES and lexical errors from extensions, don't show dialogs
+    // These errors are from browser extensions and shouldn't interrupt the user
+    const isSESError = type === 'ses' || (type === 'lexical' && source?.includes('lockdown'));
+    
+    if (isSESError) {
+      // For SES errors, return false immediately to allow execution to continue
+      // Don't call original handler as it might block
+      return false;
+    }
+
+    // Check if we should show dialog for other error types
+    const shouldShowDialog = this.config.showDialogForTypes?.includes(type);
+    
+    if (shouldShowDialog) {
       // Generate request ID for this error
       const requestId = this.generateRequestId();
       
-      // Call custom error handler if provided
+      // Call custom error handler if provided (defer to avoid blocking)
       if (this.config.onError) {
-        this.config.onError(errorObj, type, requestId);
+        setTimeout(() => {
+          this.config.onError?.(errorObj, type, requestId);
+        }, 0);
       }
     }
 
@@ -128,15 +145,29 @@ class GlobalErrorHandler {
     // Detect error type
     const type = this.detectErrorType(error.message);
 
-    // Track the error
-    errorTracker.track(error, type);
+    // Track the error (defer to avoid blocking)
+    setTimeout(() => {
+      errorTracker.track(error, type);
+    }, 0);
 
-    // Check if we should show dialog
-    if (this.config.showDialogForTypes?.includes(type)) {
+    // For SES errors, prevent default (don't show in console) but don't block
+    const isSESError = type === 'ses';
+    if (isSESError) {
+      event.preventDefault(); // Prevent default console error
+      return; // Don't show dialog
+    }
+
+    // Check if we should show dialog for other error types
+    const shouldShowDialog = this.config.showDialogForTypes?.includes(type);
+    
+    if (shouldShowDialog) {
       const requestId = this.generateRequestId();
       
+      // Defer dialog to avoid blocking
       if (this.config.onError) {
-        this.config.onError(error, type, requestId);
+        setTimeout(() => {
+          this.config.onError?.(error, type, requestId);
+        }, 0);
       }
     }
 
@@ -208,8 +239,15 @@ export function initializeGlobalErrorHandler(
   config?: GlobalErrorHandlerConfig
 ): GlobalErrorHandler {
   if (!globalErrorHandlerInstance) {
-    globalErrorHandlerInstance = new GlobalErrorHandler(config);
-    globalErrorHandlerInstance.initialize();
+    try {
+      globalErrorHandlerInstance = new GlobalErrorHandler(config);
+      globalErrorHandlerInstance.initialize();
+    } catch (error) {
+      console.warn('[GlobalErrorHandler] Failed to initialize:', error);
+      // Return a no-op handler if initialization fails
+      // This ensures the app can still load
+      return new GlobalErrorHandler(config);
+    }
   }
   return globalErrorHandlerInstance;
 }

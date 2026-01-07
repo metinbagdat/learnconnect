@@ -241,8 +241,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // ========== ERROR REPORTING ENDPOINT ==========
     
+    // Rate limiter for error reporting (10 errors per minute per IP)
+    const { createRateLimiter } = await import("./middleware/rate-limiter.js");
+    const errorReportingLimiter = createRateLimiter({
+      windowMs: 60 * 1000, // 1 minute
+      maxRequests: 10, // 10 errors per minute per IP
+      message: "Too many error reports. Please wait a moment.",
+    });
+    
     // Error reporting endpoint for client-side error tracking
-    app.post("/api/errors/report", async (req, res) => {
+    app.post("/api/errors/report", errorReportingLimiter, async (req, res) => {
       try {
         const requestId = (req as any).requestId || 'unknown';
         const errorReport = req.body;

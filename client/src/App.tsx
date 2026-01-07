@@ -249,23 +249,9 @@ function AppContent() {
       showError(requestId, metadata);
     });
     
-    // Initialize global error handler for window.onerror and unhandled rejections
-    const globalHandler = initializeGlobalErrorHandler({
-      showDialogForTypes: ['network', 'ses', 'lexical'],
-      onError: (error, type, errorRequestId) => {
-        const metadata: ErrorMetadata = {
-          type,
-          message: error.message,
-          stack: error.stack,
-        };
-        showError(errorRequestId, metadata);
-      },
-    });
-    
-    // Cleanup on unmount
-    return () => {
-      globalHandler.cleanup();
-    };
+    // Global error handler is already initialized in main.tsx
+    // Here we just set up the connection error handler for API requests
+    // No need to initialize again or cleanup
   }, [showError]);
   
   return (

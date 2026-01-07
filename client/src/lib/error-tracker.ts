@@ -89,12 +89,18 @@ class ErrorTracker {
     const lowerMessage = message.toLowerCase();
     const lowerSource = source?.toLowerCase() || '';
 
-    // SES errors
+    // SES errors - enhanced detection for browser extension conflicts
     if (
       lowerMessage.includes('ses') ||
       lowerMessage.includes('lockdown') ||
       lowerSource.includes('lockdown-install.js') ||
-      lowerMessage.includes('ses_uncaught_exception')
+      lowerMessage.includes('ses_uncaught_exception') ||
+      lowerMessage.includes('removing unpermitted intrinsics') ||
+      lowerMessage.includes('removing intrinsics') ||
+      lowerMessage.includes('getorinsert') ||
+      lowerMessage.includes('totemporalinstant') ||
+      lowerSource.includes('ses') ||
+      lowerSource.includes('lockdown')
     ) {
       return 'ses';
     }
@@ -119,6 +125,32 @@ class ErrorTracker {
 
     // Runtime errors (catch-all for other JavaScript errors)
     return 'runtime';
+  }
+
+  /**
+   * Check if error should be silently handled (not shown to user)
+   * SES errors from browser extensions should be logged but not shown
+   */
+  private shouldSilentlyHandle(type: ErrorType, message: string, source?: string): boolean {
+    // SES errors are typically from browser extensions and should be silently handled
+    if (type === 'ses') {
+      return true;
+    }
+
+    // Lexical declaration errors that are likely from SES context
+    if (type === 'lexical') {
+      const lowerMessage = message.toLowerCase();
+      const lowerSource = source?.toLowerCase() || '';
+      if (
+        lowerSource.includes('lockdown') ||
+        lowerSource.includes('ses') ||
+        lowerMessage.includes('lockdown')
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -196,11 +228,22 @@ class ErrorTracker {
   ): void {
     const report = this.createErrorReport(error, type, requestId, source, line, column);
 
-    // Log to console in development
+    // Check if error should be silently handled (SES errors from extensions)
+    const shouldSilentlyHandle = this.shouldSilentlyHandle(report.type, report.message, report.source);
+
+    // Log to console in development (always log, but with different level for SES)
     if (process.env.NODE_ENV === 'development') {
-      console.error('[ErrorTracker]', report);
+      if (shouldSilentlyHandle) {
+        console.warn('[ErrorTracker] SES/Extension error (silently handled):', report);
+      } else {
+        console.error('[ErrorTracker]', report);
+      }
+    } else if (shouldSilentlyHandle) {
+      // In production, only log SES errors at warn level (they're from extensions)
+      console.warn('[ErrorTracker] SES/Extension error detected, silently handling');
     }
 
+    // For SES errors, still report to backend for monitoring but don't show to user
     // Queue for reporting
     this.reportQueue.push(report);
 
@@ -208,6 +251,14 @@ class ErrorTracker {
     if (!this.isReporting) {
       this.processQueue();
     }
+  }
+
+  /**
+   * Check if an error should be shown to the user
+   * SES errors should not be shown as they're typically from browser extensions
+   */
+  public shouldShowToUser(type: ErrorType, message: string, source?: string): boolean {
+    return !this.shouldSilentlyHandle(type, message, source);
   }
 
   /**

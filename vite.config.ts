@@ -35,8 +35,9 @@ export default defineConfig({
     // This helps prevent "can't access lexical declaration before initialization" errors
     target: 'es2020', // Use modern target for better hoisting
     
-    // ✅ Sourcemap'i production'da da aç (debug için)
-    sourcemap: true,
+    // ✅ Sourcemap'i production'da kapat (security ve performance için)
+    // Development'da açık kalır (debug için)
+    sourcemap: process.env.NODE_ENV !== 'production',
     cssCodeSplit: true,
     reportCompressedSize: false,
     
