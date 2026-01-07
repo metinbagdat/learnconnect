@@ -947,7 +947,7 @@ export const userChallengeProgress = userChallengeStreaks; // Alias for backward
 // SCHEMAS & TYPES
 // ============================================================================
 
-export const insertCourseSchema = safeOmit(createInsertSchema(courses), { id: true, createdAt: true });
+export const insertCourseSchema = safeOmit(createInsertSchema(courses) as z.ZodTypeAny, { id: true, createdAt: true });
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
 
