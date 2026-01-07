@@ -87,6 +87,7 @@ jobs:
 
   create_neon_branch:
     name: Create Neon Branch & Run Migrations
+    outputs:
       migration_status: ${{ steps.verify_migration.outputs.status }}
     needs: setup
     if: |
