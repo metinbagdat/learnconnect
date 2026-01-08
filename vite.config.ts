@@ -35,9 +35,9 @@ export default defineConfig({
     // This helps prevent "can't access lexical declaration before initialization" errors
     target: 'es2020', // Use modern target for better hoisting
     
-    // ✅ Preserve entry signatures to ensure proper initialization order
-    // This ensures the main entry point initializes before lazy-loaded chunks
-    preserveEntrySignatures: 'strict',
+    // ✅ Use 'exports-only' instead of 'strict' to allow lazy loading while maintaining order
+    // 'strict' can conflict with lazy loading and cause initialization errors
+    preserveEntrySignatures: 'exports-only',
     
     // ✅ Sourcemap'i production'da kapat (security ve performance için)
     // Development'da açık kalır (debug için)
@@ -45,19 +45,31 @@ export default defineConfig({
     cssCodeSplit: true,
     reportCompressedSize: false,
     
-    rollupOptions: {
+      rollupOptions: {
       // ✅ Optimize module hoisting to prevent lexical declaration errors
       // This ensures proper initialization order
       treeshake: {
+        preset: 'smallest', // More aggressive tree-shaking but safer for hoisting
         moduleSideEffects: (id) => {
           // Preserve side effects for certain modules that need proper initialization
           if (id.includes('node_modules')) {
             // Allow side effects for vendor modules
             return true;
           }
+          // Preserve side effects for lazy-loaded pages to ensure proper initialization
+          if (id.includes('/pages/') || id.includes('/components/')) {
+            return true;
+          }
           return false;
         },
       },
+      
+      // ✅ Ensure proper output format to prevent TDZ issues
+      output: {
+        format: 'es', // ES modules have better TDZ handling
+        generatedCode: {
+          constBindings: false, // Use var instead of const for better hoisting
+        },
       
       // ✅ Circular dependency warning'lerini görmezden gel
       // Lazy loading fixes most circular dependency issues, but some external libraries
@@ -106,6 +118,12 @@ export default defineConfig({
       },
       
       output: {
+        // ✅ Ensure proper output format to prevent TDZ issues
+        format: 'es', // ES modules have better TDZ handling
+        generatedCode: {
+          constBindings: false, // Use var instead of const for better hoisting (reduces TDZ errors)
+        },
+        
         // ✅ Optimized chunk splitting strategy to prevent initialization order issues
         // Group related vendors together and ensure proper load order
         manualChunks(id) {

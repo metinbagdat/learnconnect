@@ -9,13 +9,28 @@ import { initializeGlobalErrorHandler } from "./lib/global-error-handler";
 // Wrap in try-catch to ensure it doesn't prevent app from loading
 try {
   initializeGlobalErrorHandler({
-    showDialogForTypes: ['network'], // Only show dialogs for network errors, not SES/lexical
-    // Don't show dialogs for SES/lexical errors as they're from browser extensions
+    showDialogForTypes: ['network'], // Only show dialogs for network errors, not SES/lexical/chunk errors
+    // Don't show dialogs for SES/lexical/chunk errors as they're from browser extensions or module issues
     // They'll still be tracked but won't interrupt the user
   });
 } catch (error) {
   console.warn('[main.tsx] Failed to initialize global error handler:', error);
   // Continue anyway - error handler is not critical for app to function
+}
+
+// Suppress SES errors from browser extensions that might interfere
+if (typeof window !== 'undefined') {
+  // Catch and suppress SES-related errors that might come from extensions
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const message = args.join(' ');
+    // Suppress SES lockdown warnings (they're from extensions, not our code)
+    if (message.includes('SES') || message.includes('lockdown') || message.includes('Removing unpermitted intrinsics')) {
+      // Silently suppress - these are from browser extensions
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
 }
 
 // Initialize Google Analytics

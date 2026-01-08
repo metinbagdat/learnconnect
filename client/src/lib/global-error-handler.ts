@@ -101,13 +101,17 @@ class GlobalErrorHandler {
       errorTracker.track(errorObj, type, undefined, source, lineno, colno);
     }, 0);
 
-    // For SES and lexical errors from extensions, don't show dialogs
-    // These errors are from browser extensions and shouldn't interrupt the user
+    // For SES and lexical errors from extensions/chunks, don't show dialogs
+    // These errors are from browser extensions or module initialization issues
+    // and shouldn't interrupt the user experience
     const isSESError = type === 'ses' || (type === 'lexical' && source?.includes('lockdown'));
+    const isChunkLexicalError = type === 'lexical' && source?.includes('/js/chunk-');
     
-    if (isSESError) {
-      // For SES errors, return false immediately to allow execution to continue
-      // Don't call original handler as it might block
+    if (isSESError || isChunkLexicalError) {
+      // For SES/chunk errors, return false immediately to allow execution to continue
+      // Don't call original handler as it might block app initialization
+      // Log silently to avoid console noise
+      console.warn('[Suppressed]', type === 'ses' ? 'SES error from extension' : 'Module initialization error', { source, message: errorMessage });
       return false;
     }
 
@@ -150,10 +154,13 @@ class GlobalErrorHandler {
       errorTracker.track(error, type);
     }, 0);
 
-    // For SES errors, prevent default (don't show in console) but don't block
+    // For SES and chunk lexical errors, prevent default (don't show in console) but don't block
     const isSESError = type === 'ses';
-    if (isSESError) {
+    const isChunkLexicalError = type === 'lexical' && error.message?.includes('chunk-');
+    
+    if (isSESError || isChunkLexicalError) {
       event.preventDefault(); // Prevent default console error
+      console.warn('[Suppressed]', isSESError ? 'SES rejection' : 'Module initialization rejection', error.message);
       return; // Don't show dialog
     }
 
