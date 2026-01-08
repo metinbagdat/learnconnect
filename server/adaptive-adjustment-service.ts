@@ -2,6 +2,7 @@ import { db } from "./db.js";
 import { studyProgress, studyGoals } from "../shared/schema.js";
 import { eq, and } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
+import { UserProgressRow, StudyGoalRow } from "./types/database.js";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -39,10 +40,11 @@ export async function generateAdaptiveAdjustments(
     }
 
     // Calculate metrics from available fields
-    const completedCount = recentProgress.filter(p => (p.lessonsCompleted || 0) > 0).length;
-    const completionRate = (completedCount / recentProgress.length) * 100;
-    const avgHours = recentProgress.reduce((sum, p) => sum + (p.hoursStudied || 0), 0) / recentProgress.length;
-    const avgScore = recentProgress.reduce((sum, p) => sum + (p.performanceScore || 0), 0) / recentProgress.length;
+    const progressRows = recentProgress.map(row => row as UserProgressRow);
+    const completedCount = progressRows.filter(p => (p.lessonsCompleted || 0) > 0).length;
+    const completionRate = (completedCount / progressRows.length) * 100;
+    const avgHours = progressRows.reduce((sum, p) => sum + (p.hoursStudied || 0), 0) / progressRows.length;
+    const avgScore = progressRows.reduce((sum, p) => sum + (p.performanceScore || 0), 0) / progressRows.length;
     const strugglingTopics = recentProgress
       .filter(p => (p.performanceScore || 0) < 50)
       .map((_, idx) => `Learning Area ${idx + 1}`);
@@ -51,17 +53,19 @@ export async function generateAdaptiveAdjustments(
     const userGoals = await db
       .select()
       .from(studyGoals)
-      .where(and(eq(studyGoals.userId, userId), eq(studyGoals.status, "active")))
+      .where(and(eq(studyGoals.userId, userId), eq(studyGoals.isCompleted, false)))
       .limit(1);
 
     const goal = userGoals[0];
+    const goalRow = goal as StudyGoalRow;
+    const status = goalRow?.status || 'active';
 
     // Generate AI-powered adjustments
     return await generateAIAdjustments(
       completionRate,
       avgHours,
       strugglingTopics,
-      goal
+      goalRow
     );
   } catch (error) {
     console.error("Error generating adaptive adjustments:", error);
@@ -202,9 +206,10 @@ export async function detectLearningInterventionNeeds(
       };
     }
 
-    const completedCount = recentProgress.filter(p => (p.lessonsCompleted || 0) > 0).length;
-    const completionRate = (completedCount / recentProgress.length) * 100;
-    const avgScore = recentProgress.reduce((sum, p) => sum + (p.performanceScore || 0), 0) / recentProgress.length;
+    const progressRows = recentProgress.map(row => row as UserProgressRow);
+    const completedCount = progressRows.filter(p => (p.lessonsCompleted || 0) > 0).length;
+    const completionRate = (completedCount / progressRows.length) * 100;
+    const avgScore = progressRows.reduce((sum, p) => sum + (p.performanceScore || 0), 0) / progressRows.length;
     const lastUpdated = Math.max(
       ...recentProgress.map(p => new Date(p.createdAt).getTime())
     );

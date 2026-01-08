@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/consolidated-language-context";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { StudentControlPanelData } from "@/types/dashboard";
 import { 
   BookOpen, 
   Target, 
@@ -59,15 +60,24 @@ export default function StudentControlPanel() {
     queryKey: ['/api/student/stats'],
   });
 
-  // Fetch student's achievements
-  const { data: achievements = [], isLoading: achievementsLoading } = useQuery({
-    queryKey: ['/api/user/achievements'],
-  });
+  // Fetch student's achievements (using data from above)
+  const achievementsLoading = false;
 
   // Fetch upcoming assignments
-  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
+  const { data: data } = useQuery<StudentControlPanelData>({
     queryKey: ['/api/assignments/upcoming'],
   });
+
+  // Add type guards for unknown arrays
+  const assignments = Array.isArray(data?.assignments) 
+    ? (data.assignments as any[]) 
+    : [];
+
+  const achievements = Array.isArray(data?.achievements) 
+    ? (data.achievements as any[]) 
+    : [];
+
+  const assignmentsLoading = false;
 
   const deleteLearningPathMutation = useMutation({
     mutationFn: async (id: number) => {

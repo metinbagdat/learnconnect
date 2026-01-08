@@ -9,7 +9,7 @@ import { z } from "zod";
 function safeOmit<T extends z.ZodTypeAny>(
   schema: T,
   keys: Record<string, true>
-): z.ZodTypeAny {
+): T {
   let result: z.ZodTypeAny = schema;
   const keyList = Object.keys(keys);
   
@@ -24,7 +24,7 @@ function safeOmit<T extends z.ZodTypeAny>(
     }
   }
   
-  return result;
+  return result as T;
 }
 
 // ============================================================================
@@ -128,6 +128,8 @@ export const users = pgTable("users", {
   interests: text("interests").array().default([]),
   learningPace: text("learning_pace").default("moderate"), // slow, moderate, fast
   profileComplete: boolean("profile_complete").default(false),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -480,11 +482,65 @@ export const userLevels = pgTable("user_levels", {
 });
 export const leaderboards = pgTable("leaderboards", { id: serial("id").primaryKey(), title: text("title").notNull() });
 export const leaderboardEntries = pgTable("leaderboard_entries", { id: serial("id").primaryKey(), leaderboardId: integer("leaderboard_id").notNull() });
-export const lessonTrails = pgTable("lesson_trails", { id: serial("id").primaryKey(), title: text("title").notNull() });
-export const trailNodes = pgTable("trail_nodes", { id: serial("id").primaryKey(), trailId: integer("trail_id").notNull() });
-export const userTrailProgress = pgTable("user_trail_progress", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const personalizedRecommendations = pgTable("personalized_recommendations", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
-export const learningAnalytics = pgTable("learning_analytics", { id: serial("id").primaryKey(), userId: integer("user_id").notNull() });
+export const lessonTrails = pgTable("lesson_trails", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  courseId: integer("course_id"),
+  description: text("description"),
+  trailData: json("trail_data"),
+  difficulty: text("difficulty"),
+  estimatedTime: integer("estimated_time"),
+  isAiGenerated: boolean("is_ai_generated").default(false),
+});
+export const trailNodes = pgTable("trail_nodes", {
+  id: serial("id").primaryKey(),
+  trailId: integer("trail_id").notNull(),
+  lessonId: integer("lesson_id"),
+  nodePosition: json("node_position"),
+  nodeType: text("node_type"),
+  unlockConditions: json("unlock_conditions"),
+  hoverInfo: json("hover_info"),
+  rewards: json("rewards"),
+  isOptional: boolean("is_optional").default(false),
+});
+export const userTrailProgress = pgTable("user_trail_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  trailId: integer("trail_id").notNull(),
+  completedNodes: json("completed_nodes").array().default([]),
+  currentNode: integer("current_node"),
+  progress: integer("progress").default(0),
+  timeSpent: integer("time_spent").default(0),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  completedAt: timestamp("completed_at"),
+});
+export const personalizedRecommendations = pgTable("personalized_recommendations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  recommendationType: text("recommendation_type").notNull(),
+  recommendationData: json("recommendation_data"),
+  confidenceScore: text("confidence_score"),
+  reasoning: text("reasoning"),
+  accepted: boolean("accepted").default(false),
+  implemented: boolean("implemented").default(false),
+  feedback: text("feedback"),
+  responseTime: integer("response_time"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at"),
+});
+export const learningAnalytics = pgTable("learning_analytics", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  sessionId: text("session_id").notNull(),
+  lessonId: integer("lesson_id"),
+  courseId: integer("course_id"),
+  activityType: text("activity_type").notNull(),
+  timeSpentSeconds: integer("time_spent_seconds"),
+  interactionData: json("interaction_data").default({}),
+  performanceScore: numeric("performance_score", { precision: 3, scale: 2 }),
+  difficultyRating: integer("difficulty_rating"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 export const learningMilestones = pgTable("learning_milestones", { id: serial("id").primaryKey(), title: text("title").notNull() });
 export const emojiReactions = pgTable("emoji_reactions", { id: serial("id").primaryKey(), emoji: text("emoji").notNull() });
 export const mentors = pgTable("mentors", { 
@@ -947,7 +1003,7 @@ export const userChallengeProgress = userChallengeStreaks; // Alias for backward
 // SCHEMAS & TYPES
 // ============================================================================
 
-export const insertCourseSchema = safeOmit(createInsertSchema(courses) as z.ZodTypeAny, { id: true, createdAt: true });
+export const insertCourseSchema = safeOmit(createInsertSchema(courses), { id: true, createdAt: true }) as z.ZodTypeAny;
 export type InsertCourse = z.infer<typeof insertCourseSchema>;
 export type Course = typeof courses.$inferSelect;
 

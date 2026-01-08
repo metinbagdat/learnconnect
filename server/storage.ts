@@ -133,6 +133,7 @@ export interface IStorage {
   getCourseRecommendations(userId: number): Promise<any[]>;
   saveCourseRecommendations(userId: number, recommendations: any[]): Promise<any>;
   updateUserInterests(userId: number, interests: string[]): Promise<any>;
+  updateUserStripeInfo(userId: number, stripeData: { customerId?: string; subscriptionId?: string }): Promise<void>;
   getAiGeneratedCourses(): Promise<any[]>;
   getPopularCourses(): Promise<any[]>;
   enrollUserInCourse(userId: number, courseId: number): Promise<any>;
@@ -1441,6 +1442,15 @@ class DatabaseStorage implements IStorage {
     return { success: true };
   }
 
+  async updateUserStripeInfo(userId: number, stripeData: { customerId?: string; subscriptionId?: string }) {
+    await db.update(users)
+      .set({
+        stripeCustomerId: stripeData.customerId ?? undefined,
+        stripeSubscriptionId: stripeData.subscriptionId ?? undefined,
+      })
+      .where(eq(users.id, userId));
+  }
+
   async getPopularCourses() {
     // Stub implementation - return empty array for now
     return [];
@@ -1870,6 +1880,7 @@ class InMemoryStorage implements IStorage {
   async getCourseRecommendations(_userId: number) { return []; }
   async saveCourseRecommendations(_userId: number, _recommendations: any[]) { return { success: true }; }
   async updateUserInterests(_userId: number, _interests: string[]) { return { success: true }; }
+  async updateUserStripeInfo(_userId: number, _stripeData: { customerId?: string; subscriptionId?: string }) { return; }
   async getAiGeneratedCourses() { return []; }
   async getPopularCourses() { return []; }
   async enrollUserInCourse(_userId: number, _courseId: number) { return { id: this.nextId++ }; }

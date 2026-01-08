@@ -1,5 +1,8 @@
 import { storage } from "./storage.js";
 import { callAIWithFallback } from "./ai-provider-service.js";
+import OpenAI from 'openai';
+
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant';

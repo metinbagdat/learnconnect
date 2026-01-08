@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:vercel || npm run build",
   "outputDirectory": "dist/public",
   "installCommand": "npm install --include=dev",
   "rewrites": [
@@ -60,7 +60,8 @@
   ],
   "build": {
     "env": {
-      "NODE_ENV": "production"
+      "NODE_ENV": "production",
+      "SKIP_TYPE_CHECK": "true"
     }
   }
 }

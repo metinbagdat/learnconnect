@@ -1,0 +1,98 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Verify project structure
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Listing files:"
+          ls -la
+          echo ""
+          echo "Checking for package.json:"
+          if [ -f "package.json" ]; then
+            echo "✅ package.json found"
+          else
+            echo "❌ package.json not found in root"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: |
+          echo "node: $(node -v)"
+          echo "npm: $(npm -v)"
+          if [ -f "package-lock.json" ]; then
+            echo "Running npm ci (clean install)..."
+            npm ci
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
+
+      - name: TypeScript type check
+        run: |
+          echo "🔍 Running TypeScript type check..."
+          npm exec -- tsc --noEmit
+          echo "✅ TypeScript type check passed"
+
+      - name: Build project
+        run: |
+          echo "🔨 Building project..."
+          npm run build
+          echo "✅ Build completed successfully"
+        env:
+          VITE_APP_ENV: production
+          NODE_ENV: production
+
+      - name: Verify build output
+        run: |
+          echo "🔍 Verifying build output..."
+          if [ -d "dist/public" ]; then
+            echo "✅ Build output directory exists"
+            echo "Build contents:"
+            ls -la dist/public/ || true
+            if [ -f "dist/public/index.html" ] || [ -f "dist/public/js/index-*.js" ]; then
+              echo "✅ Build output contains expected files"
+            else
+              echo "⚠️ Warning: Build output structure may be unexpected"
+            fi
+          else
+            echo "❌ Build output directory not found"
+            exit 1
+          fi
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "## 📊 Build and Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependencies Installed | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeScript Check | ${{ job.status == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ job.status == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Verification | ${{ job.status == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+
+

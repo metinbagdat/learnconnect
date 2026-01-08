@@ -8,6 +8,7 @@ import type {
   TytStudentProfile,
   InsertAiDailyPlan 
 } from "../shared/schema.js";
+import { UserProfileRow, ExamCategoryRow } from "./types/database.js";
 
 // Initialize AI clients only if API keys are provided
 const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
@@ -155,6 +156,9 @@ export async function generateDailyStudyPlan(
     });
 
     // Generate plan using Anthropic (Claude)
+    if (!anthropic) {
+      throw new Error('Anthropic API key not configured');
+    }
     const message = await anthropic.messages.create({
       model: "claude-3-5-sonnet-20241022",
       max_tokens: 4000,
@@ -238,6 +242,12 @@ async function generateDailyPlanWithOpenAI(
     userProgress,
   });
 
+  if (!openai) {
+    throw new Error('OpenAI API key not configured');
+  }
+  if (!openai) {
+    throw new Error('OpenAI API key not configured');
+  }
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
@@ -280,15 +290,16 @@ function buildDailyPlanPrompt(params: {
 
   // Student profile context
   if (profile) {
+    const profileRow = profile as UserProfileRow;
     prompt += `Student Profile:
-- Class: ${profile.studentClass}
-- Exam Year: ${profile.examYear}
-- Target Net Score: ${profile.targetNetScore}
-- Daily Study Target: ${profile.dailyStudyHoursTarget} hours
-- Selected Subjects: ${profile.selectedSubjects?.join(", ") || "Not specified"}
-- Weak Subjects: ${profile.weakSubjects?.join(", ") || "None identified"}
-- Strong Subjects: ${profile.strongSubjects?.join(", ") || "None identified"}
-- Motivation Level: ${profile.motivationLevel}/10\n\n`;
+- Class: ${profileRow.studentClass || "Not specified"}
+- Exam Year: ${profileRow.examYear || "Not specified"}
+- Target Net Score: ${profileRow.targetNetScore || "Not specified"}
+- Daily Study Target: ${profileRow.dailyStudyHoursTarget || 0} hours
+- Selected Subjects: ${profileRow.selectedSubjects?.join(", ") || "Not specified"}
+- Weak Subjects: ${profileRow.weakSubjects?.join(", ") || "None identified"}
+- Strong Subjects: ${profileRow.strongSubjects?.join(", ") || "None identified"}
+- Motivation Level: ${profileRow.motivationLevel || "Not specified"}/10\n\n`;
   }
 
   // Target study time
@@ -315,7 +326,8 @@ function buildDailyPlanPrompt(params: {
   if (subjects && subjects.length > 0) {
     prompt += "Available TYT Subjects:\n";
     subjects.forEach((subject) => {
-      prompt += `- ${subject.displayName} (${subject.name}): ${subject.totalQuestions} questions in exam\n`;
+      const subjectRow = subject as ExamCategoryRow;
+      prompt += `- ${subjectRow.displayName || subjectRow.title || subjectRow.name || "Unknown"} (${subjectRow.name || subjectRow.title || "N/A"}): ${subjectRow.totalQuestions || subjectRow.questionCount || 0} questions in exam\n`;
     });
     prompt += "\n";
   } else {

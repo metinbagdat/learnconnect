@@ -264,15 +264,9 @@ export async function createLevelAssessment(
   
   const assessmentData: InsertLevelAssessment = {
     userId,
+    title: `${subject} - ${subCategory || 'Assessment'}`,
     subject,
     subCategory,
-    assessmentType: 'skill_level',
-    difficulty: 'mixed', // Will contain beginner, intermediate, advanced questions
-    totalQuestions: 10,
-    correctAnswers: 0,
-    timeSpentMinutes: 0,
-    status: 'in_progress',
-    language
   };
 
   const assessmentId = await storage.createLevelAssessment(assessmentData);
@@ -284,12 +278,11 @@ export async function createLevelAssessment(
   for (let i = 0; i < questions.length; i++) {
     const questionData: InsertAssessmentQuestion = {
       assessmentId,
-      questionNumber: i + 1,
+      order: i + 1,
       questionText: questions[i].questionText,
       questionType: questions[i].questionType,
       options: questions[i].options || [],
       correctAnswer: questions[i].correctAnswer,
-      difficulty: questions[i].difficulty,
       skillArea: questions[i].skillArea,
       aiGenerated: true,
       explanation: questions[i].explanation

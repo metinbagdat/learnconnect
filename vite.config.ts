@@ -35,6 +35,10 @@ export default defineConfig({
     // This helps prevent "can't access lexical declaration before initialization" errors
     target: 'es2020', // Use modern target for better hoisting
     
+    // ✅ Preserve entry signatures to ensure proper initialization order
+    // This ensures the main entry point initializes before lazy-loaded chunks
+    preserveEntrySignatures: 'strict',
+    
     // ✅ Sourcemap'i production'da kapat (security ve performance için)
     // Development'da açık kalır (debug için)
     sourcemap: process.env.NODE_ENV !== 'production',
@@ -102,23 +106,73 @@ export default defineConfig({
       },
       
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'router-vendor': ['wouter'],
-          'query-vendor': ['@tanstack/react-query'],
-          'ui-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toast',
-          ],
-          'chart-vendor': ['recharts'],
-          'form-vendor': ['react-hook-form', '@hookform/resolvers'],
-          'icons-vendor': ['lucide-react', 'react-icons'],
-          'date-vendor': ['date-fns', 'react-day-picker'],
-          'markdown-vendor': ['react-markdown'],
-          'motion-vendor': ['framer-motion'],
-          'utils-vendor': ['clsx', 'tailwind-merge', 'zod', 'zod-validation-error'],
+        // ✅ Optimized chunk splitting strategy to prevent initialization order issues
+        // Group related vendors together and ensure proper load order
+        manualChunks(id) {
+          // Core React and DOM - must load first
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'react-vendor';
+          }
+          
+          // Router - loads early, needed for route resolution
+          if (id.includes('node_modules/wouter')) {
+            return 'router-vendor';
+          }
+          
+          // Query library - loads early for data fetching
+          if (id.includes('node_modules/@tanstack/react-query')) {
+            return 'query-vendor';
+          }
+          
+          // UI components - group all Radix UI together
+          if (id.includes('node_modules/@radix-ui')) {
+            return 'ui-vendor';
+          }
+          
+          // Form handling - group together
+          if (id.includes('node_modules/react-hook-form') || id.includes('node_modules/@hookform')) {
+            return 'form-vendor';
+          }
+          
+          // Charts
+          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+            return 'chart-vendor';
+          }
+          
+          // Icons - group together
+          if (id.includes('node_modules/lucide-react') || id.includes('node_modules/react-icons')) {
+            return 'icons-vendor';
+          }
+          
+          // Date utilities
+          if (id.includes('node_modules/date-fns') || id.includes('node_modules/react-day-picker')) {
+            return 'date-vendor';
+          }
+          
+          // Markdown
+          if (id.includes('node_modules/react-markdown')) {
+            return 'markdown-vendor';
+          }
+          
+          // Animation
+          if (id.includes('node_modules/framer-motion')) {
+            return 'motion-vendor';
+          }
+          
+          // Utilities - group common utils together
+          if (
+            id.includes('node_modules/clsx') ||
+            id.includes('node_modules/tailwind-merge') ||
+            id.includes('node_modules/zod') ||
+            id.includes('node_modules/zod-validation-error')
+          ) {
+            return 'utils-vendor';
+          }
+          
+          // All other node_modules go into a common vendor chunk
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
         },
         
         chunkFileNames: 'js/chunk-[name]-[hash:8].js',

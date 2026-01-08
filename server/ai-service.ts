@@ -2,6 +2,11 @@ import { Course, insertCourseSchema, LearningPath, InsertLearningPath, InsertLea
 import { z } from "zod";
 import { storage } from "./storage.js";
 import { callAIWithFallback, parseAIJSON } from "./ai-provider-service.js";
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 
 // Define InsertCourse type from the schema
 type InsertCourse = z.infer<typeof insertCourseSchema>;
@@ -282,7 +287,7 @@ export async function generateLearningPath(
   
   try {
     // Try with Claude first if available
-    if (process.env.ANTHROPIC_API_KEY) {
+    if (process.env.ANTHROPIC_API_KEY && anthropic) {
       try {
         const response = await anthropic.messages.create({
           model: "claude-3-sonnet-20240229",
@@ -315,6 +320,9 @@ export async function generateLearningPath(
     }
     
     // Try OpenAI
+    if (!openai) {
+      throw new Error('OpenAI API key not configured');
+    }
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",

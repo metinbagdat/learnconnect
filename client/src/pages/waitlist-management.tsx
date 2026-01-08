@@ -9,6 +9,7 @@ import { Mail, Users, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { WaitlistManagementData } from "@/types/dashboard";
 
 export default function WaitlistManagement() {
   const { user } = useAuth();
@@ -17,9 +18,12 @@ export default function WaitlistManagement() {
   const isTr = language === "tr";
   const [email, setEmail] = useState("");
 
-  const { data: waitlist, refetch } = useQuery({
+  const { data, refetch } = useQuery<WaitlistManagementData>({
     queryKey: ["/api/waitlist"],
   });
+
+  // Type the waitlist data
+  const waitlist = Array.isArray(data?.waitlist) ? data.waitlist : [];
 
   const handleAddToWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -197,6 +197,9 @@ Format the response as JSON with the following structure:
 
   try {
     // Try Anthropic first for more comprehensive analysis
+    if (!anthropic) {
+      throw new Error('Anthropic API key not configured');
+    }
     const completion = await anthropic.messages.create({
       model: DEFAULT_MODEL_STR,
       max_tokens: 4000,
@@ -205,7 +208,11 @@ Format the response as JSON with the following structure:
       ]
     });
 
-    const responseContent = completion.content[0].text;
+    const firstContent = completion.content[0];
+    if (firstContent.type !== 'text') {
+      throw new Error("Unexpected response type from Anthropic AI service");
+    }
+    const responseContent = firstContent.text;
     if (!responseContent) {
       throw new Error("Empty response from Anthropic AI service");
     }
@@ -216,6 +223,9 @@ Format the response as JSON with the following structure:
     
     try {
       // Fallback to OpenAI
+      if (!openai) {
+        throw new Error('OpenAI API key not configured');
+      }
       const completion = await openai.chat.completions.create({
         model: "gpt-4",
         messages: [
@@ -308,8 +318,11 @@ export async function saveExamLearningPath(
     const stepData: InsertLearningPathStep = {
       pathId: path.id,
       courseId,
+      stepOrder: step.order || 0,
+      title: step.courseTitle || step.title || "Untitled Step",
+      description: step.description,
       order: step.order,
-      required: step.required,
+      required: step.required ?? true,
       notes: `Subjects: ${step.subjects.join(", ")}\nLearning Objectives: ${step.learningObjectives.join(", ")}\nAssessment Methods: ${step.assessmentMethods.join(", ")}`,
     };
 

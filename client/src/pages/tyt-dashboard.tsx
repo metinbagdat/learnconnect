@@ -36,7 +36,9 @@ import { StatCard } from "@/components/dashboard/stat-card";
 import ModernNavigation from "@/components/layout/modern-navigation";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { BilingualText } from "@/components/ui/bilingual-text";
+import PageWrapper from "@/components/layout/page-wrapper";
 import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@shared/schema";
+import { TYTProfileData } from "@/types/dashboard";
 
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {
@@ -79,7 +81,7 @@ export default function TytDashboard() {
   }, [location]);
 
   // Fetch TYT Profile
-  const { data: tytProfile, isLoading: profileLoading } = useQuery<TytStudentProfile | null>({
+  const { data: tytProfileRaw, isLoading: profileLoading } = useQuery<TytStudentProfile | null>({
     queryKey: ['/api/tyt/profile'],
     queryFn: async () => {
       const response = await fetch('/api/tyt/profile');
@@ -88,6 +90,14 @@ export default function TytDashboard() {
       return response.json();
     }
   });
+
+  // Type the profile data
+  const tytProfile = tytProfileRaw as TYTProfileData | null;
+  
+  // Add optional chaining for all property access
+  const isCompleted = tytProfile?.isCompleted || false;
+  const netScore = tytProfile?.netScore || 0;
+  const targetTytScore = tytProfile?.targetTytScore || 0;
 
   // Fetch TYT Subjects
   const { data: tytSubjects = [] } = useQuery<TytSubject[]>({
@@ -603,15 +613,15 @@ export default function TytDashboard() {
                                   <BilingualText text="İlerleme – Progress" />
                                 </span>
                                 <span className="font-medium">
-                                  {studyStats?.subjectProgress?.find(p => p.subject === subject.displayName)?.progress || 0}%
+                                  {studyStats?.subjectProgress?.find(p => p.subject === (subject.displayName || subject.name || subject.title || ''))?.progress || 0}%
                                 </span>
                               </div>
                               <Progress 
-                                value={studyStats?.subjectProgress?.find(p => p.subject === subject.displayName)?.progress || 0} 
+                                value={studyStats?.subjectProgress?.find(p => p.subject === (subject.displayName || subject.name || subject.title || ''))?.progress || 0} 
                                 className="h-2"
                               />
                               <div className="text-xs text-muted-foreground">
-                                {Math.round((studyStats?.subjectProgress?.find(p => p.subject === subject.displayName)?.timeSpent || 0) / 60)} saat çalışıldı
+                                {Math.round((studyStats?.subjectProgress?.find(p => p.subject === (subject.displayName || subject.name || subject.title || ''))?.timeSpent || 0) / 60)} saat çalışıldı
                               </div>
                             </div>
                           </CardContent>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { StudentAIDashboardData } from "@/types/dashboard";
 import {
   LineChart,
   Line,
@@ -37,19 +38,19 @@ export function StudentAIDashboard() {
   const [selectedTab, setSelectedTab] = useState("overview");
 
   // Fetch all dashboard data
-  const { data: overview } = useQuery({
+  const { data: overview } = useQuery<StudentAIDashboardData>({
     queryKey: ["/api/ai/dashboard/overview"],
   });
 
-  const { data: goals } = useQuery({
+  const { data: goals } = useQuery<StudentAIDashboardData>({
     queryKey: ["/api/ai/dashboard/goals"],
   });
 
-  const { data: suggestions } = useQuery({
+  const { data: suggestions } = useQuery<StudentAIDashboardData>({
     queryKey: ["/api/ai/dashboard/suggestions"],
   });
 
-  const { data: performance } = useQuery({
+  const { data: performance } = useQuery<StudentAIDashboardData>({
     queryKey: ["/api/ai/dashboard/performance"],
   });
 
@@ -237,7 +238,7 @@ export function StudentAIDashboard() {
         {/* Goals Tab */}
         <TabsContent value="goals">
           <div className="space-y-4">
-            {goals?.goals && goals.goals.length > 0 ? (
+            {goals?.goals && Array.isArray(goals.goals) && goals.goals.length > 0 ? (
               goals.goals.map((goal: any) => (
                 <Card key={goal.id}>
                   <CardContent className="p-6">
@@ -419,10 +420,12 @@ export function StudentAIDashboard() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {performance?.topStrengths?.map((strength, idx) => (
+                    {(performance?.topStrengths || []).map((strength: { label: string; value: number } | string, idx: number) => (
                       <li key={idx} className="flex gap-2">
                         <span className="text-green-600 dark:text-green-400">✓</span>
-                        <span className="text-green-900 dark:text-green-200">{strength}</span>
+                        <span className="text-green-900 dark:text-green-200">
+                          {typeof strength === 'string' ? strength : strength.label}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -437,10 +440,12 @@ export function StudentAIDashboard() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
-                    {performance?.areasForImprovement?.map((area, idx) => (
+                    {(performance?.areasForImprovement || []).map((area: { label: string; value: number } | string, idx: number) => (
                       <li key={idx} className="flex gap-2">
                         <span className="text-orange-600 dark:text-orange-400">→</span>
-                        <span className="text-orange-900 dark:text-orange-200">{area}</span>
+                        <span className="text-orange-900 dark:text-orange-200">
+                          {typeof area === 'string' ? area : area.label}
+                        </span>
                       </li>
                     ))}
                   </ul>

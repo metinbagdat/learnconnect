@@ -1,12 +1,21 @@
+import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Activity, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react";
+import { SystemHealthData } from "@/types/dashboard";
 
 export function SystemHealth() {
-  const { data: health } = useQuery({
+  const [healthData, setHealthData] = useState<SystemHealthData>({});
+  
+  const { data: health } = useQuery<SystemHealthData>({
     queryKey: ["/api/system/health"],
   });
+  
+  // Update state when data changes
+  useEffect(() => {
+    if (health) setHealthData(health);
+  }, [health]);
 
   const { data: checklist } = useQuery({
     queryKey: ["/api/system/checklist"],
@@ -37,8 +46,8 @@ export function SystemHealth() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">System Health</h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Status: <span className={`font-bold ${getStatusColor(health?.status || "unknown")}`}>
-              {health?.status?.toUpperCase()}
+            Status: <span className={`font-bold ${getStatusColor(healthData?.status || "unknown")}`}>
+              {(healthData?.status || "unknown").toUpperCase()}
             </span>
           </p>
         </div>
@@ -97,19 +106,48 @@ export function SystemHealth() {
                 <CardTitle>System Components</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {health?.components && Object.entries(health.components).map(([key, component]: [string, any]) => (
-                  <div key={key} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded">
-                    <div>
-                      <p className="font-semibold capitalize text-slate-900 dark:text-white">
-                        {key.replace(/([A-Z])/g, " $1")}
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Status: <span className="font-bold">{component.status}</span>
-                      </p>
-                    </div>
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                  </div>
-                ))}
+                {(() => {
+                  const components = Array.isArray(healthData?.components) 
+                    ? healthData.components 
+                    : (healthData?.components && typeof healthData.components === 'object')
+                    ? Object.entries(healthData.components)
+                    : [];
+                  
+                  if (Array.isArray(components)) {
+                    return components.map((comp: any, idx: number) => {
+                      const key = comp.id || comp.name || idx.toString();
+                      const component = comp;
+                      return (
+                        <div key={key} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded">
+                          <div>
+                            <p className="font-semibold capitalize text-slate-900 dark:text-white">
+                              {component.title || component.name || key}
+                            </p>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                              Status: <span className="font-bold">{component.status || 'unknown'}</span>
+                            </p>
+                          </div>
+                          <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        </div>
+                      );
+                    });
+                  } else if (typeof components === 'object' && components !== null && !Array.isArray(components)) {
+                    return Object.entries(components).map(([key, component]: [string, any]) => (
+                      <div key={key} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded">
+                        <div>
+                          <p className="font-semibold capitalize text-slate-900 dark:text-white">
+                            {key.replace(/([A-Z])/g, " $1")}
+                          </p>
+                          <p className="text-sm text-slate-600 dark:text-slate-400">
+                            Status: <span className="font-bold">{component.status}</span>
+                          </p>
+                        </div>
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      </div>
+                    ));
+                  }
+                  return null;
+                })()}
               </CardContent>
             </Card>
 
@@ -164,25 +202,28 @@ export function SystemHealth() {
             </Card>
 
             {/* Alerts */}
-            {health?.alerts && health.alerts.length > 0 && (
-              <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-yellow-900 dark:text-yellow-300">
-                    <AlertCircle className="w-5 h-5" />
-                    Alerts
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {health.alerts.map((alert, idx) => (
-                      <li key={idx} className="text-sm text-yellow-900 dark:text-yellow-200">
-                        {alert.message}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )}
+            {(() => {
+              const alerts = Array.isArray(healthData?.alerts) ? healthData.alerts : [];
+              return alerts.length > 0 && (
+                <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-yellow-900 dark:text-yellow-300">
+                      <AlertCircle className="w-5 h-5" />
+                      Alerts
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {alerts.map((alert: any, idx: number) => (
+                        <li key={idx} className="text-sm text-yellow-900 dark:text-yellow-200">
+                          {alert.message || alert}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         </TabsContent>
 

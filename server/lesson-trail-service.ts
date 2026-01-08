@@ -419,7 +419,7 @@ Recent Analytics: ${recentAnalytics.length} learning sessions
 
 Learning Patterns:
 ${recentAnalytics.slice(0, 10).map(a => 
-  `- ${a.activityType}: ${a.timeSpent}s, Score: ${a.performanceScore}, Difficulty: ${a.difficultyRating}/5`
+  `- ${a.activityType}: ${a.timeSpentSeconds}s, Score: ${a.performanceScore}, Difficulty: ${a.difficultyRating}/5`
 ).join('\n')}
 
 Generate 3-5 personalized recommendations focusing on:
@@ -499,7 +499,7 @@ export async function recordLearningAnalytics(
     lessonId: data.lessonId,
     courseId: data.courseId,
     activityType: data.activityType,
-    timeSpent: data.timeSpent,
+    timeSpentSeconds: data.timeSpent,
     interactionData: data.interactionData as any,
     performanceScore: data.performanceScore?.toString(),
     difficultyRating: data.difficultyRating

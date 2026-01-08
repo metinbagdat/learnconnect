@@ -2,6 +2,7 @@ import { db } from "./db.js";
 import { eq } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 import { studyGoals, studySessions } from "../shared/schema.js";
+import { StudyGoalRow } from "./types/database.js";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -16,13 +17,18 @@ export async function generateStudySessionsFromGoal(goalId: number, userId: numb
       throw new Error("Study goal not found");
     }
 
+    const goalRow = goal as StudyGoalRow;
+    const targetExam = goalRow.targetExam || 'TYT';
+    const studyHoursPerWeek = goalRow.studyHoursPerWeek || 10;
+    const currentProgress = goalRow.currentProgress || goalRow.progress || 0;
+    
     const prompt = `Generate a detailed weekly study schedule for the following goal:
-Title: ${goal.title}
-Target Exam: ${goal.targetExam || "General"}
-Subjects: ${goal.subjects?.join(", ") || "Not specified"}
-Study Hours Per Week: ${goal.studyHoursPerWeek}
-Current Progress: ${goal.currentProgress}%
-Target Date: ${goal.targetDate}
+Title: ${goalRow.title || goalRow.goal}
+Target Exam: ${targetExam}
+Subjects: ${goalRow.subjects?.join(", ") || "Not specified"}
+Study Hours Per Week: ${studyHoursPerWeek}
+Current Progress: ${currentProgress}%
+Target Date: ${goalRow.targetDate || goalRow.dueDate || "Not specified"}
 
 Create a JSON response with exactly this structure:
 {
@@ -75,12 +81,9 @@ Return ONLY valid JSON, no markdown or explanations.`;
         .insert(studySessions)
         .values({
           userId,
-          goalId,
-          subject: sessionData.subject,
-          activity: sessionData.activity,
-          durationMinutes: sessionData.durationMinutes || 45,
-          scheduledDate: scheduledDate.toISOString().split("T")[0],
-          status: "scheduled",
+          courseId: null, // No courseId for goal-based sessions
+          duration: sessionData.durationMinutes || 45,
+          completedAt: null,
         })
         .returning();
 
@@ -91,8 +94,7 @@ Return ONLY valid JSON, no markdown or explanations.`;
     await db
       .update(studyGoals)
       .set({
-        currentProgress: Math.min(10, (goal.currentProgress || 0) + 5),
-        updatedAt: new Date(),
+        progress: Math.min(10, currentProgress + 5),
       })
       .where(eq(studyGoals.id, goalId));
 
@@ -118,7 +120,8 @@ export async function autoGenerateWeeklyPlan(userId: number) {
 
     const results = [];
     for (const goal of activeGoals) {
-      if (goal.status === "active") {
+      const goalRow = goal as StudyGoalRow;
+      if (!goalRow.isCompleted && !goalRow.completed) {
         const result = await generateStudySessionsFromGoal(goal.id, userId);
         results.push(result);
       }

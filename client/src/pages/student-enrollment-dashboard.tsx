@@ -9,13 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useLocation } from "wouter";
 import { BookOpen, Calendar, CheckCircle, Award, TrendingUp } from "lucide-react";
+import { StudentEnrollmentData } from "@/types/dashboard";
 
 export default function StudentEnrollmentDashboard() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const [, navigate] = useLocation();
 
-  const { data: enrolledCourses = [], isLoading: coursesLoading } = useQuery({
+  const { data: coursesData, isLoading: coursesLoading } = useQuery<StudentEnrollmentData>({
     queryKey: ["/api/user/courses"],
     enabled: !!user,
   });
@@ -25,10 +26,19 @@ export default function StudentEnrollmentDashboard() {
     enabled: !!user,
   });
 
-  const { data: upcomingAssignments = [] } = useQuery({
+  const { data: assignmentsData } = useQuery<StudentEnrollmentData>({
     queryKey: ["/api/assignments/upcoming"],
     enabled: !!user,
   });
+
+  // Type the data and add guards
+  const enrolledCourses = Array.isArray(coursesData?.enrolledCourses) 
+    ? coursesData.enrolledCourses 
+    : [];
+
+  const upcomingAssignments = Array.isArray(assignmentsData?.upcomingAssignments) 
+    ? assignmentsData.upcomingAssignments 
+    : [];
 
   const completedCount = upcomingAssignments.filter((a: any) => a.completed).length;
   const totalAssignments = upcomingAssignments.length;

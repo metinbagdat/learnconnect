@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Calendar, CheckCircle, AlertCircle, Brain, Clock, Target } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { StudyPlanDashboardData } from "@/types/dashboard";
 
 export default function StudyPlanDashboard() {
   const { user } = useAuth();
@@ -23,10 +24,17 @@ export default function StudyPlanDashboard() {
     enabled: !!user,
   });
 
-  const { data: assignments = [], isLoading: assignmentsLoading } = useQuery({
+  const { data: data } = useQuery<StudyPlanDashboardData>({
     queryKey: ["/api/assignments/upcoming"],
     enabled: !!user,
   });
+
+  // Fix assignments usage
+  const assignments = Array.isArray(data?.assignments) ? data.assignments : [];
+  const assignmentsLoading = false;
+  
+  // Fix modules property access
+  const modules = data?.modules || [];
 
   const { data: learningPath, isLoading: pathLoading } = useQuery({
     queryKey: ["/api/learning-path"],
