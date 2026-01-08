@@ -64,13 +64,6 @@ export default defineConfig({
         },
       },
       
-      // ✅ Ensure proper output format to prevent TDZ issues
-      output: {
-        format: 'es', // ES modules have better TDZ handling
-        generatedCode: {
-          constBindings: false, // Use var instead of const for better hoisting
-        },
-      
       // ✅ Circular dependency warning'lerini görmezden gel
       // Lazy loading fixes most circular dependency issues, but some external libraries
       // (drizzle-orm, zod, d3-interpolate, recharts) may still have circular deps
