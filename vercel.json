@@ -3,6 +3,14 @@
   "buildCommand": "npm run build:vercel || npm run build",
   "outputDirectory": "dist/public",
   "installCommand": "npm install --include=dev",
+  "productionBranch": "main",
+  "autoAlias": true,
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true,
+    "silent": false
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
