@@ -62,22 +62,47 @@ We just pushed commits with SES fixes:
 
 ## Fix Deployment Pipeline (After Immediate Fix)
 
-### 1. Enable Automatic Production Promotion
+### 1. Check Production Branch Settings
 
-1. **Go to Project Settings:**
+**Location:** Settings → **Build and Deployment** (NOT Git settings)
+
+1. **Go to:**
    ```
-   https://vercel.com/metinbahdats-projects/learn-connect/settings/git
+   https://vercel.com/metinbahdats-projects/learn-connect/settings
    ```
 
-2. **Check Settings:**
+2. **Click:** "Build and Deployment" (in left sidebar)
+
+3. **Verify:**
    - ✅ **Production Branch:** Should be `main`
-   - ✅ **Auto-assign Custom Domains:** Should be ENABLED
-   - ✅ **Automatically promote Preview Deployments:** Consider enabling
+   - ✅ Scroll down to see if there's an "Auto-assign Custom Domains" toggle
 
-3. **Protection Rules:**
-   - Go to: Settings → Git → Production Branch Protection
-   - Set to: **"Automatically promote after checks pass"**
-   - OR **"Require approval"** (but check frequently!)
+**Note:** "Auto-assign Custom Domains" and "Production Branch Protection" might not be available on Hobby plan. If you don't see these options, that's normal - you'll need to manually promote deployments (which is what we're doing now).
+
+### 2. Domain Assignment (Manual Method)
+
+1. **Go to:** Settings → **Domains**
+   ```
+   https://vercel.com/metinbahdats-projects/learn-connect/settings/domains
+   ```
+
+2. **Check `egitim.today`:**
+   - Verify it's assigned to the correct deployment
+   - If needed, click on domain → Change assignment → Select latest working deployment
+
+### 3. Deployment Protection (If Available)
+
+**Location:** Settings → **Deployment Protection**
+
+1. **Go to:**
+   ```
+   https://vercel.com/metinbahdats-projects/learn-connect/settings/deployment-protection
+   ```
+
+2. **If this section exists:**
+   - Look for "Production Branch Protection"
+   - Optionally set to "Automatically promote" if available
+   - **Note:** This might be a paid plan feature
 
 ### 2. Set Up Deployment Notifications
 
