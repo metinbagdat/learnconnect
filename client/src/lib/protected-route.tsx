@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Redirect, Route } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ComponentType, LazyExoticComponent } from "react";
 import { AuthUtils } from "@/lib/utils";
 
 export function ProtectedRoute({
@@ -9,7 +9,7 @@ export function ProtectedRoute({
   component: Component,
 }: {
   path: string;
-  component: () => React.JSX.Element;
+  component: ComponentType | LazyExoticComponent<ComponentType>;
 }) {
   const { user, isLoading } = useAuth();
   const [localUser, setLocalUser] = useState(AuthUtils.getStoredUser());
@@ -40,5 +40,9 @@ export function ProtectedRoute({
     );
   }
 
-  return <Route path={path} component={Component} />;
+  return (
+    <Route path={path}>
+      <Component />
+    </Route>
+  );
 }

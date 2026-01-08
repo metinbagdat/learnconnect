@@ -108,17 +108,17 @@ const AdvisorMaterialDashboard = lazy(() => import("@/pages/advisor-material-das
 function Router() {
   return (
     <Switch>
-      <Route path="/learnconnect" component={LearnConnectPortal} />
-      <Route path="/learnconnect/exams" component={LearnConnectExams} />
-      <Route path="/learnconnect/admin" component={LearnConnectAdmin} />
-      <Route path="/learnconnect/ai" component={LearnConnectAI} />
-      <Route path="/landing" component={LandingPage} />
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/study-techniques" component={StudyTechniques} />
-      <Route path="/exam-anxiety" component={ExamAnxietyGuide} />
-      <Route path="/testimonials" component={TestimonialsPage} />
-      <Route path="/how-it-works" component={HowItWorks} />
-      <Route path="/premium" component={PremiumPage} />
+      <Route path="/learnconnect"><LearnConnectPortal /></Route>
+      <Route path="/learnconnect/exams"><LearnConnectExams /></Route>
+      <Route path="/learnconnect/admin"><LearnConnectAdmin /></Route>
+      <Route path="/learnconnect/ai"><LearnConnectAI /></Route>
+      <Route path="/landing"><LandingPage /></Route>
+      <Route path="/auth"><AuthPage /></Route>
+      <Route path="/study-techniques"><StudyTechniques /></Route>
+      <Route path="/exam-anxiety"><ExamAnxietyGuide /></Route>
+      <Route path="/testimonials"><TestimonialsPage /></Route>
+      <Route path="/how-it-works"><HowItWorks /></Route>
+      <Route path="/premium"><PremiumPage /></Route>
       <ProtectedRoute path="/" component={Dashboard} />
       <ProtectedRoute path="/dashboard-standalone" component={DashboardStandalone} />
       <ProtectedRoute path="/courses" component={Courses} />
