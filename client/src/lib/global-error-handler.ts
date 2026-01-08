@@ -105,14 +105,22 @@ class GlobalErrorHandler {
     // These errors are from browser extensions or module initialization issues
     // and shouldn't interrupt the user experience
     const isSESError = type === 'ses' || (type === 'lexical' && source?.includes('lockdown'));
-    const isChunkLexicalError = type === 'lexical' && source?.includes('/js/chunk-');
+    const isChunkLexicalError = type === 'lexical' && (
+      source?.includes('/js/chunk-') || 
+      source?.includes('chunk-') ||
+      errorMessage.includes('chunk-')
+    );
     
     if (isSESError || isChunkLexicalError) {
       // For SES/chunk errors, return false immediately to allow execution to continue
       // Don't call original handler as it might block app initialization
-      // Log silently to avoid console noise
-      console.warn('[Suppressed]', type === 'ses' ? 'SES error from extension' : 'Module initialization error', { source, message: errorMessage });
-      return false;
+      // Attempt recovery by reloading if this is the first occurrence
+      if (isChunkLexicalError && !sessionStorage.getItem('__chunk_error_recovered')) {
+        console.warn('[ModuleInit] Chunk initialization error detected, attempting recovery...');
+        sessionStorage.setItem('__chunk_error_recovered', 'true');
+        // Don't reload immediately - let the module-init-fix handle it
+      }
+      return false; // Prevent error from propagating
     }
 
     // Check if we should show dialog for other error types

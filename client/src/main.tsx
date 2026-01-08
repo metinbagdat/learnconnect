@@ -1,3 +1,7 @@
+// ✅ CRITICAL: Import module initialization fix FIRST before anything else
+// This must be the very first import to catch initialization errors early
+import "./lib/module-init-fix";
+
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";

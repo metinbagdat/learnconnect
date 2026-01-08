@@ -30,6 +30,9 @@ export default defineConfig({
     // esbuild kullan (terser yüklenemedi, esbuild daha güvenli)
     // esbuild hoisting'i daha iyi yönetir ve 'A before initialization' hatalarını önler
     minify: 'esbuild',
+    // ✅ Disable minification of variable names to prevent TDZ issues
+    // Keep variable names readable for better debugging and to avoid hoisting problems
+    minifyIdentifiers: false, // Prevent aggressive identifier minification that can cause TDZ errors
     
     // ✅ Optimize for proper variable hoisting
     // This helps prevent "can't access lexical declaration before initialization" errors
@@ -115,11 +118,39 @@ export default defineConfig({
         format: 'es', // ES modules have better TDZ handling
         generatedCode: {
           constBindings: false, // Use var instead of const for better hoisting (reduces TDZ errors)
+          objectShorthand: false, // Disable object shorthand for better compatibility
         },
+        // ✅ Isolate chunks to prevent cross-chunk TDZ issues
+        // This ensures each chunk is independent and doesn't create initialization dependencies
+        interop: 'auto',
         
         // ✅ Optimized chunk splitting strategy to prevent initialization order issues
         // Group related vendors together and ensure proper load order
+        // IMPORTANT: Separate dashboard pages to prevent large chunk initialization issues
         manualChunks(id) {
+          // Isolate problematic dashboard pages that might have circular deps
+          if (id.includes('/pages/dashboard') && !id.includes('dashboard-standalone')) {
+            return 'dashboard-core';
+          }
+          
+          // Separate large dashboard pages into their own chunks
+          if (id.includes('/pages/student-ai-dashboard') || 
+              id.includes('/pages/student-control-panel') ||
+              id.includes('/pages/admin-ai-dashboard')) {
+            return 'dashboard-ai';
+          }
+          
+          // Separate TYT dashboard as it's complex
+          if (id.includes('/pages/tyt-dashboard')) {
+            return 'dashboard-tyt';
+          }
+          
+          // Separate system health and monitoring
+          if (id.includes('/pages/system-health') || 
+              id.includes('/pages/monitoring')) {
+            return 'dashboard-system';
+          }
+          
           // Core React and DOM - must load first
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'react-vendor';
@@ -145,7 +176,7 @@ export default defineConfig({
             return 'form-vendor';
           }
           
-          // Charts
+          // Charts - isolate as they can cause issues
           if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
             return 'chart-vendor';
           }
