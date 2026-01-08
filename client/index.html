@@ -1,34 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
-    <title>EduLearn - TYT & AYT Hazırlık | Online Üniversite Sınavı Dersleri</title>
-    <meta name="description" content="EduLearn ile TYT hazırlık, AYT dersleri ve online üniversite sınavı hazırlığı yap. AI destekli öğrenme, kişiselleştirilmiş öğrenme yolları ve uzman rehberlik." />
-    <meta name="keywords" content="TYT hazırlık, AYT dersleri, online üniversite hazırlık, sınav hazırlığı, STEM eğitimi, e-learning, AI öğrenme" />
-    <meta name="author" content="EduLearn" />
-    <link rel="canonical" href="https://learnconnect.net" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EduLearn - TYT & AYT Hazırlık | Online Eğitim Platformu</title>
     
-    <!-- Open Graph Tags -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="EduLearn - TYT & AYT Hazırlık Platformu" />
-    <meta property="og:description" content="AI destekli kişiselleştirilmiş öğrenme yolları ile TYT, AYT sınavlarına hazırlanın." />
-    <meta property="og:url" content="https://learnconnect.net" />
-    <meta property="og:site_name" content="EduLearn" />
-    
-    <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="EduLearn - TYT & AYT Hazırlık" />
-    <meta name="twitter:description" content="AI destekli kişiselleştirilmiş öğrenme yolları ile sınavlara hazırlanın." />
-    
-    <!-- Additional SEO Tags -->
-    <meta name="theme-color" content="#3b82f6" />
-    <meta name="robots" content="index, follow" />
-    <meta name="language" content="Turkish, English" />
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
+    <!-- ✅ CRITICAL: Add inline script to suppress SES errors BEFORE any other scripts load -->
+    <!-- This must be in the <head> and run immediately to catch SES errors from extensions -->
+    <script>
+      // Suppress SES errors from browser extensions BEFORE anything else runs
+      (function() {
+        'use strict';
+        
+        // Store original console methods
+        var originalError = console.error;
+        var originalWarn = console.warn;
+        
+        // Override console.error immediately
+        console.error = function() {
+          var message = Array.prototype.join.call(arguments, ' ');
+          if (
+            message.indexOf('SES') !== -1 ||
+            message.indexOf('lockdown') !== -1 ||
+            message.indexOf('Removing unpermitted intrinsics') !== -1 ||
+            message.indexOf('Removing intrinsics') !== -1 ||
+            message.indexOf('getOrInsert') !== -1 ||
+            message.indexOf('toTemporalInstant') !== -1 ||
+            message.indexOf('lockdown-install.js') !== -1
+          ) {
+            // Silently suppress SES errors
+            return;
+          }
+          originalError.apply(console, arguments);
+        };
+        
+        // Override console.warn immediately
+        console.warn = function() {
+          var message = Array.prototype.join.call(arguments, ' ');
+          if (
+            message.indexOf('SES') !== -1 ||
+            message.indexOf('lockdown') !== -1 ||
+            message.indexOf('Removing unpermitted intrinsics') !== -1 ||
+            message.indexOf('Removing intrinsics') !== -1 ||
+            message.indexOf('getOrInsert') !== -1 ||
+            message.indexOf('toTemporalInstant') !== -1 ||
+            message.indexOf('lockdown-install.js') !== -1
+          ) {
+            // Silently suppress SES warnings
+            return;
+          }
+          originalWarn.apply(console, arguments);
+        };
+        
+        // Catch SES errors globally before they propagate
+        window.addEventListener('error', function(event) {
+          var message = event.message || '';
+          var source = event.filename || '';
+          
+          if (
+            message.indexOf('SES') !== -1 ||
+            source.indexOf('lockdown') !== -1 ||
+            message.indexOf('SES_UNCAUGHT_EXCEPTION') !== -1
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+          }
+        }, true); // Capture phase - catch early
+        
+        // Catch SES promise rejections
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason;
+          var message = (reason && reason.message) || String(reason || '');
+          
+          if (
+            message.indexOf('SES') !== -1 ||
+            message.indexOf('lockdown') !== -1 ||
+            message.indexOf('SES_UNCAUGHT_EXCEPTION') !== -1
+          ) {
+            event.preventDefault();
+            return;
+          }
+        }, true); // Capture phase
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
