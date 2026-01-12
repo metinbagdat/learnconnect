@@ -167,7 +167,7 @@ export function useInteractionTracker() {
       const method = args[1]?.method || "GET";
 
       try {
-        const response = await originalFetch(...args);
+        const response = await originalFetch(args[0] as RequestInfo | URL, args[1] as RequestInit | undefined);
         const endTime = performance.now();
         trackApiCall(url, method, response.status, endTime - startTime);
         return response;

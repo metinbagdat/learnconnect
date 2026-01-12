@@ -166,7 +166,7 @@ export function ExamCategoryTree({ data, showEnrollButton = false, onEnroll }: E
   return (
     <div className="space-y-6">
       {data.map((category) => {
-        const categoryName = getLocalizedField(category, 'name', language) || category.code || 'Unknown Category';
+        const categoryName = getLocalizedField(category as any, 'name', language) || (category as any).code || 'Unknown Category';
         const courses = category.courses || [];
 
         return (

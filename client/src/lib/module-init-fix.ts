@@ -13,12 +13,14 @@ if (typeof window !== 'undefined') {
   
   try {
     // Patch Map prototype methods if they were removed
+    // @ts-ignore - These methods may not exist in SES environments
     if (Map.prototype && !Map.prototype.getOrInsert) {
       // Don't add them back - just ensure our code doesn't break if they're missing
       // Instead, we'll ensure we don't use these methods
     }
     
     // Patch WeakMap prototype methods if they were removed
+    // @ts-ignore - These methods may not exist in SES environments
     if (WeakMap.prototype && !WeakMap.prototype.getOrInsert) {
       // Same - just ensure compatibility
     }
@@ -26,7 +28,7 @@ if (typeof window !== 'undefined') {
     // Patch Date.prototype.toTemporalInstant if removed
     if (Date.prototype && !Date.prototype.toTemporalInstant) {
       // Add a no-op replacement if needed
-      // @ts-ignore
+      // @ts-ignore - This method may not exist in SES environments
       Date.prototype.toTemporalInstant = function() {
         return null; // Return null instead of throwing
       };

@@ -22,19 +22,22 @@ export default function AdaptiveLearningPage() {
   const { t } = useLanguage();
 
   // Fetch adaptive adjustments
-  const { data: adjustments, isLoading: adjLoading } = useQuery({
+  const { data: adjustmentsData, isLoading: adjLoading } = useQuery<any>({
     queryKey: ["/api/adaptive/adjustments"],
   });
+  const adjustments = adjustmentsData as any;
 
   // Fetch recommended resources
-  const { data: resources, isLoading: resLoading } = useQuery({
+  const { data: resourcesData, isLoading: resLoading } = useQuery<any>({
     queryKey: ["/api/adaptive/resources"],
   });
+  const resources: any[] = Array.isArray(resourcesData) ? resourcesData : [];
 
   // Fetch intervention detection
-  const { data: intervention, isLoading: intLoading } = useQuery({
+  const { data: interventionData, isLoading: intLoading } = useQuery<any>({
     queryKey: ["/api/adaptive/intervention"],
   });
+  const intervention = interventionData as any;
 
   const isLoading = adjLoading || resLoading || intLoading;
 

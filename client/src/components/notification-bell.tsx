@@ -19,7 +19,8 @@ export default function NotificationBell() {
     },
   });
 
-  const unread = notifications.filter((n: any) => !n.read);
+  const notificationsArray = Array.isArray(notifications) ? notifications : [];
+  const unread = notificationsArray.filter((n: any) => !n.read);
 
   return (
     <div className="relative">
@@ -44,8 +45,8 @@ export default function NotificationBell() {
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {notifications && notifications.length > 0 ? (
-              notifications.map((notif: any) => (
+            {notificationsArray.length > 0 ? (
+              notificationsArray.map((notif: any) => (
                 <div key={notif.id} className="p-3 border-b hover:bg-slate-50 dark:hover:bg-slate-900">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">

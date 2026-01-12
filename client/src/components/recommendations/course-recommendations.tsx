@@ -26,9 +26,10 @@ export function CourseRecommendations() {
   });
 
   // Fetch user interests
-  const { data: userInterests = [] } = useQuery({
+  const { data: userInterestsData } = useQuery<any>({
     queryKey: ["/api/user/interests"],
   });
+  const userInterests: any[] = Array.isArray(userInterestsData) ? userInterestsData : [];
 
   // Save interest mutation
   const saveInterestMutation = useMutation({

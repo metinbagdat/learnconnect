@@ -18,13 +18,15 @@ import {
 import { Settings, TrendingUp, Users, Zap, AlertCircle } from "lucide-react";
 
 export function AdminAIDashboard() {
-  const { data: management } = useQuery({
+  const { data: managementData } = useQuery<any>({
     queryKey: ["/api/admin/ai/management"],
   });
+  const management = managementData as any;
 
-  const { data: users } = useQuery({
+  const { data: usersData } = useQuery<any>({
     queryKey: ["/api/admin/ai/users"],
   });
+  const users = usersData as any;
 
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 

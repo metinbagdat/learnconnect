@@ -17,10 +17,11 @@ export function RealTimeTracker({ userId, assignmentId }: RealTimeTrackerProps) 
   const [status, setStatus] = useState<"idle" | "tracking" | "completed">("idle");
 
   // Fetch intervention alerts
-  const { data: alerts = [] } = useQuery({
+  const { data: alertsData } = useQuery<any>({
     queryKey: [`/api/progress/alerts/${userId}`],
     refetchInterval: 5000, // Refetch every 5 seconds
   });
+  const alerts: any[] = Array.isArray(alertsData) ? alertsData : [];
 
   useEffect(() => {
     // Subscribe to real-time updates

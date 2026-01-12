@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useCallback, useRef } from 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { AchievementUnlockModal } from "@/components/gamification/achievement-unlock-modal";
-import { Achievement } from "@shared/schema";
+import { achievements } from "@shared/schema";
+type Achievement = typeof achievements.$inferSelect;
 import { apiRequest } from "@/lib/queryClient";
 
 interface GamificationContextType {

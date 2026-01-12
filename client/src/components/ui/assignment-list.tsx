@@ -97,7 +97,7 @@ export function AssignmentList({
                       <div className="ml-4">
                         <h3 className="text-sm font-medium text-neutral-900">{assignment.title}</h3>
                         <p className="text-xs text-neutral-500">
-                          {assignment.course ? assignment.course.title : 'Course Name'}
+                          {(assignment as any).course ? (assignment as any).course.title : 'Course Name'}
                         </p>
                       </div>
                     </div>

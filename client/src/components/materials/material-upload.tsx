@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 
 type MaterialType = "book" | "slide" | "text" | "document" | "video" | "link" | "image";
 
@@ -137,11 +137,7 @@ export function MaterialUpload({ onUploadSuccess, onCancel, defaultCourseId }: M
         uploadId: uploadId,
       };
 
-      const response = await apiRequest('/api/materials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await apiRequest('POST', '/api/materials', {
         body: JSON.stringify(materialData),
       });
 
