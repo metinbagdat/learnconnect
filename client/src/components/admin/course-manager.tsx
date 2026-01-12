@@ -55,9 +55,9 @@ export function CourseManager() {
       updateMutation.mutate({
         id: editingId,
         updates: {
-          price: formData.price ? parseFloat(String(formData.price)) : 0,
+          price: formData.price ? String(parseFloat(String(formData.price))) : "0",
           isPremium: formData.isPremium,
-          level: formData.level,
+          level: formData.level ? String(formData.level) : undefined,
         },
       });
     }
@@ -104,7 +104,7 @@ export function CourseManager() {
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              price: e.target.value ? parseFloat(e.target.value) : 0,
+                              price: e.target.value || "0",
                             })
                           }
                           placeholder="0.00"

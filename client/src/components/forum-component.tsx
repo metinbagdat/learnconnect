@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ThumbsUp, MessageCircle, Plus } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import type { ForumPost, ForumReply } from '@/types/forum';
 
 interface ForumProps {
   courseId?: string;
@@ -18,18 +19,24 @@ export default function ForumComponent({ courseId }: ForumProps) {
   const [newPost, setNewPost] = useState({ title: '', content: '' });
   const [newReply, setNewReply] = useState('');
 
-  const { data: posts = [] } = useQuery({
+  const { data: postsData } = useQuery<any>({
     queryKey: ['/api/forum/posts', courseId],
   });
 
-  const { data: replies = [] } = useQuery({
+  const { data: repliesData } = useQuery<any>({
     queryKey: ['/api/forum/replies', selectedPost],
     enabled: !!selectedPost,
   });
+  
+  const posts: ForumPost[] = Array.isArray(postsData) ? postsData : [];
+  const replies: ForumReply[] = Array.isArray(repliesData) ? repliesData : [];
 
   const createPostMutation = useMutation({
-    mutationFn: (data) =>
-      apiRequest('POST', '/api/forum/posts', { ...data, courseId }),
+    mutationFn: (data: { title: string; content: string }) => {
+      const payload: any = { ...data };
+      if (courseId) payload.courseId = courseId;
+      return apiRequest('POST', '/api/forum/posts', payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/forum/posts'] });
       setNewPost({ title: '', content: '' });
@@ -38,7 +45,7 @@ export default function ForumComponent({ courseId }: ForumProps) {
   });
 
   const createReplyMutation = useMutation({
-    mutationFn: (data) =>
+    mutationFn: (data: { content: string }) =>
       apiRequest('POST', `/api/forum/posts/${selectedPost}/replies`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/forum/replies', selectedPost] });
@@ -86,7 +93,7 @@ export default function ForumComponent({ courseId }: ForumProps) {
           <div className="flex gap-2">
             <Button
               onClick={() => {
-                createPostMutation.mutate(newPost);
+                createPostMutation.mutate({ title: newPost.title, content: newPost.content });
               }}
               disabled={createPostMutation.isPending}
             >
@@ -105,11 +112,11 @@ export default function ForumComponent({ courseId }: ForumProps) {
       {/* Posts List */}
       {!selectedPost ? (
         <div className="space-y-4">
-          {posts.map((post: any) => (
+          {posts.map((post) => (
             <Card
               key={post.id}
               className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => setSelectedPost(post.id)}
+              onClick={() => setSelectedPost(String(post.id))}
             >
               <div className="flex justify-between items-start mb-3">
                 <h3 className="font-bold text-lg">{post.title}</h3>
@@ -132,7 +139,7 @@ export default function ForumComponent({ courseId }: ForumProps) {
       ) : (
         <>
           {/* Post Detail */}
-          {posts.find((p: any) => p.id === selectedPost) && (
+          {posts.find((p) => String(p.id) === String(selectedPost)) && (
             <Card className="p-6">
               <button
                 onClick={() => setSelectedPost(null)}
@@ -141,16 +148,16 @@ export default function ForumComponent({ courseId }: ForumProps) {
                 ← Geri Dön
               </button>
               <h2 className="text-2xl font-bold mb-4">
-                {posts.find((p: any) => p.id === selectedPost)?.title}
+                {posts.find((p) => String(p.id) === String(selectedPost))?.title}
               </h2>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                {posts.find((p: any) => p.id === selectedPost)?.content}
+                {posts.find((p) => String(p.id) === String(selectedPost))?.content}
               </p>
 
               {/* Replies */}
               <div className="space-y-4 mb-6 border-t pt-6">
                 <h3 className="font-bold">Yanıtlar ({replies.length})</h3>
-                {replies.map((reply: any) => (
+                {replies.map((reply) => (
                   <Card key={reply.id} className="p-4 bg-slate-50 dark:bg-slate-800">
                     <p className="mb-2">{reply.content}</p>
                     <p className="text-xs text-slate-500">
@@ -169,7 +176,7 @@ export default function ForumComponent({ courseId }: ForumProps) {
               />
               <Button
                 onClick={() => {
-                  createReplyMutation.mutate({ content: newReply });
+                  createReplyMutation.mutate({ content: newReply } as any);
                 }}
                 disabled={createReplyMutation.isPending}
               >

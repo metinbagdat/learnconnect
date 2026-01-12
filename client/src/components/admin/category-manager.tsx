@@ -12,6 +12,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Plus, Edit, Trash2, FolderTree, Loader2 } from "lucide-react";
 import { CourseCategory } from "@shared/schema";
 
+interface ExtendedCategory extends CourseCategory {
+  depth?: number;
+  parentCategoryId?: number | null;
+}
+
 interface CategoryFormData {
   nameEn: string;
   nameTr: string;
@@ -23,7 +28,7 @@ export function CategoryManager() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editCategory, setEditCategory] = useState<CourseCategory | null>(null);
+  const [editCategory, setEditCategory] = useState<ExtendedCategory | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({
     nameEn: "",
     nameTr: "",
@@ -31,16 +36,18 @@ export function CategoryManager() {
     order: 0,
   });
 
-  const { data: categories = [], isLoading } = useQuery<CourseCategory[]>({
+  const { data: categoriesData, isLoading } = useQuery<any>({
     queryKey: ["/api/categories/tree"],
   });
+  
+  const categories: ExtendedCategory[] = Array.isArray(categoriesData) ? categoriesData : [];
 
   const createMutation = useMutation({
     mutationFn: async (data: CategoryFormData) => {
       let depth = 0;
       if (data.parentCategoryId) {
-        const parent = categories.find(c => c.id === data.parentCategoryId);
-        depth = parent ? parent.depth + 1 : 1;
+        const parent = categories.find((c: ExtendedCategory) => c.id === data.parentCategoryId);
+        depth = parent ? (parent.depth || 0) + 1 : 1;
       }
       return apiRequest("POST", "/api/categories", {
         ...data,
@@ -137,7 +144,7 @@ export function CategoryManager() {
     }
   };
 
-  const handleEdit = (category: CourseCategory) => {
+  const handleEdit = (category: ExtendedCategory) => {
     setEditCategory(category);
     setFormData({
       nameEn: category.nameEn,
@@ -155,9 +162,9 @@ export function CategoryManager() {
     }
   };
 
-  const renderCategoryTree = (cats: CourseCategory[], depth = 0) => {
+  const renderCategoryTree = (cats: ExtendedCategory[], depth = 0) => {
     return cats.map((category) => {
-      const children = categories.filter(c => c.parentCategoryId === category.id);
+      const children = categories.filter((c: ExtendedCategory) => (c.parentCategoryId ?? null) === category.id);
       const hasChildren = children.length > 0;
 
       return (
@@ -170,7 +177,7 @@ export function CategoryManager() {
               </div>
               <div className="text-xs text-neutral-500">
                 {language === 'tr' ? 'Sıra' : 'Order'}: {category.order} | 
-                {language === 'tr' ? ' Seviye' : ' Depth'}: {category.depth}
+                {language === 'tr' ? ' Seviye' : ' Depth'}: {category.depth || 0}
               </div>
             </div>
             <div className="flex gap-2">

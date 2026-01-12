@@ -198,6 +198,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     });
 
+    // Cron job endpoint (for scheduled tasks)
+    app.get("/api/cron", async (req, res) => {
+      try {
+        // Check authorization header
+        const authHeader = req.headers.authorization;
+        const cronSecret = process.env.CRON_SECRET;
+        
+        if (!cronSecret) {
+          logger.warn("[CRON] CRON_SECRET not configured");
+          return res.status(500).json({ error: "Cron job not configured" });
+        }
+        
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        
+        const token = authHeader.replace("Bearer ", "");
+        if (token !== cronSecret) {
+          return res.status(401).json({ error: "Invalid token" });
+        }
+        
+        // Cron job logic here
+        logger.info("[CRON] Cron job executed", { timestamp: new Date().toISOString() });
+        
+        // Placeholder for actual cron tasks
+        // TODO: Add scheduled tasks (e.g., cleanup, notifications, reports)
+        
+        res.status(200).json({ 
+          success: true, 
+          timestamp: new Date().toISOString(),
+          message: "Cron job executed successfully"
+        });
+      } catch (error: any) {
+        logger.error("[CRON] Cron job error", error);
+        res.status(500).json({ 
+          error: "Cron job failed",
+          message: error.message 
+        });
+      }
+    });
+
     // Detailed health check with system diagnostics
     app.get("/api/health/detailed", async (req, res) => {
       try {

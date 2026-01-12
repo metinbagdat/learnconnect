@@ -17,38 +17,39 @@ export function CoursesControlPanel() {
   const [recentInteractions, setRecentInteractions] = useState<any[]>([]);
   const tracker = useInteractionTracker();
 
-  const { data: statusData } = useQuery({
+  const { data: statusData } = useQuery<any>({
     queryKey: ["/api/course-control/status"],
     refetchInterval: 5000,
   });
 
-  const { data: interactionsData } = useQuery({
+  const { data: interactionsData } = useQuery<any>({
     queryKey: ["/api/course-control/interactions/recent"],
     refetchInterval: 3000,
   });
 
-  const { data: statsData } = useQuery({
+  const { data: statsData } = useQuery<any>({
     queryKey: ["/api/course-control/interactions/stats"],
     refetchInterval: 5000,
   });
 
-  const { data: dependencyMapData } = useQuery({
+  const { data: dependencyMapData } = useQuery<any>({
     queryKey: ["/api/course-control/dependency-map"],
   });
 
-  const { data: flowDiagramData } = useQuery({
+  const { data: flowDiagramData } = useQuery<any>({
     queryKey: ["/api/course-control/interactions/flow-diagram"],
     refetchInterval: 5000,
   });
 
-  const { data: performanceData } = useQuery({
+  const { data: performanceData } = useQuery<any>({
     queryKey: ["/api/course-control/interactions/performance-report"],
     refetchInterval: 10000,
   });
 
   useEffect(() => {
-    if (interactionsData?.interactions) {
-      setRecentInteractions(interactionsData.interactions);
+    const interactions = (interactionsData as any)?.interactions;
+    if (Array.isArray(interactions)) {
+      setRecentInteractions(interactions);
     }
   }, [interactionsData]);
 
@@ -209,19 +210,19 @@ export function CoursesControlPanel() {
                 <div>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Total Interactions</p>
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                    {statsData?.data?.totalInteractions || 0}
+                    {(statsData as any)?.data?.totalInteractions || 0}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Validated</p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {statsData?.data?.validatedCount || 0}
+                    {(statsData as any)?.data?.validatedCount || 0}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-slate-600 dark:text-slate-400">Unique Users</p>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {statsData?.data?.uniqueUsers || 0}
+                    {(statsData as any)?.data?.uniqueUsers || 0}
                   </p>
                 </div>
               </CardContent>
@@ -279,11 +280,11 @@ export function CoursesControlPanel() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {statsData?.data?.interactionsBySource &&
-                    Object.entries(statsData.data.interactionsBySource).map(([module, count]) => (
+                  {(statsData as any)?.data?.interactionsBySource &&
+                    Object.entries((statsData as any).data.interactionsBySource).map(([module, count]) => (
                       <div key={module} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-600">
                         <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">From {module}</p>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{count}</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{count as number}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-500 mt-2">interactions initiated</p>
                       </div>
                     ))}
@@ -298,8 +299,8 @@ export function CoursesControlPanel() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {flowDiagramData?.data?.flows && flowDiagramData.data.flows.length > 0 ? (
-                    flowDiagramData.data.flows.map((flow: any, idx: number) => (
+                  {(flowDiagramData as any)?.data?.flows && (flowDiagramData as any).data.flows.length > 0 ? (
+                    ((flowDiagramData as any).data.flows as any[]).map((flow: any, idx: number) => (
                       <div
                         key={idx}
                         className="p-3 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-600 flex items-center justify-between"
@@ -320,7 +321,7 @@ export function CoursesControlPanel() {
             </Card>
 
             {/* Performance Report */}
-            {performanceData?.data && (
+            {(performanceData as any)?.data && (
               <Card className="bg-white dark:bg-slate-700">
                 <CardHeader>
                   <CardTitle className="text-lg">⚡ Performance Report</CardTitle>
@@ -329,7 +330,7 @@ export function CoursesControlPanel() {
                   <div>
                     <h4 className="font-semibold text-slate-900 dark:text-white mb-2">Slowest API Calls</h4>
                     <div className="space-y-1">
-                      {performanceData.data.slowestApis?.slice(0, 5).map((api: any, idx: number) => (
+                      {((performanceData as any).data.slowestApis as any[])?.slice(0, 5).map((api: any, idx: number) => (
                         <div key={idx} className="flex justify-between text-sm p-2 bg-slate-50 dark:bg-slate-800 rounded">
                           <span className="text-slate-600 dark:text-slate-400">{api.action}</span>
                           <span className="font-medium text-red-600 dark:text-red-400">{api.duration.toFixed(2)}ms</span>

@@ -69,5 +69,16 @@
       "NODE_ENV": "production",
       "SKIP_TYPE_CHECK": "true"
     }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 10 * * *"
+    }
+  ],
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 30
+    }
   }
 }

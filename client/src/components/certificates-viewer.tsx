@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Award, Download } from 'lucide-react';
 
 export default function CertificatesViewer() {
-  const { data: certificates, isLoading } = useQuery({
+  const { data: certificatesData, isLoading } = useQuery<any>({
     queryKey: ['/api/certificates'],
   });
+  
+  const certificates: any[] = Array.isArray(certificatesData) ? certificatesData : [];
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-32"><Loader2 className="w-6 h-6 animate-spin" /></div>;
@@ -17,7 +19,7 @@ export default function CertificatesViewer() {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">🎓 My Certificates</h2>
-      {certificates && certificates.length > 0 ? (
+      {certificates.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {certificates.map((cert: any) => (
             <Card key={cert.id} className="p-6">

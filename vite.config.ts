@@ -48,7 +48,7 @@ export default defineConfig({
     cssCodeSplit: true,
     reportCompressedSize: false,
     
-      rollupOptions: {
+    rollupOptions: {
       // ✅ Optimize module hoisting to prevent lexical declaration errors
       // This ensures proper initialization order
       treeshake: {

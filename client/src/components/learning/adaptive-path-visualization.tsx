@@ -515,7 +515,7 @@ export function AdaptivePathVisualization({ pathId, compact = false }: AdaptiveP
                       <p className="text-sm text-gray-600 mt-1">{suggestion.adaptiveReason}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                         <span>{suggestion.estimatedTime} {t('hours')}</span>
-                        <Badge variant="outline" size="sm">
+                        <Badge variant="outline">
                           {t(suggestion.priority)} {t('priority')}
                         </Badge>
                       </div>

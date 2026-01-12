@@ -75,7 +75,8 @@ export function SafeAnalytics() {
     // This avoids Vite trying to resolve it during build analysis
     const loadAnalytics = async () => {
       try {
-        const module = await import("@vercel/analytics/react");
+        // @ts-ignore - Dynamic import, types may not be available at build time
+        const module = await import("@vercel/analytics/react").catch(() => null);
         if (module?.Analytics) {
           setAnalytics(() => module.Analytics);
         }

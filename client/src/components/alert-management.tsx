@@ -13,6 +13,7 @@ interface Alert {
   resolved: boolean;
   resolvedAt?: string;
   actionTaken?: string;
+  metrics?: Record<string, any>;
 }
 
 export function AlertManagement() {
@@ -132,7 +133,7 @@ export function AlertManagement() {
                       <details className="text-xs">
                         <summary className="cursor-pointer font-semibold">Metrics Data</summary>
                         <pre className="mt-1 bg-black bg-opacity-10 dark:bg-white dark:bg-opacity-10 rounded p-2 overflow-x-auto text-xs">
-                          {JSON.stringify(alert.metrics, null, 2)}
+                          {JSON.stringify((alert as any).metrics || {}, null, 2)}
                         </pre>
                       </details>
                     </div>

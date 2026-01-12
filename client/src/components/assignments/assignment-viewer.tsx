@@ -99,7 +99,7 @@ export function AssignmentViewer({ courseId, studentId, showAsTodo = false }: As
                 <div>
                   <p className="text-sm text-muted-foreground">Status</p>
                   <div className="flex items-center gap-2">
-                    {assignment.isCompleted ? (
+                    {(assignment as any).isCompleted || assignment.status === "completed" ? (
                       <>
                         <CheckCircle className="w-5 h-5 text-green-600" />
                         <span className="font-semibold text-green-600">Completed</span>

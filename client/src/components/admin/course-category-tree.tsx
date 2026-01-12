@@ -81,9 +81,9 @@ export function CourseCategoryTree() {
       updateMutation.mutate({
         id: editingId,
         updates: {
-          price: editForm.price ? parseFloat(String(editForm.price)) : 0,
+          price: editForm.price ? String(parseFloat(String(editForm.price))) : "0",
           isPremium: editForm.isPremium,
-          level: editForm.level,
+          level: editForm.level ? String(editForm.level) : undefined,
           titleEn: editForm.titleEn,
         },
       });
@@ -120,8 +120,8 @@ export function CourseCategoryTree() {
               <Input
                 type="number"
                 step="0.01"
-                value={editForm.price || 0}
-                onChange={(e) => setEditForm({ ...editForm, price: parseFloat(e.target.value) })}
+                value={typeof editForm.price === 'string' ? editForm.price : (typeof editForm.price === 'number' ? String(editForm.price) : "0")}
+                onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
                 placeholder="Price"
                 className="w-24 text-sm"
               />

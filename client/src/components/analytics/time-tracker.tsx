@@ -36,16 +36,13 @@ export function TimeTracker() {
   // Track session mutation
   const trackMutation = useMutation({
     mutationFn: async (sessionData: Partial<StudySession>) => {
-      return apiRequest('/api/adaptive/track-performance', {
-        method: 'POST',
-        body: JSON.stringify({
-          taskId: currentSession?.id || 0,
-          score: 0,
-          timeSpent: sessionData.duration,
-          difficulty: parseInt(sessionData.difficulty || '3'),
-          satisfaction: parseInt(sessionData.satisfaction || '3'),
-          notes: `${sessionData.subject}: ${sessionData.task}`
-        })
+      return apiRequest('POST', '/api/adaptive/track-performance', {
+        taskId: currentSession?.id || 0,
+        score: 0,
+        timeSpent: sessionData.duration,
+        difficulty: String(parseInt(String(sessionData.difficulty || '3'))),
+        satisfaction: String(parseInt(String(sessionData.satisfaction || '3'))),
+        notes: `${sessionData.subject}: ${sessionData.task}`
       });
     },
     onSuccess: () => {

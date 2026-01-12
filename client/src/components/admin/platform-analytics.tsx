@@ -3,16 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, Users, BookOpen } from "lucide-react";
 
+interface EnrollmentTrend {
+  month: string;
+  enrollments: number;
+}
+
+interface CoursePerformance {
+  name: string;
+  students: number;
+  completion: number;
+}
+
+interface DashboardStats {
+  totalStudents?: number;
+  totalCourses?: number;
+  avgCompletion?: number;
+  [key: string]: any;
+}
+
 export function PlatformAnalytics() {
-  const { data: enrollmentTrends = [] } = useQuery({
+  const { data: enrollmentTrends } = useQuery<EnrollmentTrend[]>({
     queryKey: ["/api/admin/enrollment-trends"],
   });
 
-  const { data: coursePerformance = [] } = useQuery({
+  const { data: coursePerformance } = useQuery<CoursePerformance[]>({
     queryKey: ["/api/admin/course-performance"],
   });
 
-  const { data: stats = { totalStudents: 0, totalCourses: 0, avgCompletion: 0 } } = useQuery({
+  const { data: stats } = useQuery<DashboardStats>({
     queryKey: ["/api/admin/dashboard"],
   });
 
@@ -41,7 +59,7 @@ export function PlatformAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.totalStudents}</p>
+            <p className="text-3xl font-bold">{stats.totalStudents || 0}</p>
             <p className="text-xs text-green-600 mt-1">+12% this month</p>
           </CardContent>
         </Card>
@@ -54,7 +72,7 @@ export function PlatformAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{stats.totalCourses}</p>
+            <p className="text-3xl font-bold">{stats.totalCourses || 0}</p>
             <p className="text-xs text-muted-foreground mt-1">platform-wide</p>
           </CardContent>
         </Card>
@@ -67,7 +85,7 @@ export function PlatformAnalytics() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{Math.round(stats.avgCompletion)}%</p>
+            <p className="text-3xl font-bold">{Math.round(stats.avgCompletion || 0)}%</p>
             <p className="text-xs text-muted-foreground mt-1">across all users</p>
           </CardContent>
         </Card>
