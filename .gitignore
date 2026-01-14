@@ -9,3 +9,7 @@ vite.config.ts.*
 .env.*.local
 .vercel
 .env*.local
+
+# Replit files
+.replit
+replit.md
