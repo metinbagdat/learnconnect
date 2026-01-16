@@ -97,7 +97,7 @@ export function AIControlDashboard() {
   const [selectedTab, setSelectedTab] = useState("overview");
 
   // Fetch control panel with proper typing
-  const { data: controlPanelRaw, isLoading: panelLoading } = useQuery<ControlPanel | undefined>({
+  const controlPanelQuery = useQuery<ControlPanel>({
     queryKey: ["/api/ai/control-panel"],
     queryFn: async ({ queryKey }): Promise<ControlPanel> => {
       const response = await apiRequest("GET", queryKey[0] as string);
@@ -114,7 +114,7 @@ export function AIControlDashboard() {
   });
 
   // Fetch analytics with proper typing
-  const { data: analyticsRaw, isLoading: analyticsLoading } = useQuery<Analytics | undefined>({
+  const analyticsQuery = useQuery<Analytics>({
     queryKey: ["/api/ai/performance-analytics"],
     queryFn: async ({ queryKey }): Promise<Analytics> => {
       const response = await apiRequest("GET", queryKey[0] as string);
@@ -130,9 +130,19 @@ export function AIControlDashboard() {
     },
   });
 
-  // Type the data explicitly with proper type guards
-  const panel: ControlPanel | undefined = controlPanelRaw ?? undefined;
-  const analyticsData: Analytics | undefined = analyticsRaw ?? undefined;
+  const panelLoading = controlPanelQuery.isLoading;
+  const analyticsLoading = analyticsQuery.isLoading;
+
+  // Type the data explicitly - use type assertion to help TypeScript
+  // This ensures TypeScript recognizes the correct types
+  // Explicitly type the variables to avoid 'unknown' type inference issues
+  const panel: ControlPanel | undefined = controlPanelQuery.data 
+    ? (controlPanelQuery.data as ControlPanel)
+    : undefined;
+  
+  const analyticsData: Analytics | undefined = analyticsQuery.data
+    ? (analyticsQuery.data as Analytics)
+    : undefined;
 
   // Refresh suggestions
   const refreshSuggestions = useMutation({
