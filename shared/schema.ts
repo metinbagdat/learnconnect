@@ -1018,6 +1018,25 @@ export const insertUserSchema = z.object({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+// ✅ FIX: Create a select schema for User that includes createdAt/updatedAt
+// This prevents "Unrecognized key: createdAt" errors when validating API responses
+export const selectUserSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  email: z.string().nullable().optional(),
+  password: z.string().optional(),
+  passwordHash: z.string().nullable().optional(),
+  displayName: z.string().nullable().optional(),
+  role: z.string(),
+  interests: z.array(z.string()).optional(),
+  learningPace: z.string().nullable().optional(),
+  profileComplete: z.boolean().optional(),
+  stripeCustomerId: z.string().nullable().optional(),
+  stripeSubscriptionId: z.string().nullable().optional(),
+  createdAt: z.date().or(z.string()).optional(), // Accept both Date and string (ISO format)
+  updatedAt: z.date().or(z.string()).optional(), // Accept both Date and string (ISO format)
+}).passthrough(); // Allow additional fields without validation errors
+
 // ✅ FIX: Use passthrough to avoid drizzle-zod's automatic createdAt/updatedAt omit
 export const insertAssignmentSchema = z.object({}).passthrough() as unknown as z.ZodTypeAny;
 export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;

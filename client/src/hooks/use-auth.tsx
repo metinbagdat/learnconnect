@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { insertUserSchema, User as SelectUser, InsertUser, selectUserSchema } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AuthUtils } from "@/lib/utils";
@@ -45,7 +45,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<SelectUser | null, Error>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: async ({ queryKey }) => {
+      const baseQueryFn = getQueryFn({ on401: "returnNull" });
+      const result = await baseQueryFn({ queryKey } as any);
+      
+      // If result is null (401), return null
+      if (result === null) {
+        return null;
+      }
+      
+      // Validate and parse the user data with selectUserSchema
+      // This prevents "Unrecognized key: createdAt" errors
+      try {
+        const validatedUser = selectUserSchema.parse(result);
+        return validatedUser as SelectUser;
+      } catch (validationError) {
+        console.error('User data validation error:', validationError);
+        // If validation fails, return the data as-is to prevent breaking the app
+        // The passthrough() in selectUserSchema should prevent most errors
+        return result as SelectUser;
+      }
+    },
     // Skip the API call if we already have a user from localStorage
     enabled: !localUser,
   });
