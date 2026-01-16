@@ -43,10 +43,10 @@ export async function generateAdaptiveAdjustments(
     const progressRows = recentProgress.map(row => row as UserProgressRow);
     const completedCount = progressRows.filter(p => (p.lessonsCompleted || 0) > 0).length;
     const completionRate = (completedCount / progressRows.length) * 100;
-    const avgHours = progressRows.reduce((sum, p) => sum + (p.hoursStudied || 0), 0) / progressRows.length;
-    const avgScore = progressRows.reduce((sum, p) => sum + (p.performanceScore || 0), 0) / progressRows.length;
+    const avgHours = progressRows.reduce((sum, p) => sum + ((p as any).hoursStudied || 0), 0) / progressRows.length;
+    const avgScore = progressRows.reduce((sum, p) => sum + ((p as any).performanceScore || 0), 0) / progressRows.length;
     const strugglingTopics = recentProgress
-      .filter(p => (p.performanceScore || 0) < 50)
+      .filter(p => ((p as any).performanceScore || 0) < 50)
       .map((_, idx) => `Learning Area ${idx + 1}`);
 
     // Get user's goals
@@ -211,7 +211,7 @@ export async function detectLearningInterventionNeeds(
     const completionRate = (completedCount / progressRows.length) * 100;
     const avgScore = progressRows.reduce((sum, p) => sum + (p.performanceScore || 0), 0) / progressRows.length;
     const lastUpdated = Math.max(
-      ...recentProgress.map(p => new Date(p.createdAt).getTime())
+      ...recentProgress.map(p => new Date((p as any).createdAt || Date.now()).getTime())
     );
     const daysSinceUpdate = (Date.now() - lastUpdated) / (1000 * 60 * 60 * 24);
 

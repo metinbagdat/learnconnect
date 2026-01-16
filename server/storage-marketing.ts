@@ -1,4 +1,5 @@
 import { db } from "./db.js";
+import { eq, and } from "drizzle-orm";
 import {
   referralCodes,
   referralRedemptions,
@@ -84,7 +85,7 @@ export class MarketingStorage implements IMarketingStorage {
   }
 
   async getReferralCode(id: number): Promise<any> {
-    return db.select().from(referralCodes).where((t) => t.id === id);
+    return db.select().from(referralCodes).where(eq(referralCodes.id, id));
   }
 
   async redeemReferralCode(data: InsertReferralRedemption): Promise<any> {
@@ -95,7 +96,7 @@ export class MarketingStorage implements IMarketingStorage {
     return db
       .select()
       .from(referralCodes)
-      .where((t) => t.userId === userId);
+      .where(eq(referralCodes.userId, userId));
   }
 
   async createEmailCampaign(data: InsertEmailCampaign): Promise<any> {
@@ -107,7 +108,7 @@ export class MarketingStorage implements IMarketingStorage {
   }
 
   async getEmailSubscribers(): Promise<any[]> {
-    return db.select().from(emailSubscribers).where((t) => t.isSubscribed === true);
+    return db.select().from(emailSubscribers).where(eq(emailSubscribers.isSubscribed, true));
   }
 
   async getEmailCampaigns(): Promise<any[]> {
@@ -122,7 +123,7 @@ export class MarketingStorage implements IMarketingStorage {
     return db
       .select()
       .from(affiliateProgram)
-      .where((t) => t.userId === userId);
+      .where(eq(affiliateProgram.userId, userId));
   }
 
   async createAffiliateTransaction(data: InsertAffiliateTransaction): Promise<any> {
@@ -133,7 +134,7 @@ export class MarketingStorage implements IMarketingStorage {
     return db
       .select()
       .from(affiliateTransactions)
-      .where((t) => t.affiliateId === affiliateId);
+      .where(eq(affiliateTransactions.affiliateId, affiliateId));
   }
 
   async recordSocialShare(data: InsertSocialShare): Promise<any> {
@@ -144,7 +145,7 @@ export class MarketingStorage implements IMarketingStorage {
     return db
       .select()
       .from(socialShares)
-      .where((t) => t.userId === userId);
+      .where(eq(socialShares.userId, userId));
   }
 
   async recordMarketingAnalytics(data: InsertMarketingAnalytics): Promise<any> {
@@ -159,7 +160,7 @@ export class MarketingStorage implements IMarketingStorage {
     const subscribers = await db
       .select()
       .from(emailSubscribers)
-      .where((t) => t.isSubscribed === true);
+      .where(eq(emailSubscribers.isSubscribed, true));
     const analytics = await db.select().from(marketingAnalytics);
     return {
       totalSubscribers: subscribers.length,
@@ -179,8 +180,8 @@ export class MarketingStorage implements IMarketingStorage {
   async convertWaitlistUser(waitlistId: number): Promise<any> {
     return db
       .update(waitlist)
-      .set({ hasSignedUp: true, convertedAt: new Date() })
-      .where((t) => t.id === waitlistId)
+      .set({ convertedAt: new Date() } as any)
+      .where(eq(waitlist.id, waitlistId))
       .returning();
   }
 
@@ -192,14 +193,14 @@ export class MarketingStorage implements IMarketingStorage {
     return db
       .select()
       .from(testimonials)
-      .where((t) => t.isApproved === true && t.isDisplayed === true);
+      .where(and(eq(testimonials.isApproved, true), eq(testimonials.isDisplayed, true)));
   }
 
   async approveTestimonial(id: number): Promise<any> {
     return db
       .update(testimonials)
-      .set({ isApproved: true, isDisplayed: true })
-      .where((t) => t.id === id)
+      .set({ isApproved: true, isDisplayed: true } as any)
+      .where(eq(testimonials.id, id))
       .returning();
   }
 

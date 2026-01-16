@@ -42,7 +42,7 @@ export class AIReasoningEngine {
       const timeAllocation = await this.allocateTime(contentSelection, studentData);
       const dailyPlan = await this.generatePlan(timeAllocation, studentData);
       
-      dailyPlan.metadata = {
+      (dailyPlan as any).metadata = {
         generatedAt: new Date().toISOString(),
         studentId: studentId,
         adaptiveParameters: {

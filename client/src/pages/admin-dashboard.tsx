@@ -16,24 +16,47 @@ const mockEnrollmentTrend = [
   { month: "Apr", enrollments: 195 },
 ];
 
+interface AdminDashboardData {
+  totalStudents?: number;
+  totalCourses?: number;
+  totalEnrollments?: number;
+  avgCompletion?: number;
+  averageCourseProgress?: number;
+}
+
+interface AdminCourse {
+  id: number;
+  title: string;
+  enrollmentCount?: number;
+  avgCompletion?: number;
+}
+
+interface AdminStudent {
+  id: number;
+  displayName?: string;
+  username?: string;
+  email?: string;
+  activeCourses?: number;
+}
+
 export function AdminDashboard() {
-  const { data: dashboardData = { totalStudents: 0, totalCourses: 0, totalEnrollments: 0, avgCompletion: 0 } } = useQuery({
+  const { data: dashboardData } = useQuery<AdminDashboardData>({
     queryKey: ["/api/admin/dashboard"],
   });
 
-  const { data: courses = [] } = useQuery({
+  const { data: courses } = useQuery<AdminCourse[]>({
     queryKey: ["/api/admin/courses"],
   });
 
-  const { data: allStudents = [] } = useQuery({
+  const { data: allStudents } = useQuery<AdminStudent[]>({
     queryKey: ["/api/admin/students"],
   });
 
-  const mockCourseStats = (courses as any[]).map((c: any) => ({
+  const mockCourseStats = (courses || []).map((c) => ({
     name: c.title || "Unknown",
     students: c.enrollmentCount || 0,
     completion: c.avgCompletion || 0,
-  })).slice(0, 5) || [];
+  })).slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-950 dark:to-slate-900 p-6">
@@ -157,8 +180,8 @@ export function AdminDashboard() {
 
           {/* STUDENTS */}
           <TabsContent value="students" className="space-y-4">
-            <p className="text-sm text-muted-foreground">Total active students: {(allStudents as any[])?.length || 0}</p>
-            {(allStudents as any[])?.slice(0, 5).map((student: any) => (
+            <p className="text-sm text-muted-foreground">Total active students: {(allStudents || []).length}</p>
+            {(allStudents || []).slice(0, 5).map((student) => (
               <Card key={student.id}>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">

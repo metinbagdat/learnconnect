@@ -178,22 +178,20 @@ Return JSON array with objects containing: title, description, type, difficulty,
         .insert(assignmentTable)
         .values({
           title: assignment.title || "Assignment",
-          description: assignment.description || "",
           courseId: course.id,
           points: assignment.points || 10
-        })
+        } as any)
         .returning();
 
       const savedAssignment = Array.isArray(assignmentResults) ? assignmentResults[0] : assignmentResults;
       
-      // Enroll user in assignment
+      // Enroll user in assignment (schema doesn't have status field)
       await db
         .insert(userAssignments)
         .values({
           userId: user.id,
           assignmentId: savedAssignment?.id || 0,
-          status: "not_started"
-        });
+        } as any);
 
       if (savedAssignment) savedAssignments.push(savedAssignment);
     }

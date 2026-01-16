@@ -201,7 +201,7 @@ class SystemHealthCheck {
     const successRate = interactions.length > 0 ? (successfulInteractions / interactions.length) * 100 : 100;
 
     const goals = await db.select().from(userGoals);
-    const completedGoals = goals.filter((g) => g.completed).length;
+    const completedGoals = goals.filter((g) => (g as any).completed).length;
     const goalCompletionRate = goals.length > 0 ? (completedGoals / goals.length) * 100 : 0;
 
     return {

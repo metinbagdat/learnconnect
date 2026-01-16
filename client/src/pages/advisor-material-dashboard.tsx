@@ -155,7 +155,7 @@ export default function AdvisorMaterialDashboard() {
   const { data: materials = [], isLoading } = useQuery<Material[]>({
     queryKey: ["materials", user?.id],
     queryFn: async () => {
-      const response = await apiRequest("/api/materials");
+      const response = await apiRequest("GET", "/api/materials");
       return response.json();
     },
     enabled: !!user?.id && (user?.role === "instructor" || user?.role === "mentor" || user?.role === "admin"),
@@ -165,18 +165,25 @@ export default function AdvisorMaterialDashboard() {
   const { data: courses = [] } = useQuery({
     queryKey: ["courses"],
     queryFn: async () => {
-      const response = await apiRequest("/api/courses");
+      const response = await apiRequest("GET", "/api/courses");
       return response.json();
     },
+  });
+
+  // Fetch students for material assignment
+  const { data: students = [] } = useQuery<any[]>({
+    queryKey: ["students", user?.id],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/mentor/students");
+      return response.json();
+    },
+    enabled: !!user?.id && (user?.role === "instructor" || user?.role === "mentor" || user?.role === "admin"),
   });
 
   // Create material mutation
   const createMaterialMutation = useMutation({
     mutationFn: async (data: MaterialFormData) => {
-      const response = await apiRequest("/api/materials", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/materials", data);
       return response.json();
     },
     onSuccess: () => {
@@ -200,10 +207,7 @@ export default function AdvisorMaterialDashboard() {
   // Update material mutation
   const updateMaterialMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<MaterialFormData> }) => {
-      const response = await apiRequest(`/api/materials/${id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("PUT", `/api/materials/${id}`, data);
       return response.json();
     },
     onSuccess: () => {
@@ -227,10 +231,7 @@ export default function AdvisorMaterialDashboard() {
   // Assign material mutation
   const assignMaterialMutation = useMutation({
     mutationFn: async ({ materialId, studentId, notes }: { materialId: number; studentId: number; notes?: string }) => {
-      const response = await apiRequest(`/api/materials/${materialId}/assign`, {
-        method: "POST",
-        body: JSON.stringify({ studentId, notes }),
-      });
+      const response = await apiRequest("POST", `/api/materials/${materialId}/assign`, { studentId, notes });
       return response.json();
     },
     onSuccess: () => {
@@ -255,9 +256,7 @@ export default function AdvisorMaterialDashboard() {
   // Delete material mutation
   const deleteMaterialMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest(`/api/materials/${id}`, {
-        method: "DELETE",
-      });
+      await apiRequest("DELETE", `/api/materials/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["materials"] });

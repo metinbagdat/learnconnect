@@ -58,8 +58,9 @@ export class NotificationsService {
             type: "due_assignment",
             title: `Assignment Due: ${assignment.title}`,
             message: `Your assignment "${assignment.title}" is due on ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "soon"}`,
-            data: { assignmentId: assignment.id, dueDate: assignment.dueDate }
-          })
+            // NOTE: `data` column is not present in the notifications table in this schema.
+            // If you add a JSON column later, you can include metadata here.
+          } as any)
           .returning();
 
         notifications.push(notif);
@@ -125,8 +126,7 @@ export class NotificationsService {
               type: "overdue_assignment",
               title: `OVERDUE: ${assignment.title}`,
               message: `This assignment was due on ${assignment.dueDate ? new Date(assignment.dueDate).toLocaleDateString() : "date unknown"}. Please submit immediately.`,
-              data: { assignmentId: assignment.id, dueDate: assignment.dueDate }
-            })
+            } as any)
             .returning();
 
           notifications.push(notif);
@@ -180,8 +180,7 @@ export class NotificationsService {
           type: "progress_update",
           title: "Study Plan Progress Update",
           message: `You've completed ${completedCount.length} out of ${assignments.length} assignments (${progress}% complete)`,
-          data: { studyPlanId, progress }
-        })
+        } as any)
         .returning();
 
       console.log(`[NotificationsService] ✓ Sent progress notification: ${progress}% complete`);
@@ -219,8 +218,7 @@ export class NotificationsService {
           type: "study_plan_adjusted",
           title: titles[adjustmentType],
           message: messages[adjustmentType],
-          data: { studyPlanId, adjustmentType, timestamp: new Date().toISOString() }
-        })
+        } as any)
         .returning();
 
       console.log(`[NotificationsService] ✓ Sent study plan adjustment notification`);

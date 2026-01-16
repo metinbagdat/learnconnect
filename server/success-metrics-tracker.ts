@@ -119,7 +119,11 @@ export class SuccessMetricsTracker {
       .from(memoryEnhancedCurricula)
       .where(and(eq(memoryEnhancedCurricula.userId, userId), eq(memoryEnhancedCurricula.baseCurriculumId, courseId)));
 
-    const retentionRate = curriculum?.predictedRetentionRate || 70;
+    const retentionRate = typeof curriculum?.predictedRetentionRate === 'number' 
+      ? curriculum.predictedRetentionRate 
+      : (typeof curriculum?.predictedRetentionRate === 'string' 
+          ? parseInt(curriculum.predictedRetentionRate) || 70 
+          : 70);
 
     const progress = typeof userCourse.progress === "number" ? userCourse.progress : parseInt(userCourse.progress as any) || 0;
     const progressRounded = Math.round(progress) || 0;

@@ -1,9 +1,11 @@
 import { storage } from "../storage.js";
+import { db } from "../db.js";
+import { userCourses } from "../../shared/schema.js";
 
 export class CourseAnalytics {
   async getCourseStats(courseId: number) {
     try {
-      const allEnrollments = await storage.getUserCourses?.() || [];
+      const allEnrollments = await db.select().from(userCourses);
       const courseEnrollments = allEnrollments.filter((e: any) => e.courseId === courseId);
 
       const completedCount = courseEnrollments.filter((e: any) => e.completed).length;
@@ -56,7 +58,7 @@ export class CourseAnalytics {
 
   async getProgressDistribution(courseId: number) {
     try {
-      const allEnrollments = await storage.getUserCourses?.() || [];
+      const allEnrollments = await db.select().from(userCourses);
       const courseEnrollments = allEnrollments.filter((e: any) => e.courseId === courseId);
 
       const distribution = {
@@ -94,7 +96,7 @@ export class CourseAnalytics {
 
   async getTopPerformers(courseId: number, limit: number = 10) {
     try {
-      const allEnrollments = await storage.getUserCourses?.() || [];
+      const allEnrollments = await db.select().from(userCourses);
       const courseEnrollments = allEnrollments
         .filter((e: any) => e.courseId === courseId)
         .sort((a: any, b: any) => b.progress - a.progress)
@@ -112,7 +114,7 @@ export class CourseAnalytics {
 
   async getEnrollmentTrends(courseId: number) {
     try {
-      const allEnrollments = await storage.getUserCourses?.() || [];
+      const allEnrollments = await db.select().from(userCourses);
       const courseEnrollments = allEnrollments.filter((e: any) => e.courseId === courseId);
 
       // Group by date

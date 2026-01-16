@@ -21,7 +21,14 @@ export class EnrollmentManager {
 
   async updateProgress(userId: number, courseId: number, progress: number): Promise<UserCourse | undefined> {
     try {
-      const enrollment = await storage.updateUserCourse(userId, courseId, {
+      // Find the userCourse record first
+      const userCourses = await storage.getUserCourses(userId);
+      const userCourse = userCourses.find((uc: any) => uc.courseId === courseId);
+      if (!userCourse || !userCourse.id) {
+        throw new Error(`User course not found for user ${userId} and course ${courseId}`);
+      }
+      
+      const enrollment = await storage.updateUserCourse(userCourse.id, {
         progress: Math.min(100, Math.max(0, progress)),
       });
       console.log("[EnrollmentManager] Progress updated for user", userId, "in course", courseId);
@@ -84,7 +91,14 @@ export class EnrollmentManager {
 
   async completeEnrollment(userId: number, courseId: number): Promise<UserCourse | undefined> {
     try {
-      const updated = await storage.updateUserCourse(userId, courseId, {
+      // Find the userCourse record first
+      const userCourses = await storage.getUserCourses(userId);
+      const userCourse = userCourses.find((uc: any) => uc.courseId === courseId);
+      if (!userCourse || !userCourse.id) {
+        throw new Error(`User course not found for user ${userId} and course ${courseId}`);
+      }
+      
+      const updated = await storage.updateUserCourse(userCourse.id, {
         completed: true,
         progress: 100,
       });

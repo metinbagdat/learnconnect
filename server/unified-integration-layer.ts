@@ -169,10 +169,9 @@ Return JSON array with assignments:
         .insert(assignmentTable)
         .values({
           title: assignment.title || "Assignment",
-          description: assignment.description || "",
           courseId,
           points: assignment.difficulty || 10
-        })
+        } as any)
         .returning();
 
       const saved = Array.isArray(result) ? result[0] : result;

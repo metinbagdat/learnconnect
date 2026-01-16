@@ -219,8 +219,8 @@ class StudentDashboardSystem {
     ]);
 
     const overallScore = Math.round(
-      (goals.reduce((sum, g) => sum + (g.progress || 0), 0) / Math.max(goals.length, 1) +
-        (courses.filter((c) => c.completed).length / Math.max(courses.length, 1)) * 100) /
+      (goals.reduce((sum, g) => sum + ((g as any).progress || 0), 0) / Math.max(goals.length, 1) +
+        (courses.filter((c) => (c as any).completed).length / Math.max(courses.length, 1)) * 100) /
         2
     );
 

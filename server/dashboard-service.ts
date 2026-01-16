@@ -1,6 +1,6 @@
 import { db } from "./db.js";
 import * as schema from "../shared/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Student Dashboard Service
@@ -85,13 +85,17 @@ export class DashboardService {
           if (!course) return null;
 
           // Get study plan for this enrollment
-          const [studyPlan] = await db
+          const studyPlanRows = await db
             .select()
             .from(schema.studyPlans)
             .where(
-              eq(schema.studyPlans.userId, userId)
+              and(
+                eq(schema.studyPlans.userId, userId),
+                eq(schema.studyPlans.courseId, enrollment.courseId)
+              )
             )
-            .where(eq(schema.studyPlans.courseId, enrollment.courseId));
+            .limit(1);
+          const studyPlan = studyPlanRows[0] || null;
 
           let studyPlanWithAssignments: StudyPlanWithAssignments | null = null;
 
@@ -109,9 +113,12 @@ export class DashboardService {
                   .select()
                   .from(schema.userProgress)
                   .where(
-                    eq(schema.userProgress.userId, userId)
+                    and(
+                      eq(schema.userProgress.userId, userId),
+                      eq(schema.userProgress.assignmentId, assignment.id)
+                    )
                   )
-                  .where(eq(schema.userProgress.assignmentId, assignment.id));
+                  .limit(1);
 
                 return {
                   id: assignment.id,

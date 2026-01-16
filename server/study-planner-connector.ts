@@ -286,12 +286,12 @@ export class StudyPlannerConnector {
         .where(eq(courseIntegrationState.integrationId, integrationId));
 
       if (integrationRecord.length > 0) {
+        // Schema doesn't have studyPlanGenerated field, skip update
         await db
           .update(courseIntegrationState)
           .set({
-            studyPlanGenerated: true,
             lastIntegrationAt: new Date(),
-          })
+          } as any)
           .where(eq(courseIntegrationState.integrationId, integrationId));
       }
     } catch (error) {

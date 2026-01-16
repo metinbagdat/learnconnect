@@ -146,7 +146,16 @@ class RealTimeMonitor {
 
       // Check metrics against alert rules
       const newAlerts = alertSystem.checkMetrics(this.metrics);
-      this.alerts = alertSystem.getActiveAlerts();
+      // Convert Alert[] to AlertData[]
+      const activeAlerts = alertSystem.getActiveAlerts();
+      this.alerts = activeAlerts.map((alert: any) => ({
+        id: alert.id || String(Date.now()),
+        type: alert.type || 'warning',
+        module: alert.module || 'unknown',
+        message: alert.message || String(alert),
+        timestamp: alert.timestamp || new Date().toISOString(),
+        resolved: alert.resolved || false,
+      }));
     } catch (error) {
       console.error("[RealTimeMonitor] Error collecting metrics:", error);
     }

@@ -18,8 +18,8 @@ export function registerPreCourseAIEndpoints(app: Express) {
         userId: req.user.id,
         goals,
         interests,
-        learningStyle: profile[0]?.learningStyle,
-        careerGoal: profile[0]?.careerGoals?.[0],
+        learningStyle: (profile[0]?.learningStyle as string) || undefined,
+        careerGoal: (profile[0]?.careerGoals?.[0] as string) || undefined,
       });
 
       res.json({
@@ -45,8 +45,8 @@ export function registerPreCourseAIEndpoints(app: Express) {
         userId: req.user.id,
         goals: [],
         interests,
-        learningStyle: profile[0]?.learningStyle,
-        careerGoal: profile[0]?.careerGoals?.[0],
+        learningStyle: (profile[0]?.learningStyle as string) || undefined,
+        careerGoal: (profile[0]?.careerGoals?.[0] as string) || undefined,
       });
 
       res.json({

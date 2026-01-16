@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,28 +25,126 @@ import {
   Sliders,
 } from "lucide-react";
 
+// Type definitions for API responses
+interface ControlPanel {
+  overallPerformance?: {
+    avgConfidence?: number;
+    totalSuggestions?: number;
+    acceptanceRate?: number;
+    performanceScore?: number;
+  };
+  goalRecommendationsControl?: {
+    status?: string;
+    threshold?: number;
+    enabled?: boolean;
+    confidenceLevel?: number;
+    suggestionsCount?: number;
+    acceptanceRate?: number;
+    customization?: any;
+  };
+  courseSuggestionsControl?: {
+    status?: string;
+    threshold?: number;
+    enabled?: boolean;
+    confidenceLevel?: number;
+    suggestionsCount?: number;
+    acceptanceRate?: number;
+    customization?: any;
+  };
+  studyPlanControl?: {
+    status?: string;
+    threshold?: number;
+    enabled?: boolean;
+    confidenceLevel?: number;
+    suggestionsCount?: number;
+    acceptanceRate?: number;
+    customization?: any;
+  };
+  suggestionsByType?: {
+    [key: string]: number;
+  };
+  timeSeriesData?: Array<{
+    date: string;
+    value: number;
+    acceptanceRate?: number;
+  }>;
+  aiSettings?: {
+    personalizationLevel?: string;
+    updateFrequency?: string;
+    feedbackIncorporation?: boolean;
+    confidenceThreshold?: number;
+    [key: string]: any;
+  };
+}
+
+interface Analytics {
+  suggestionsByType?: {
+    goal?: number;
+    course?: number;
+    study_plan?: number;
+    [key: string]: number | undefined;
+  };
+  timeSeriesData?: Array<{
+    date: string;
+    value: number;
+    acceptanceRate?: number;
+  }>;
+  [key: string]: any;
+}
+
 export function AIControlDashboard() {
   const { toast } = useToast();
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch control panel
-  const { data: controlPanel, isLoading: panelLoading } = useQuery({
+  // Fetch control panel with proper typing
+  const { data: controlPanelRaw, isLoading: panelLoading } = useQuery<ControlPanel | undefined>({
     queryKey: ["/api/ai/control-panel"],
+    queryFn: async ({ queryKey }): Promise<ControlPanel> => {
+      const response = await apiRequest("GET", queryKey[0] as string);
+      const json: unknown = await response.json();
+      // Handle both wrapped and unwrapped responses
+      if (json && typeof json === 'object' && json !== null && 'data' in json) {
+        const wrappedResponse = json as { data?: ControlPanel; status?: string };
+        if (wrappedResponse.data) {
+          return wrappedResponse.data;
+        }
+      }
+      return json as ControlPanel;
+    },
   });
 
-  // Fetch analytics
-  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+  // Fetch analytics with proper typing
+  const { data: analyticsRaw, isLoading: analyticsLoading } = useQuery<Analytics | undefined>({
     queryKey: ["/api/ai/performance-analytics"],
+    queryFn: async ({ queryKey }): Promise<Analytics> => {
+      const response = await apiRequest("GET", queryKey[0] as string);
+      const json: unknown = await response.json();
+      // Handle both wrapped and unwrapped responses
+      if (json && typeof json === 'object' && json !== null && 'data' in json) {
+        const wrappedResponse = json as { data?: Analytics; status?: string };
+        if (wrappedResponse.data) {
+          return wrappedResponse.data;
+        }
+      }
+      return json as Analytics;
+    },
   });
+
+  // Type the data explicitly with proper type guards
+  const panel: ControlPanel | undefined = controlPanelRaw ?? undefined;
+  const analyticsData: Analytics | undefined = analyticsRaw ?? undefined;
 
   // Refresh suggestions
   const refreshSuggestions = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/ai/refresh-suggestions", {}),
-    onSuccess: (data) => {
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/ai/refresh-suggestions", {});
+      return response.json();
+    },
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/ai/control-panel"] });
       toast({
         title: "Refreshed",
-        description: `${data.data?.refreshedCount || 0} suggestions updated`,
+        description: `${data?.refreshedCount || data?.data?.refreshedCount || 0} suggestions updated`,
       });
     },
   });
@@ -97,7 +195,7 @@ export function AIControlDashboard() {
                   Avg Confidence
                 </p>
                 <p className="text-3xl font-bold text-blue-600 mt-2">
-                  {controlPanel?.overallPerformance?.avgConfidence || 0}%
+                  {panel?.overallPerformance?.avgConfidence || 0}%
                 </p>
               </div>
               <Zap className="w-8 h-8 text-yellow-500" />
@@ -113,7 +211,7 @@ export function AIControlDashboard() {
                   Total Suggestions
                 </p>
                 <p className="text-3xl font-bold text-green-600 mt-2">
-                  {controlPanel?.overallPerformance?.totalSuggestions || 0}
+                  {panel?.overallPerformance?.totalSuggestions || 0}
                 </p>
               </div>
               <Activity className="w-8 h-8 text-green-500" />
@@ -129,7 +227,7 @@ export function AIControlDashboard() {
                   Acceptance Rate
                 </p>
                 <p className="text-3xl font-bold text-purple-600 mt-2">
-                  {controlPanel?.overallPerformance?.acceptanceRate || 0}%
+                  {panel?.overallPerformance?.acceptanceRate || 0}%
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-500" />
@@ -145,7 +243,7 @@ export function AIControlDashboard() {
                   Performance Score
                 </p>
                 <p className="text-3xl font-bold text-orange-600 mt-2">
-                  {controlPanel?.overallPerformance?.performanceScore || 0}/100
+                  {panel?.overallPerformance?.performanceScore || 0}/100
                 </p>
               </div>
               <Sliders className="w-8 h-8 text-orange-500" />
@@ -178,12 +276,12 @@ export function AIControlDashboard() {
                   </h3>
                   <span
                     className={`px-2 py-1 rounded text-xs font-semibold ${
-                      controlPanel?.goalRecommendationsControl?.status === "active"
+                      panel?.goalRecommendationsControl?.status === "active"
                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                         : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
                     }`}
                   >
-                    {controlPanel?.goalRecommendationsControl?.status}
+                    {panel?.goalRecommendationsControl?.status}
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-sm">
@@ -192,7 +290,7 @@ export function AIControlDashboard() {
                       Confidence
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.goalRecommendationsControl?.confidenceLevel}%
+                      {panel?.goalRecommendationsControl?.confidenceLevel}%
                     </p>
                   </div>
                   <div>
@@ -200,7 +298,7 @@ export function AIControlDashboard() {
                       Suggestions
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.goalRecommendationsControl?.suggestionsCount}
+                      {panel?.goalRecommendationsControl?.suggestionsCount}
                     </p>
                   </div>
                   <div>
@@ -208,7 +306,7 @@ export function AIControlDashboard() {
                       Acceptance
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.goalRecommendationsControl?.acceptanceRate}%
+                      {panel?.goalRecommendationsControl?.acceptanceRate}%
                     </p>
                   </div>
                 </div>
@@ -230,7 +328,7 @@ export function AIControlDashboard() {
                       Confidence
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.courseSuggestionsControl?.confidenceLevel}%
+                      {panel?.courseSuggestionsControl?.confidenceLevel}%
                     </p>
                   </div>
                   <div>
@@ -238,7 +336,7 @@ export function AIControlDashboard() {
                       Suggestions
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.courseSuggestionsControl?.suggestionsCount}
+                      {panel?.courseSuggestionsControl?.suggestionsCount}
                     </p>
                   </div>
                   <div>
@@ -246,7 +344,7 @@ export function AIControlDashboard() {
                       Acceptance
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.courseSuggestionsControl?.acceptanceRate}%
+                      {panel?.courseSuggestionsControl?.acceptanceRate}%
                     </p>
                   </div>
                 </div>
@@ -268,7 +366,7 @@ export function AIControlDashboard() {
                       Confidence
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.studyPlanControl?.confidenceLevel}%
+                      {panel?.studyPlanControl?.confidenceLevel}%
                     </p>
                   </div>
                   <div>
@@ -276,7 +374,7 @@ export function AIControlDashboard() {
                       Suggestions
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.studyPlanControl?.suggestionsCount}
+                      {panel?.studyPlanControl?.suggestionsCount}
                     </p>
                   </div>
                   <div>
@@ -284,7 +382,7 @@ export function AIControlDashboard() {
                       Acceptance
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {controlPanel?.studyPlanControl?.acceptanceRate}%
+                      {panel?.studyPlanControl?.acceptanceRate}%
                     </p>
                   </div>
                 </div>
@@ -306,15 +404,15 @@ export function AIControlDashboard() {
                     data={[
                       {
                         name: "Goals",
-                        count: analytics?.suggestionsByType?.goal || 0,
+                        count: analyticsData?.suggestionsByType?.goal || 0,
                       },
                       {
                         name: "Courses",
-                        count: analytics?.suggestionsByType?.course || 0,
+                        count: analyticsData?.suggestionsByType?.course || 0,
                       },
                       {
                         name: "Study Plans",
-                        count: analytics?.suggestionsByType?.study_plan || 0,
+                        count: analyticsData?.suggestionsByType?.study_plan || 0,
                       },
                     ]}
                   >
@@ -334,7 +432,7 @@ export function AIControlDashboard() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={analytics?.timeSeriesData || []}>
+                  <LineChart data={analyticsData?.timeSeriesData || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -368,7 +466,7 @@ export function AIControlDashboard() {
                     <Button
                       key={level}
                       variant={
-                        controlPanel?.aiSettings?.personalizationLevel === level
+                        panel?.aiSettings?.personalizationLevel === level
                           ? "default"
                           : "outline"
                       }
@@ -390,7 +488,7 @@ export function AIControlDashboard() {
                   Update Frequency
                 </label>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Current: {controlPanel?.aiSettings?.updateFrequency}
+                  Current: {panel?.aiSettings?.updateFrequency}
                 </p>
               </div>
 
@@ -401,12 +499,12 @@ export function AIControlDashboard() {
                 </label>
                 <div
                   className={`px-3 py-2 rounded ${
-                    controlPanel?.aiSettings?.feedbackIncorporation
+                    panel?.aiSettings?.feedbackIncorporation
                       ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                       : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
                   }`}
                 >
-                  {controlPanel?.aiSettings?.feedbackIncorporation
+                  {panel?.aiSettings?.feedbackIncorporation
                     ? "Enabled"
                     : "Disabled"}
                 </div>
@@ -418,7 +516,7 @@ export function AIControlDashboard() {
                   Confidence Threshold
                 </label>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {controlPanel?.aiSettings?.confidenceThreshold}% minimum
+                  {panel?.aiSettings?.confidenceThreshold}% minimum
                 </p>
               </div>
             </CardContent>

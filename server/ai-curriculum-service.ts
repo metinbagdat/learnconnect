@@ -182,14 +182,14 @@ export async function generateCourseCurriculum(
         const moduleLessons = lessons.filter(l => l.moduleId === m.id);
         return {
           title: m.titleEn || m.title,
-          description: m.descriptionEn || m.description,
+          description: m.descriptionEn || m.descriptionTr || '',
           order: m.order,
           lessons: moduleLessons.map(l => ({
             title: l.titleEn || l.title,
-            description: l.descriptionEn || l.description,
+            description: l.descriptionEn || l.descriptionTr || '',
             content: l.contentEn || l.content || '',
-            estimatedTime: l.estimatedTime,
-            tags: l.tags || [],
+            // estimatedTime: l.estimatedTime, // Not in schema
+            // tags: l.tags || [], // Not in schema
             order: l.order,
           })),
         };

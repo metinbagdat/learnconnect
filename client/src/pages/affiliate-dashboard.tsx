@@ -6,16 +6,33 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { TrendingUp, DollarSign, Users, BarChart3 } from "lucide-react";
 
+interface AffiliateData {
+  totalEarnings?: number | string;
+  referralsCount?: number;
+  commissionRate?: number | string;
+  affiliateCode?: string;
+}
+
+interface AffiliateTransaction {
+  id: number;
+  amount: number;
+  date: string;
+  description: string;
+  transactionType?: string;
+  createdAt?: string;
+  status?: string;
+}
+
 export default function AffiliateDashboard() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
   const isTr = language === "tr";
 
-  const { data: affiliateData } = useQuery({
+  const { data: affiliateData } = useQuery<AffiliateData>({
     queryKey: ["/api/affiliate/account"],
   });
 
-  const { data: transactions } = useQuery({
+  const { data: transactions } = useQuery<AffiliateTransaction[]>({
     queryKey: ["/api/affiliate/transactions"],
   });
 
@@ -123,7 +140,7 @@ export default function AffiliateDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {transactions?.slice(0, 5).map((tx: any, i: number) => (
+                {(transactions || []).slice(0, 5).map((tx, i) => (
                   <div
                     key={i}
                     className="flex justify-between items-center p-3 bg-slate-700/30 rounded"

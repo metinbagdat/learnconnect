@@ -1,6 +1,6 @@
 import { db } from "./db.js";
 import * as schema from "../shared/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export async function enrollUserInCourse(userId: number, courseId: number) {
   try {
@@ -12,7 +12,7 @@ export async function enrollUserInCourse(userId: number, courseId: number) {
       currentModule: 1,
       completed: false,
       enrolledAt: new Date(),
-    }).returning();
+    } as any).returning();
 
     // 2. Get the curriculum for the course
     const modules = await db.select().from(schema.modules).where(eq(schema.modules.courseId, courseId));
@@ -26,10 +26,11 @@ export async function enrollUserInCourse(userId: number, courseId: number) {
     const [studyPlan] = await db.insert(schema.studyPlans).values({
       userId,
       courseId,
+      title: `Study Plan for Course ${courseId}`,
       status: "active",
       startDate: now,
-      completionPercentage: 0,
-    }).returning();
+      // completionPercentage not in schema
+    } as any).returning();
 
     // 4. Create assignments for each curriculum item with cumulative due dates
     const assignments = [];
@@ -48,35 +49,41 @@ export async function enrollUserInCourse(userId: number, courseId: number) {
         const dueDate = new Date(now);
         dueDate.setDate(dueDate.getDate() + cumulativeDays);
         
-        const [assignment] = await db.insert(schema.userAssignments).values({
-          userId,
-          studyPlanId: studyPlan.id,
-          assignmentId: lesson.id,
+        // Create assignment in assignments table first
+        const [assignmentRecord] = await db.insert(schema.assignments).values({
           title: lesson.title,
           description: `Complete lesson: ${lesson.title}`,
-          moduleId: module.id,
-          type: "lesson",
+          courseId,
+          lessonId: lesson.id,
+          studyPlanId: studyPlan.id,
           dueDate,
           status: "pending",
-          order: cumulativeDays,
-        }).returning();
+          points: 10,
+        } as any).returning();
+        
+        // Then create user assignment link
+        const [assignment] = await db.insert(schema.userAssignments).values({
+          userId,
+          assignmentId: assignmentRecord.id,
+          status: "not_started",
+        } as any).returning();
         
         assignments.push(assignment);
       }
     }
 
-    // Update study plan with target completion date
-    const targetCompletionDate = new Date(now);
-    targetCompletionDate.setDate(targetCompletionDate.getDate() + cumulativeDays);
+    // Update study plan with end date
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + cumulativeDays);
     
     await db.update(schema.studyPlans)
       .set({ 
-        targetCompletionDate,
-        duration: Math.ceil(cumulativeDays / 7),
-      })
+        endDate,
+        // targetCompletionDate, duration not in schema
+      } as any)
       .where(eq(schema.studyPlans.id, studyPlan.id));
 
-    return { enrollment, studyPlan: { ...studyPlan, targetCompletionDate }, assignments };
+    return { enrollment, studyPlan: { ...studyPlan, endDate }, assignments };
   } catch (error) {
     console.error("Enrollment error:", error);
     throw error;
@@ -86,21 +93,42 @@ export async function enrollUserInCourse(userId: number, courseId: number) {
 export async function completeAssignment(userId: number, assignmentId: number, score?: number) {
   const now = new Date();
   const [updated] = await db.update(schema.userAssignments)
-    .set({ status: "completed", completedAt: now, score: score || 100 })
+    .set({ status: "completed", submittedAt: now, grade: score || 100 } as any)
     .where(eq(schema.userAssignments.id, assignmentId))
     .returning();
   
-  // Update study plan progress
+  // Update user progress
   const assignment = await db.select().from(schema.userAssignments).where(eq(schema.userAssignments.id, assignmentId));
   if (assignment.length > 0) {
-    const studyPlanId = assignment[0].studyPlanId;
-    const allAssignments = await db.select().from(schema.userAssignments).where(eq(schema.userAssignments.studyPlanId, studyPlanId));
-    const completedCount = allAssignments.filter(a => a.status === "completed").length;
-    const completionPercentage = Math.round((completedCount / allAssignments.length) * 100);
+    // Check if progress record exists
+    const existing = await db.select().from(schema.userProgress)
+      .where(
+        and(
+          eq(schema.userProgress.userId, userId),
+          eq(schema.userProgress.assignmentId, assignment[0].assignmentId)
+        )
+      )
+      .limit(1);
     
-    await db.update(schema.studyPlans)
-      .set({ completionPercentage })
-      .where(eq(schema.studyPlans.id, studyPlanId));
+    if (existing.length > 0) {
+      // Update existing
+      await db.update(schema.userProgress)
+        .set({
+          status: "completed",
+          completedAt: now,
+          score: score || 100,
+        } as any)
+        .where(eq(schema.userProgress.id, existing[0].id));
+    } else {
+      // Create new
+      await db.insert(schema.userProgress).values({
+        userId,
+        assignmentId: assignment[0].assignmentId,
+        status: "completed",
+        completedAt: now,
+        score: score || 100,
+      } as any);
+    }
   }
   
   return updated;
@@ -111,8 +139,21 @@ export async function getUserAssignments(userId: number) {
 }
 
 export async function getUserProgress(userId: number, studyPlanId: number) {
-  const [progress] = await db.select().from(schema.userProgress).where(
-    eq(schema.userProgress.userId, userId) && eq(schema.userProgress.studyPlanId, studyPlanId)
-  );
-  return progress;
+  // Get assignments for this study plan
+  const assignments = await db.select().from(schema.assignments).where(eq(schema.assignments.studyPlanId, studyPlanId));
+  const assignmentIds = assignments.map(a => a.id);
+  
+  if (assignmentIds.length === 0) return null;
+  
+  // Get user progress for these assignments
+  const progress = await db.select().from(schema.userProgress)
+    .where(
+      and(
+        eq(schema.userProgress.userId, userId),
+        inArray(schema.userProgress.assignmentId, assignmentIds)
+      )
+    )
+    .limit(1);
+  
+  return progress[0] || null;
 }

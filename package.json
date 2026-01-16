@@ -7,7 +7,7 @@
     "dev": "tsx server/index.ts",
     "dev:debug": "NODE_ENV=development tsx server/index.ts",
     "build": "vite build && node build-server.js && node build-vercel-api.js",
-    "build:vercel": "SKIP_TYPE_CHECK=true vite build && node build-server.js && node build-vercel-api.js",
+    "build:vercel": "vite build && node build-server.js && node build-vercel-api.js",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "start": "NODE_ENV=production node dist/index.js",

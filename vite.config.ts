@@ -26,45 +26,55 @@ export default defineConfig({
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
     
-    // ✅ KRİTİK DÜZELTME: Minification ayarlarını değiştir
-    // esbuild kullan (terser yüklenemedi, esbuild daha güvenli)
-    // esbuild hoisting'i daha iyi yönetir ve 'A before initialization' hatalarını önler
-    minify: 'esbuild',
-    // ✅ Disable minification of variable names to prevent TDZ issues
-    // Keep variable names readable for better debugging and to avoid hoisting problems
-    minifyIdentifiers: false, // Prevent aggressive identifier minification that can cause TDZ errors
+    // ✅ KRİTİK: Production'da minify'i kapatıyoruz - TDZ hatalarını önlemek için
+    // "Cannot access 'A' before initialization" hatası minify sırasında oluşuyor
+    // Geçici olarak minify kapalı, site çalışır hale gelince tekrar açabiliriz
+    minify: false,
+    target: 'es2020',
     
-    // ✅ Optimize for proper variable hoisting
-    // This helps prevent "can't access lexical declaration before initialization" errors
-    target: 'es2020', // Use modern target for better hoisting
-    
-    // ✅ Use 'exports-only' instead of 'strict' to allow lazy loading while maintaining order
-    // 'strict' can conflict with lazy loading and cause initialization errors
-    preserveEntrySignatures: 'exports-only',
-    
-    // ✅ Sourcemap'i production'da kapat (security ve performance için)
-    // Development'da açık kalır (debug için)
-    sourcemap: process.env.NODE_ENV !== 'production',
+    // ✅ Sourcemap'i 'hidden' yap - üretilir ama client tarafından istenmedikçe sunulmaz
+    // Bu build süresini ve dosya boyutunu azaltır, ancak gerektiğinde debug için kullanılabilir
+    sourcemap: 'hidden',
     cssCodeSplit: true,
     reportCompressedSize: false,
     
     rollupOptions: {
+      // ✅ Preserve entry signatures to maintain proper module initialization order
+      // 'exports-only' ensures that entry modules maintain their export structure
+      // This prevents TDZ errors by ensuring proper initialization order
+      preserveEntrySignatures: 'exports-only',
+      
       // ✅ Optimize module hoisting to prevent lexical declaration errors
-      // This ensures proper initialization order
+      // This ensures proper initialization order and prevents TDZ (Temporal Dead Zone) errors
       treeshake: {
-        preset: 'smallest', // More aggressive tree-shaking but safer for hoisting
+        // ✅ Less aggressive tree-shaking to prevent TDZ issues
+        // 'smallest' preset can break initialization order by removing code that's needed for proper init
+        // 'recommended' is safer and prevents TDZ errors
+        preset: 'recommended',
         moduleSideEffects: (id) => {
-          // Preserve side effects for certain modules that need proper initialization
+          // Preserve side effects for all modules to ensure proper initialization order
+          // This prevents TDZ errors caused by tree-shaking removing necessary code
+          // Critical for preventing "Cannot access 'A' before initialization" errors
+          
+          // Always preserve side effects for node_modules (they may have initialization code)
           if (id.includes('node_modules')) {
-            // Allow side effects for vendor modules
             return true;
           }
-          // Preserve side effects for lazy-loaded pages to ensure proper initialization
-          if (id.includes('/pages/') || id.includes('/components/')) {
+          
+          // Preserve side effects for app code that may have initialization logic
+          if (id.includes('/pages/') || id.includes('/components/') || id.includes('/lib/')) {
             return true;
           }
-          return false;
+          
+          // Be conservative - preserve side effects for all app code
+          // This is safer than being too aggressive and causing TDZ errors
+          return true;
         },
+        // ✅ Don't use property read side effects optimization
+        // This can cause issues with module initialization
+        propertyReadSideEffects: true,
+        // ✅ Preserve try-catch side effects (important for error handling)
+        tryCatchDeoptimization: false,
       },
       
       // ✅ Circular dependency warning'lerini görmezden gel
@@ -114,107 +124,71 @@ export default defineConfig({
       },
       
       output: {
-        // ✅ Ensure proper output format to prevent TDZ issues
-        format: 'es', // ES modules have better TDZ handling
-        generatedCode: {
-          constBindings: false, // Use var instead of const for better hoisting (reduces TDZ errors)
-          objectShorthand: false, // Disable object shorthand for better compatibility
-        },
-        // ✅ Isolate chunks to prevent cross-chunk TDZ issues
-        // This ensures each chunk is independent and doesn't create initialization dependencies
+        // ✅ ES modules format - better TDZ handling
+        format: 'es',
+        // ✅ Simplified output - no aggressive code generation that causes TDZ issues
         interop: 'auto',
+        // ✅ Ensure proper module boundaries to prevent TDZ errors
+        // This prevents circular dependencies and ensures proper initialization order
+        preserveModules: false,
         
-        // ✅ Optimized chunk splitting strategy to prevent initialization order issues
-        // Group related vendors together and ensure proper load order
-        // IMPORTANT: Separate dashboard pages to prevent large chunk initialization issues
-        manualChunks(id) {
-          // Isolate problematic dashboard pages that might have circular deps
-          if (id.includes('/pages/dashboard') && !id.includes('dashboard-standalone')) {
-            return 'dashboard-core';
-          }
-          
-          // Separate large dashboard pages into their own chunks
-          if (id.includes('/pages/student-ai-dashboard') || 
-              id.includes('/pages/student-control-panel') ||
-              id.includes('/pages/admin-ai-dashboard')) {
-            return 'dashboard-ai';
-          }
-          
-          // Separate TYT dashboard as it's complex
-          if (id.includes('/pages/tyt-dashboard')) {
-            return 'dashboard-tyt';
-          }
-          
-          // Separate system health and monitoring
-          if (id.includes('/pages/system-health') || 
-              id.includes('/pages/monitoring')) {
-            return 'dashboard-system';
-          }
-          
-          // Core React and DOM - must load first
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor';
-          }
-          
-          // Router - loads early, needed for route resolution
-          if (id.includes('node_modules/wouter')) {
-            return 'router-vendor';
-          }
-          
-          // Query library - loads early for data fetching
-          if (id.includes('node_modules/@tanstack/react-query')) {
-            return 'query-vendor';
-          }
-          
-          // UI components - group all Radix UI together
-          if (id.includes('node_modules/@radix-ui')) {
-            return 'ui-vendor';
-          }
-          
-          // Form handling - group together
-          if (id.includes('node_modules/react-hook-form') || id.includes('node_modules/@hookform')) {
-            return 'form-vendor';
-          }
-          
-          // Charts - isolate as they can cause issues
-          if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
-            return 'chart-vendor';
-          }
-          
-          // Icons - group together
-          if (id.includes('node_modules/lucide-react') || id.includes('node_modules/react-icons')) {
-            return 'icons-vendor';
-          }
-          
-          // Date utilities
-          if (id.includes('node_modules/date-fns') || id.includes('node_modules/react-day-picker')) {
-            return 'date-vendor';
-          }
-          
-          // Markdown
-          if (id.includes('node_modules/react-markdown')) {
-            return 'markdown-vendor';
-          }
-          
-          // Animation
-          if (id.includes('node_modules/framer-motion')) {
-            return 'motion-vendor';
-          }
-          
-          // Utilities - group common utils together
-          if (
-            id.includes('node_modules/clsx') ||
-            id.includes('node_modules/tailwind-merge') ||
-            id.includes('node_modules/zod') ||
-            id.includes('node_modules/zod-validation-error')
-          ) {
-            return 'utils-vendor';
-          }
-          
-          // All other node_modules go into a common vendor chunk
+        // ✅ Simplified chunk splitting strategy to prevent initialization order issues
+        // Keep related code together and ensure proper load order
+        // Lazy-loaded pages are automatically split by Vite, so we only need to handle vendors
+        manualChunks: (id) => {
+          // Don't split node_modules too aggressively - keep related packages together
           if (id.includes('node_modules')) {
+            // Core React and DOM - must load first (critical path)
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            // Router - loads early but after React
+            if (id.includes('wouter')) {
+              return 'router-vendor';
+            }
+            // Query library - depends on React
+            if (id.includes('@tanstack/react-query')) {
+              return 'query-vendor';
+            }
+            // UI components - group all Radix UI together (large but cohesive)
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            // Form handling - depends on React
+            if (id.includes('react-hook-form') || id.includes('@hookform/resolvers')) {
+              return 'form-vendor';
+            }
+            // Charts - large library, keep separate
+            if (id.includes('recharts')) {
+              return 'chart-vendor';
+            }
+            // Icons - lightweight, can be grouped
+            if (id.includes('lucide-react') || id.includes('react-icons')) {
+              return 'icons-vendor';
+            }
+            // Date utilities - small, can be grouped
+            if (id.includes('date-fns') || id.includes('react-day-picker')) {
+              return 'date-vendor';
+            }
+            // Markdown - medium size
+            if (id.includes('react-markdown')) {
+              return 'markdown-vendor';
+            }
+            // Animation - large library
+            if (id.includes('framer-motion')) {
+              return 'motion-vendor';
+            }
+            // Utilities - small, group together to reduce chunks
+            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('zod') || id.includes('zod-validation-error')) {
+              return 'utils-vendor';
+            }
+            // All other node_modules in one chunk to avoid too many chunks
+            // This reduces the chance of TDZ errors from complex dependency chains
             return 'vendor';
           }
+          // App code stays in separate chunks (handled by Vite automatically)
+          // Vite's automatic code splitting is better at handling app code dependencies
+          return null;
         },
         
         chunkFileNames: 'js/chunk-[name]-[hash:8].js',

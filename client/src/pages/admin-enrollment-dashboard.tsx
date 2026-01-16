@@ -12,21 +12,43 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Users, BookOpen, CheckCircle, TrendingUp, Activity, Zap } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
+interface EnrollmentMetrics {
+  totalEnrollments?: number;
+  successfulPipelines?: number;
+  studyPlansCreated?: number;
+  aiOperations?: number;
+}
+
+interface PipelineHealth {
+  step1?: string;
+  step2?: string;
+  step3?: string;
+  step4?: string;
+  step5?: string;
+}
+
+interface CourseStat {
+  id: number;
+  title: string;
+  enrollments?: number;
+  successRate?: number;
+}
+
 export default function AdminEnrollmentDashboard() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
 
-  const { data: enrollmentMetrics = {}, isLoading: metricsLoading } = useQuery({
+  const { data: enrollmentMetrics } = useQuery<EnrollmentMetrics>({
     queryKey: ["/api/admin/enrollment-metrics"],
     enabled: user?.role === "admin",
   });
 
-  const { data: courseStats = [], isLoading: statsLoading } = useQuery({
+  const { data: courseStats } = useQuery<CourseStat[]>({
     queryKey: ["/api/admin/course-stats"],
     enabled: user?.role === "admin",
   });
 
-  const { data: pipelineHealth = {}, isLoading: healthLoading } = useQuery({
+  const { data: pipelineHealth } = useQuery<PipelineHealth>({
     queryKey: ["/api/admin/pipeline-health"],
     enabled: user?.role === "admin",
   });
@@ -152,7 +174,7 @@ export default function AdminEnrollmentDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {courseStats.slice(0, 5).map((course: any) => (
+                    {(courseStats || []).slice(0, 5).map((course) => (
                       <div key={course.id} className="space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-slate-900">{course.title}</span>

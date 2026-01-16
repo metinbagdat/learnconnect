@@ -66,10 +66,11 @@ import {
 import { format, subDays, subWeeks, subMonths, startOfDay, endOfDay } from "date-fns";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 
-interface DateRange {
-  from?: Date;
-  to?: Date;
-}
+// Use the same DateRange type as the component
+type DateRange = {
+  from: Date | undefined;
+  to: Date | undefined;
+};
 
 // Enhanced Analytics Data Types
 interface AdvancedAnalytics {

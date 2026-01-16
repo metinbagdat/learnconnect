@@ -26,9 +26,10 @@ if (typeof window !== 'undefined') {
     }
     
     // Patch Date.prototype.toTemporalInstant if removed
-    if (Date.prototype && !Date.prototype.toTemporalInstant) {
+    // Use 'in' operator to check for property existence (SES-aware check)
+    if (Date.prototype && !('toTemporalInstant' in Date.prototype)) {
       // Add a no-op replacement if needed
-      // @ts-ignore - This method may not exist in SES environments
+      // @ts-expect-error - This method may not exist in SES environments, we're adding it
       Date.prototype.toTemporalInstant = function() {
         return null; // Return null instead of throwing
       };
@@ -102,22 +103,44 @@ if (typeof window !== 'undefined') {
         return true;
       }
       
-      // For chunk initialization errors, try recovery
+      // For chunk initialization errors, attempt recovery
       if (message.includes('chunk-') || message.includes('before initialization')) {
-        // Only attempt recovery once
-        const recoveryKey = '__init_error_recovered_' + (error?.source || 'unknown');
+        // Log the error for debugging
+        console.error('[ModuleInit] CRITICAL: Chunk initialization error:', {
+          message: message.substring(0, 200),
+          source: error?.source || error?.filename || 'unknown',
+          stack: error?.stack?.substring(0, 500) || 'no stack'
+        });
+        
+        // Attempt recovery by reloading the page once
+        // This helps with cases where chunks load out of order due to network issues
+        const recoveryKey = '__chunk_error_recovery_attempted';
         if (!sessionStorage.getItem(recoveryKey)) {
+          console.warn('[ModuleInit] Attempting recovery: reloading page once...');
           sessionStorage.setItem(recoveryKey, 'true');
-          console.warn('[ModuleInit] Chunk initialization error detected:', message.substring(0, 100));
           
-          // Try reloading after a delay
+          // Use setTimeout to allow current error handling to complete
           setTimeout(() => {
-            if (document.readyState === 'loading') {
-              window.location.reload();
+            // Clear cache headers to force fresh load
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(registrations => {
+                registrations.forEach(reg => reg.unregister());
+              });
             }
-          }, 2000);
+            // Reload with cache bypass
+            window.location.reload();
+          }, 1000);
+          
+          // Mark error as handled for this attempt
+          (error as any).__isChunkInitError = true;
+          (error as any).__recoveryAttempted = true;
+          return true; // Suppress error during recovery attempt
+        } else {
+          // Recovery already attempted, let error propagate
+          console.error('[ModuleInit] Recovery already attempted, error persists');
+          (error as any).__isChunkInitError = true;
+          return false; // Let error propagate for debugging
         }
-        return true; // Prevent error from propagating
       }
     }
     

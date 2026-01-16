@@ -1,7 +1,7 @@
 import { db } from "./db.js";
 import * as schema from "../shared/schema.js";
 import Anthropic from "@anthropic-ai/sdk";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -36,10 +36,7 @@ export class AIFeatures {
       // Get enrolled course details
       const enrolledCourseIds = enrollments.map(e => e.courseId);
       const enrolledCourses = enrolledCourseIds.length > 0
-        ? await db.select().from(schema.courses).where((courses) => {
-            const ids = enrollments.map(e => e.courseId);
-            return ids.includes(courses.id);
-          })
+        ? await db.select().from(schema.courses).where(inArray(schema.courses.id, enrolledCourseIds))
         : [];
 
       // Get all available courses
@@ -195,7 +192,7 @@ Generate a JSON response with adjustment recommendations:
           if (adjustment === "decelerated" && aiAdjustment.durationAdjustment > 0) {
             const newEnd = new Date(endDate.getTime() + aiAdjustment.durationAdjustment * 24 * 60 * 60 * 1000);
             await db.update(schema.studyPlans)
-              .set({ endDate: newEnd })
+              .set({ endDate: newEnd } as any)
               .where(eq(schema.studyPlans.id, studyPlanId));
             
             console.log(`[AI-Features] ✓ Extended study plan by ${aiAdjustment.durationAdjustment} days`);

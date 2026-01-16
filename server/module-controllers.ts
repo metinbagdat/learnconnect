@@ -60,7 +60,7 @@ export class PlanGeneratorController {
 
   async configureGenerator(config: any) {
     try {
-      logger.info("Configuring plan generator with:", JSON.stringify(config));
+      logger.info(`Configuring plan generator with: ${JSON.stringify(config)}`);
 
       // Apply configuration
       const newSettings = {

@@ -102,7 +102,7 @@ export async function setupAuth(app: Express) {
       // Try to use memorystore for better memory management (optional dependency)
       const memorystore = await import("memorystore");
       const createMemoryStore = memorystore.default || memorystore;
-      const MemoryStoreClass = createMemoryStore(session);
+      const MemoryStoreClass = (typeof createMemoryStore === 'function' ? createMemoryStore : (createMemoryStore as any).default)(session);
       sessionStore = new MemoryStoreClass({
         checkPeriod: 86400000 // prune expired entries every 24h
       });
@@ -463,7 +463,23 @@ export async function setupAuth(app: Express) {
       // Try to get user from session first
       if (req.isAuthenticated() && req.user) {
         const { password, ...userWithoutPassword } = req.user;
-        return res.json(userWithoutPassword);
+        // ✅ FIX: Safely extract user data without schema validation
+        // Remove any fields that might cause schema validation errors
+        const safeUser: any = {};
+        for (const [key, value] of Object.entries(userWithoutPassword)) {
+          // Skip password and any undefined values
+          if (key !== 'password' && value !== undefined) {
+            safeUser[key] = value;
+          }
+        }
+        // Ensure createdAt/updatedAt exist
+        if (!safeUser.createdAt) {
+          safeUser.createdAt = (userWithoutPassword as any).createdAt || new Date().toISOString();
+        }
+        if (!safeUser.updatedAt) {
+          safeUser.updatedAt = (userWithoutPassword as any).updatedAt || new Date().toISOString();
+        }
+        return res.json(safeUser);
       }
       
       // Try header-based auth
@@ -474,7 +490,21 @@ export async function setupAuth(app: Express) {
           const user = await storage.getUser(userId);
           if (user) {
             const { password, ...userWithoutPassword } = user;
-            return res.json(userWithoutPassword);
+            // ✅ FIX: Safely extract user data without schema validation
+            const safeUser: any = {};
+            for (const [key, value] of Object.entries(userWithoutPassword)) {
+              if (key !== 'password' && value !== undefined) {
+                safeUser[key] = value;
+              }
+            }
+            // Ensure createdAt/updatedAt exist
+            if (!safeUser.createdAt) {
+              safeUser.createdAt = (userWithoutPassword as any).createdAt || new Date().toISOString();
+            }
+            if (!safeUser.updatedAt) {
+              safeUser.updatedAt = (userWithoutPassword as any).updatedAt || new Date().toISOString();
+            }
+            return res.json(safeUser);
           }
         } catch (dbError: any) {
           const requestId = (req as any)?.requestId || 'unknown';
@@ -493,6 +523,8 @@ export async function setupAuth(app: Express) {
       const requestId = (req as any)?.requestId || 'unknown';
       logger.error('Error in /api/user handler', error, {
         requestId,
+        errorMessage: error?.message,
+        errorStack: error?.stack,
       });
       // Return 401 instead of 500 to prevent ErrorBoundary from catching it
       res.status(401).json({ message: "Unauthorized" });

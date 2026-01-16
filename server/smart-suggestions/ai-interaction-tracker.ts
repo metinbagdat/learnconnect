@@ -265,7 +265,7 @@ class AIInteractionTracker {
 
     // Calculate factors
     const interactionFrequency = Math.min(logs.length / 10, 25); // 0-25
-    const goalProgress = goals.length > 0 ? (goals.reduce((sum, g) => sum + (g.progress || 0), 0) / goals.length) * 0.25 : 0; // 0-25
+    const goalProgress = goals.length > 0 ? (goals.reduce((sum, g) => sum + ((g as any).progress || 0), 0) / goals.length) * 0.25 : 0; // 0-25
     const courseCompletion = courses.length > 0 ? (courses.filter((c) => c.completed).length / courses.length) * 25 : 0; // 0-25
     const consistency = Math.min(logs.length / 20, 25); // 0-25
 

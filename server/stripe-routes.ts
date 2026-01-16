@@ -164,13 +164,10 @@ export function registerStripeRoutes(app: Express) {
         // Enroll user in course if courseId is in metadata
         if (paymentIntent.metadata.courseId && paymentIntent.metadata.userId) {
           try {
-            await storage.enrollUserInCourse({
-              userId: parseInt(paymentIntent.metadata.userId),
-              courseId: parseInt(paymentIntent.metadata.courseId),
-              progress: 0,
-              currentModule: 1,
-              completed: false,
-            });
+            await storage.enrollUserInCourse(
+              parseInt(paymentIntent.metadata.userId),
+              parseInt(paymentIntent.metadata.courseId)
+            );
             console.log(`User ${paymentIntent.metadata.userId} enrolled in course ${paymentIntent.metadata.courseId}`);
           } catch (error) {
             console.error('Error enrolling user in course:', error);
