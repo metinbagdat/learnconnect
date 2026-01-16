@@ -462,22 +462,15 @@ export async function setupAuth(app: Express) {
     try {
       // Try to get user from session first
       if (req.isAuthenticated() && req.user) {
-        const { password, ...userWithoutPassword } = req.user;
-        // ✅ FIX: Safely extract user data without schema validation
-        // Remove any fields that might cause schema validation errors
+        const { password, createdAt, updatedAt, ...userWithoutPassword } = req.user;
+        // ✅ CRITICAL FIX: Remove createdAt/updatedAt to prevent schema validation errors
+        // Frontend schema validation doesn't expect these fields
         const safeUser: any = {};
         for (const [key, value] of Object.entries(userWithoutPassword)) {
-          // Skip password and any undefined values
-          if (key !== 'password' && value !== undefined) {
+          // Skip password, createdAt, updatedAt and any undefined values
+          if (key !== 'password' && key !== 'createdAt' && key !== 'updatedAt' && value !== undefined) {
             safeUser[key] = value;
           }
-        }
-        // Ensure createdAt/updatedAt exist
-        if (!safeUser.createdAt) {
-          safeUser.createdAt = (userWithoutPassword as any).createdAt || new Date().toISOString();
-        }
-        if (!safeUser.updatedAt) {
-          safeUser.updatedAt = (userWithoutPassword as any).updatedAt || new Date().toISOString();
         }
         return res.json(safeUser);
       }
@@ -489,20 +482,14 @@ export async function setupAuth(app: Express) {
           const userId = typeof userIdHeader === 'string' ? Number(userIdHeader) : Number(userIdHeader[0]);
           const user = await storage.getUser(userId);
           if (user) {
-            const { password, ...userWithoutPassword } = user;
-            // ✅ FIX: Safely extract user data without schema validation
+            const { password, createdAt, updatedAt, ...userWithoutPassword } = user;
+            // ✅ CRITICAL FIX: Remove createdAt/updatedAt to prevent schema validation errors
+            // Frontend schema validation doesn't expect these fields
             const safeUser: any = {};
             for (const [key, value] of Object.entries(userWithoutPassword)) {
-              if (key !== 'password' && value !== undefined) {
+              if (key !== 'password' && key !== 'createdAt' && key !== 'updatedAt' && value !== undefined) {
                 safeUser[key] = value;
               }
-            }
-            // Ensure createdAt/updatedAt exist
-            if (!safeUser.createdAt) {
-              safeUser.createdAt = (userWithoutPassword as any).createdAt || new Date().toISOString();
-            }
-            if (!safeUser.updatedAt) {
-              safeUser.updatedAt = (userWithoutPassword as any).updatedAt || new Date().toISOString();
             }
             return res.json(safeUser);
           }
