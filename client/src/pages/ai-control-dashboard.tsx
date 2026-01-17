@@ -97,7 +97,11 @@ export function AIControlDashboard() {
   const [selectedTab, setSelectedTab] = useState("overview");
 
   // Fetch control panel with proper typing
-  const controlPanelQuery = useQuery<ControlPanel>({
+  // Use explicit type annotation to help TypeScript
+  const {
+    data: controlPanelData,
+    isLoading: panelLoading,
+  } = useQuery<ControlPanel, Error>({
     queryKey: ["/api/ai/control-panel"],
     queryFn: async ({ queryKey }): Promise<ControlPanel> => {
       const response = await apiRequest("GET", queryKey[0] as string);
@@ -114,7 +118,10 @@ export function AIControlDashboard() {
   });
 
   // Fetch analytics with proper typing
-  const analyticsQuery = useQuery<Analytics>({
+  const {
+    data: analyticsQueryData,
+    isLoading: analyticsLoading,
+  } = useQuery<Analytics, Error>({
     queryKey: ["/api/ai/performance-analytics"],
     queryFn: async ({ queryKey }): Promise<Analytics> => {
       const response = await apiRequest("GET", queryKey[0] as string);
@@ -130,19 +137,10 @@ export function AIControlDashboard() {
     },
   });
 
-  const panelLoading = controlPanelQuery.isLoading;
-  const analyticsLoading = analyticsQuery.isLoading;
-
-  // Type the data explicitly - use type assertion to help TypeScript
-  // This ensures TypeScript recognizes the correct types
-  // Explicitly type the variables to avoid 'unknown' type inference issues
-  const panel: ControlPanel | undefined = controlPanelQuery.data 
-    ? (controlPanelQuery.data as ControlPanel)
-    : undefined;
-  
-  const analyticsData: Analytics | undefined = analyticsQuery.data
-    ? (analyticsQuery.data as Analytics)
-    : undefined;
+  // Type the data explicitly - use direct access with type assertions
+  // Create typed aliases to avoid 'unknown' type issues
+  const panel = controlPanelData as ControlPanel | undefined;
+  const analyticsData = analyticsQueryData as Analytics | undefined;
 
   // Refresh suggestions
   const refreshSuggestions = useMutation({
@@ -205,7 +203,7 @@ export function AIControlDashboard() {
                   Avg Confidence
                 </p>
                 <p className="text-3xl font-bold text-blue-600 mt-2">
-                  {panel?.overallPerformance?.avgConfidence || 0}%
+                  {(panel as ControlPanel | undefined)?.overallPerformance?.avgConfidence || 0}%
                 </p>
               </div>
               <Zap className="w-8 h-8 text-yellow-500" />
@@ -221,7 +219,7 @@ export function AIControlDashboard() {
                   Total Suggestions
                 </p>
                 <p className="text-3xl font-bold text-green-600 mt-2">
-                  {panel?.overallPerformance?.totalSuggestions || 0}
+                  {(panel as ControlPanel | undefined)?.overallPerformance?.totalSuggestions || 0}
                 </p>
               </div>
               <Activity className="w-8 h-8 text-green-500" />
@@ -237,7 +235,7 @@ export function AIControlDashboard() {
                   Acceptance Rate
                 </p>
                 <p className="text-3xl font-bold text-purple-600 mt-2">
-                  {panel?.overallPerformance?.acceptanceRate || 0}%
+                  {(panel as ControlPanel | undefined)?.overallPerformance?.acceptanceRate || 0}%
                 </p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-500" />
@@ -253,7 +251,7 @@ export function AIControlDashboard() {
                   Performance Score
                 </p>
                 <p className="text-3xl font-bold text-orange-600 mt-2">
-                  {panel?.overallPerformance?.performanceScore || 0}/100
+                  {(panel as ControlPanel | undefined)?.overallPerformance?.performanceScore || 0}/100
                 </p>
               </div>
               <Sliders className="w-8 h-8 text-orange-500" />
@@ -286,12 +284,12 @@ export function AIControlDashboard() {
                   </h3>
                   <span
                     className={`px-2 py-1 rounded text-xs font-semibold ${
-                      panel?.goalRecommendationsControl?.status === "active"
+                      (panel as ControlPanel | undefined)?.goalRecommendationsControl?.status === "active"
                         ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                         : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
                     }`}
                   >
-                    {panel?.goalRecommendationsControl?.status}
+                    {(panel as ControlPanel | undefined)?.goalRecommendationsControl?.status}
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-3 text-sm">
@@ -300,7 +298,7 @@ export function AIControlDashboard() {
                       Confidence
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.goalRecommendationsControl?.confidenceLevel}%
+                      {(panel as ControlPanel | undefined)?.goalRecommendationsControl?.confidenceLevel}%
                     </p>
                   </div>
                   <div>
@@ -308,7 +306,7 @@ export function AIControlDashboard() {
                       Suggestions
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.goalRecommendationsControl?.suggestionsCount}
+                      {(panel as ControlPanel | undefined)?.goalRecommendationsControl?.suggestionsCount}
                     </p>
                   </div>
                   <div>
@@ -316,7 +314,7 @@ export function AIControlDashboard() {
                       Acceptance
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.goalRecommendationsControl?.acceptanceRate}%
+                      {(panel as ControlPanel | undefined)?.goalRecommendationsControl?.acceptanceRate}%
                     </p>
                   </div>
                 </div>
@@ -338,7 +336,7 @@ export function AIControlDashboard() {
                       Confidence
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.courseSuggestionsControl?.confidenceLevel}%
+                      {(panel as ControlPanel | undefined)?.courseSuggestionsControl?.confidenceLevel}%
                     </p>
                   </div>
                   <div>
@@ -346,7 +344,7 @@ export function AIControlDashboard() {
                       Suggestions
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.courseSuggestionsControl?.suggestionsCount}
+                      {(panel as ControlPanel | undefined)?.courseSuggestionsControl?.suggestionsCount}
                     </p>
                   </div>
                   <div>
@@ -354,7 +352,7 @@ export function AIControlDashboard() {
                       Acceptance
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.courseSuggestionsControl?.acceptanceRate}%
+                      {(panel as ControlPanel | undefined)?.courseSuggestionsControl?.acceptanceRate}%
                     </p>
                   </div>
                 </div>
@@ -376,7 +374,7 @@ export function AIControlDashboard() {
                       Confidence
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.studyPlanControl?.confidenceLevel}%
+                      {(panel as ControlPanel | undefined)?.studyPlanControl?.confidenceLevel}%
                     </p>
                   </div>
                   <div>
@@ -384,7 +382,7 @@ export function AIControlDashboard() {
                       Suggestions
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.studyPlanControl?.suggestionsCount}
+                      {(panel as ControlPanel | undefined)?.studyPlanControl?.suggestionsCount}
                     </p>
                   </div>
                   <div>
@@ -392,7 +390,7 @@ export function AIControlDashboard() {
                       Acceptance
                     </p>
                     <p className="text-lg font-bold text-slate-900 dark:text-white">
-                      {panel?.studyPlanControl?.acceptanceRate}%
+                      {(panel as ControlPanel | undefined)?.studyPlanControl?.acceptanceRate}%
                     </p>
                   </div>
                 </div>
@@ -414,15 +412,15 @@ export function AIControlDashboard() {
                     data={[
                       {
                         name: "Goals",
-                        count: analyticsData?.suggestionsByType?.goal || 0,
+                        count: (analyticsData as Analytics | undefined)?.suggestionsByType?.goal || 0,
                       },
                       {
                         name: "Courses",
-                        count: analyticsData?.suggestionsByType?.course || 0,
+                        count: (analyticsData as Analytics | undefined)?.suggestionsByType?.course || 0,
                       },
                       {
                         name: "Study Plans",
-                        count: analyticsData?.suggestionsByType?.study_plan || 0,
+                        count: (analyticsData as Analytics | undefined)?.suggestionsByType?.study_plan || 0,
                       },
                     ]}
                   >
@@ -442,7 +440,7 @@ export function AIControlDashboard() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={analyticsData?.timeSeriesData || []}>
+                  <LineChart data={(analyticsData as Analytics | undefined)?.timeSeriesData || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -476,7 +474,7 @@ export function AIControlDashboard() {
                     <Button
                       key={level}
                       variant={
-                        panel?.aiSettings?.personalizationLevel === level
+                        (panel as ControlPanel | undefined)?.aiSettings?.personalizationLevel === level
                           ? "default"
                           : "outline"
                       }
@@ -498,7 +496,7 @@ export function AIControlDashboard() {
                   Update Frequency
                 </label>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Current: {panel?.aiSettings?.updateFrequency}
+                  Current: {(panel as ControlPanel | undefined)?.aiSettings?.updateFrequency}
                 </p>
               </div>
 
@@ -509,12 +507,12 @@ export function AIControlDashboard() {
                 </label>
                 <div
                   className={`px-3 py-2 rounded ${
-                    panel?.aiSettings?.feedbackIncorporation
+                    (panel as ControlPanel | undefined)?.aiSettings?.feedbackIncorporation
                       ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
                       : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
                   }`}
                 >
-                  {panel?.aiSettings?.feedbackIncorporation
+                  {(panel as ControlPanel | undefined)?.aiSettings?.feedbackIncorporation
                     ? "Enabled"
                     : "Disabled"}
                 </div>
@@ -526,7 +524,7 @@ export function AIControlDashboard() {
                   Confidence Threshold
                 </label>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {panel?.aiSettings?.confidenceThreshold}% minimum
+                  {(panel as ControlPanel | undefined)?.aiSettings?.confidenceThreshold}% minimum
                 </p>
               </div>
             </CardContent>

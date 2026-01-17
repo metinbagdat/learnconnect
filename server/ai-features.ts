@@ -292,7 +292,7 @@ Return ONLY valid JSON (no markdown, no extra text) with this structure:
               title: curriculum.title || `Curriculum for ${course.title}`,
               structureJson: curriculum,
               aiGenerated: true,
-            })
+            } as any)
             .returning();
 
           console.log(`[AI-Features] ✓ Curriculum generated: ${curriculum.modules?.length || 0} modules, ${curriculum.estimatedTotalDuration || 0} minutes total`);
@@ -304,9 +304,12 @@ Return ONLY valid JSON (no markdown, no extra text) with this structure:
               .values({
                 courseId,
                 title: module.title,
-                titleEn: module.title,
+                titleEn: module.title || module.title,
+                titleTr: module.title || module.title,
+                descriptionEn: module.description || "",
+                descriptionTr: module.description || "",
                 order: module.order || 1,
-              })
+              } as any)
               .returning();
 
             for (const lesson of module.lessons || []) {
@@ -315,12 +318,16 @@ Return ONLY valid JSON (no markdown, no extra text) with this structure:
                 .values({
                   moduleId: dbModule.id,
                   title: lesson.title,
-                  titleEn: lesson.title,
+                  titleEn: lesson.title || lesson.title,
+                  titleTr: lesson.title || lesson.title,
                   content: lesson.content,
-                  contentEn: lesson.content,
+                  contentEn: lesson.content || "",
+                  contentTr: lesson.content || "",
+                  descriptionEn: lesson.description || "",
+                  descriptionTr: lesson.description || "",
                   durationMinutes: lesson.duration,
                   order: lesson.order || 1,
-                })
+                } as any)
                 .returning();
             }
           }

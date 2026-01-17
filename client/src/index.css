@@ -8,7 +8,14 @@
   }
 
   body {
-    @apply font-sans antialiased text-foreground;
+    @apply font-sans text-foreground;
+    /* Fix Firefox CSS warnings: use proper vendor prefixes and standard properties */
+    -webkit-font-smoothing: antialiased;
+    /* Note: -moz-osx-font-smoothing is deprecated, Firefox uses standard font-smoothing */
+    /* Only apply font-smoothing on macOS Firefox */
+    font-smoothing: antialiased;
+    /* Fix -webkit-text-size-adjust warning: use percentage value correctly */
+    text-size-adjust: 100%;
     background: linear-gradient(135deg, 
       #667eea 0%, 
       #764ba2 25%, 
