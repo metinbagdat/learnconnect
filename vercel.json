@@ -11,6 +11,14 @@
   },
   "rewrites": [
     {
+      "source": "/api/user",
+      "destination": "/api/user.js"
+    },
+    {
+      "source": "/api/errors/report",
+      "destination": "/api/errors/report.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },

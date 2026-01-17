@@ -333,7 +333,7 @@ export default async function handler(req: any, res: any) {
           };
           
           // Include stack trace in development
-          if (process.env?.NODE_ENV === 'development' || process.env?.ENABLE_DEBUG === 'true') {
+          if (process.env!.NODE_ENV === 'development' || process.env!.ENABLE_DEBUG === 'true') {
             errorResponse.details = {
               stack: initError?.stack,
               name: initError?.name,
@@ -451,7 +451,7 @@ export default async function handler(req: any, res: any) {
         };
         
         // Include more details in development
-        if (process.env?.NODE_ENV === 'development' || process.env?.ENABLE_DEBUG === 'true') {
+        if (process.env!.NODE_ENV === 'development' || process.env!.ENABLE_DEBUG === 'true') {
           errorResponse.details = {
             name: error?.name,
             code: error?.code,
