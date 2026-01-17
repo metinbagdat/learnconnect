@@ -3,38 +3,13 @@
   "buildCommand": "npm run build:vercel || npm run build",
   "outputDirectory": "dist/public",
   "installCommand": "npm install --include=dev",
+  "framework": "vite",
   "github": {
     "enabled": true,
     "autoAlias": true,
     "autoJobCancelation": true,
     "silent": false
   },
-  "rewrites": [
-    {
-      "source": "/api/user",
-      "destination": "/api/user.js"
-    },
-    {
-      "source": "/api/errors/report",
-      "destination": "/api/errors/report.js"
-    },
-    {
-      "source": "/health",
-      "destination": "/api/health.js"
-    },
-    {
-      "source": "/api/health",
-      "destination": "/api/health.js"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1.js"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "headers": [
     {
       "source": "/assets/(.*)",
@@ -86,19 +61,9 @@
       "SKIP_TYPE_CHECK": "true"
     }
   },
-  "crons": [
-    {
-      "path": "/api/cron",
-      "schedule": "0 10 * * *"
-    }
-  ],
   "functions": {
     "api/*.js": {
       "maxDuration": 10,
-      "memory": 1024
-    },
-    "api/index.ts": {
-      "maxDuration": 30,
       "memory": 1024
     }
   },

@@ -1,15 +1,12 @@
-// api/health.js - Health check endpoint
-// CommonJS format for Vercel compatibility
-
-module.exports = function handler(req, res) {
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  
+// api/health.js - ES MODULE FORMAT
+// NO IMPORTS, NO DEPENDENCIES - PURE JAVASCRIPT
+// This matches package.json's "type": "module" setting
+export default function handler(req, res) {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     service: 'LearnConnect API',
-    endpoint: 'direct-js-file',
-    version: '1.0.0'
+    version: '1.0.0',
+    environment: 'production'
   });
-};
+}
