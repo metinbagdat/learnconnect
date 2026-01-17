@@ -1,7 +1,8 @@
 // api/errors/report.js - Direct serverless function for /api/errors/report
 // This bypasses all Express routes, Zod validation, and TypeScript errors
+// CommonJS format for Vercel compatibility
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     // Accept any error report - no validation
     const errorReport = req.body || {};

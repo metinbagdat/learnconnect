@@ -1,7 +1,8 @@
 // api/user.js - Direct serverless function for /api/user
 // This bypasses all Express routes, Zod validation, and TypeScript errors
+// CommonJS format for Vercel compatibility
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   try {
     // Always return 200 OK with user data
     // No validation, no schema checks, no dependencies

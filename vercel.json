@@ -19,8 +19,16 @@
       "destination": "/api/errors/report.js"
     },
     {
+      "source": "/health",
+      "destination": "/api/health.js"
+    },
+    {
+      "source": "/api/health",
+      "destination": "/api/health.js"
+    },
+    {
       "source": "/api/(.*)",
-      "destination": "/api"
+      "destination": "/api/$1.js"
     },
     {
       "source": "/(.*)",
@@ -85,6 +93,10 @@
     }
   ],
   "functions": {
+    "api/*.js": {
+      "maxDuration": 10,
+      "memory": 1024
+    },
     "api/index.ts": {
       "maxDuration": 30,
       "memory": 1024
