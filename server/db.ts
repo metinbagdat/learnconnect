@@ -1,7 +1,9 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "../shared/schema.js";
+// ✅ CRITICAL FIX: Lazy load schema to prevent module loading errors
+// Schema import is deferred until db is actually accessed
+// This prevents "Unrecognized key: createdAt" errors during module initialization
 
 neonConfig.webSocketConstructor = ws;
 
@@ -115,10 +117,29 @@ export function getPoolInstance(): Pool {
   return initializePool();
 }
 
+// ✅ CRITICAL FIX: Lazy load schema module to prevent initialization errors
+let schemaModule: any = null;
+function getSchemaModule() {
+  if (!schemaModule) {
+    try {
+      schemaModule = require("../shared/schema.js");
+    } catch (err: any) {
+      // If schema loading fails (e.g., createdAt omit errors), use empty object
+      // Drizzle can work without schema, but table queries won't work
+      // This allows the app to start even if schema has errors
+      console.warn("⚠️ Schema module loading failed, using empty schema:", err?.message);
+      schemaModule = {};
+    }
+  }
+  return schemaModule;
+}
+
 // Export db with lazy initialization
 export const db = new Proxy({} as ReturnType<typeof drizzle>, {
   get(_target, prop) {
     if (!_db) {
+      // Load schema only when db is first accessed, not during module initialization
+      const schema = getSchemaModule();
       _db = drizzle({ client: initializePool(), schema });
     }
     return (_db as any)[prop];

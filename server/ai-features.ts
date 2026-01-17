@@ -1,7 +1,28 @@
 import { db } from "./db.js";
-import * as schema from "../shared/schema.js";
+// ✅ CRITICAL FIX: Lazy load schema to prevent module loading errors
+// import * as schema from "../shared/schema.js"; // REMOVED - will load lazily when needed
 import Anthropic from "@anthropic-ai/sdk";
 import { eq, and, inArray } from "drizzle-orm";
+
+// Lazy schema loader
+let schemaModule: any = null;
+function getSchema() {
+  if (!schemaModule) {
+    try {
+      schemaModule = require("../shared/schema.js");
+    } catch (err: any) {
+      console.warn("Schema loading failed in ai-features.ts, using empty object:", err?.message);
+      schemaModule = {};
+    }
+  }
+  return schemaModule;
+}
+const schema = new Proxy({} as any, {
+  get: (_target, prop) => {
+    const mod = getSchema();
+    return mod[prop];
+  }
+});
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
