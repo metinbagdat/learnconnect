@@ -1,22 +1,51 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Dashboard from './components/Dashboard.jsx'
 import StudyPlan from './components/StudyPlan.jsx'
 import ProgressChart from './components/ProgressChart.jsx'
 
+// Import admin dashboard (lazy load)
+const AdminDashboard = React.lazy(() => 
+  import('./components/admin/AdminDashboard.jsx').catch(() => ({ default: () => <div>Admin panel yükleniyor...</div> }))
+);
+
 export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  
+  // Simple routing based on pathname
+  const isAdminRoute = window.location.pathname.startsWith('/admin')
 
   useEffect(() => {
-    fetch('/api/user')
-      .then(res => res.json())
-      .then(data => {
-        setUser(data)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
-  }, [])
+    if (!isAdminRoute) {
+      fetch('/api/user')
+        .then(res => res.json())
+        .then(data => {
+          setUser(data)
+          setLoading(false)
+        })
+        .catch(() => setLoading(false))
+    } else {
+      setLoading(false)
+    }
+  }, [isAdminRoute])
 
+  // Admin Route
+  if (isAdminRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Admin Dashboard Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AdminDashboard />
+      </Suspense>
+    )
+  }
+
+  // Student Dashboard (existing)
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -49,6 +78,14 @@ export default function App() {
                 </div>
               </div>
             )}
+            
+            {/* Admin Link */}
+            <a 
+              href="/admin" 
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+            >
+              🔐 Admin Panel
+            </a>
           </div>
         </div>
       </header>

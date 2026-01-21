@@ -1,0 +1,143 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    
+    function isValidUserData() {
+      return request.resource.data.keys().hasAll(['email', 'displayName', 'createdAt']) 
+             && request.resource.data.email is string
+             && request.resource.data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
+             && request.resource.data.displayName is string
+             && request.resource.data.displayName.size() >= 2
+             && request.resource.data.displayName.size() <= 50;
+    }
+    
+    function isValidExamType() {
+      return request.resource.data.keys().hasAll(['name', 'description'])
+             && request.resource.data.name is string
+             && request.resource.data.description is string;
+    }
+    
+    function isValidCurriculum() {
+      return request.resource.data.keys().hasAll(['title', 'description', 'order'])
+             && request.resource.data.title is string
+             && request.resource.data.title.size() >= 2
+             && request.resource.data.title.size() <= 100
+             && request.resource.data.description is string
+             && request.resource.data.order is number
+             && request.resource.data.order >= 0;
+    }
+    
+    function isValidTopic() {
+      return request.resource.data.keys().hasAll(['title', 'order', 'estimatedHours'])
+             && request.resource.data.title is string
+             && request.resource.data.order is number
+             && request.resource.data.estimatedHours is number;
+    }
+    
+    // ============================================
+    // PUBLIC ACCESS
+    // ============================================
+    
+    // Exam type documents (TYT, AYT, YKS)
+    match /curriculum/{examType} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Subjects and topics
+    match /curriculum/{examType}/subjects/{subjectId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+      
+      match /topics/{topicId} {
+        allow read: if true;
+        allow write: if request.auth != null && isAdmin();
+      }
+    }
+    
+    // Site metadata
+    match /site/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // ============================================
+    // ADMIN ONLY
+    // ============================================
+    
+    match /admins/{adminId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false; // Only via Firebase Console
+    }
+    
+    match /audit_logs/{logId} {
+      allow read: if request.auth != null && isAdmin();
+      allow create: if request.auth != null && isAdmin();
+      allow update, delete: if false; // Logs are immutable
+    }
+    
+    match /system/{document} {
+      allow read, write: if request.auth != null && isAdmin();
+    }
+    
+    // ============================================
+    // USER SPECIFIC
+    // ============================================
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if request.auth != null && 
+                    request.auth.uid == userId;
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if false; // Users cannot delete themselves
+    }
+    
+    // User progress
+    match /user_progress/{userId}/{document=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Study sessions
+    match /study_sessions/{userId}/{sessionId} {
+      allow read, write: if isOwner(userId);
+      allow create: if request.auth != null;
+    }
+    
+    // Study plans
+    match /study_plans/{userId}/{document=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // AI generated plans
+    match /ai_plans/{userId}/{document=**} {
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // Notifications
+    match /notifications/{userId}/{notificationId} {
+      allow read, write: if isOwner(userId);
+      allow create: if request.auth != null;
+    }
+    
+    // ============================================
+    // DEFAULT DENY
+    // ============================================
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

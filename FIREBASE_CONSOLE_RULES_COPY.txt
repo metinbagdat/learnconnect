@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Curriculum data - public read, authenticated write
+    match /curriculum/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // User progress - user can read/write own data
+    match /user_progress/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Study plans - user can read/write own data
+    match /study_plans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // AI plans - user can read/write own data
+    match /ai_plans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

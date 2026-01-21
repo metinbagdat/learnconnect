@@ -1,0 +1,65 @@
+═══════════════════════════════════════════════════════════
+🔥 FIRESTORE RULES - HIZLI DEPLOY (2 DAKİKA)
+═══════════════════════════════════════════════════════════
+
+1️⃣ BU SAYFAYI AÇ:
+https://console.firebase.google.com/project/learnconnect-7c499/firestore/rules
+
+2️⃣ MEVCUT RULES'I SİL ve AŞAĞIDAKİNİ KOPYALA-YAPIŞTIR:
+
+───────────────────────────────────────────────────────────
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    match /curriculum/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    match /admins/{adminId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false;
+    }
+    
+    match /user_progress/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /study_plans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /ai_plans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    match /users/{userId} {
+      allow read: if request.auth != null && (isAdmin() || request.auth.uid == userId);
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    match /audit_logs/{document=**} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+───────────────────────────────────────────────────────────
+
+3️⃣ SAĞ ÜSTTE "PUBLISH" BUTONUNA BAS
+
+4️⃣ ADMIN DASHBOARD'I YENİLE: Ctrl+Shift+R
+
+5️⃣ TEKRAR DERS EKLE - ÇALIŞACAK! ✅
+
+═══════════════════════════════════════════════════════════
