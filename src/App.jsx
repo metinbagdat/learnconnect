@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import Dashboard from './components/Dashboard.jsx'
 import StudyPlan from './components/StudyPlan.jsx'
 import ProgressChart from './components/ProgressChart.jsx'
@@ -58,9 +59,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
+    <>
+      <Analytics />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div>
@@ -132,6 +135,7 @@ export default function App() {
           </p>
         </div>
       </footer>
-    </div>
+      </div>
+    </>
   )
 }
