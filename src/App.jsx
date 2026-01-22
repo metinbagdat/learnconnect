@@ -5,7 +5,20 @@ import ProgressChart from './components/ProgressChart.jsx'
 
 // Import admin dashboard (lazy load)
 const AdminDashboard = React.lazy(() => 
-  import('./components/admin/AdminDashboard.jsx').catch(() => ({ default: () => <div>Admin panel yükleniyor...</div> }))
+  import('./components/admin/AdminDashboard.jsx').catch((err) => {
+    console.error('AdminDashboard import error:', err);
+    return { default: () => (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-red-600 text-xl mb-4">❌ Admin Dashboard Yüklenemedi</div>
+          <p className="text-gray-600">Lütfen sayfayı yenileyin veya konsolu kontrol edin.</p>
+          <pre className="mt-4 text-xs text-left bg-gray-100 p-4 rounded max-w-md mx-auto">
+            {err?.message || 'Unknown error'}
+          </pre>
+        </div>
+      </div>
+    )};
+  })
 );
 
 export default function App() {

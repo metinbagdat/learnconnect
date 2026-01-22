@@ -1,4 +1,4 @@
-# Firebase Sonraki Adımlar - Tamamlandı ✅
+Yapılacaklar# Firebase Sonraki Adımlar - Tamamlandı ✅
 
 ## ✅ Tamamlanan İşlemler
 

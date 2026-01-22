@@ -23,16 +23,17 @@ export interface GenerateCurriculumResponse {
 
 export async function generateCurriculum(
   prompt: string,
-  examType: 'tyt' | 'ayt' | 'yks' = 'tyt'
+  examType: 'tyt' | 'ayt' | 'yks' = 'tyt',
+  useTemplate = false
 ): Promise<GenerateCurriculumResponse> {
   try {
-    const response = await fetch('/api/generate-curriculum', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        prompt: `${prompt}\n\nLütfen yanıtı şu JSON formatında ver:\n{
+    const body: Record<string, unknown> = { examType };
+    if (useTemplate) {
+      body.useTemplate = true;
+      body.prompt = prompt || `${examType.toUpperCase()} tam müfredatı`;
+    } else {
+      body.useTemplate = false;
+      body.prompt = `${prompt}\n\nLütfen yanıtı şu JSON formatında ver:\n{
           "subjects": [{
             "title": "Ders Adı",
             "description": "Açıklama",
@@ -49,9 +50,15 @@ export async function generateCurriculum(
               "subtopics": ["Alt konu 1", "Alt konu 2"]
             }]
           }]
-        }`,
-        examType
-      }),
+        }`;
+    }
+
+    const response = await fetch('/api/generate-curriculum', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -81,4 +88,18 @@ export async function generateCurriculum(
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+}
+
+/**
+ * Generate full curriculum using API template (tyt_full / ayt_full).
+ * Uses CURRICULUM_PROMPTS from api/prompts/curriculum-prompts.js.
+ */
+export async function generateCurriculumWithTemplate(
+  examType: 'tyt' | 'ayt' | 'yks' = 'tyt'
+): Promise<GenerateCurriculumResponse> {
+  return generateCurriculum(
+    examType === 'tyt' ? 'TYT tam müfredatı' : `${examType.toUpperCase()} tam müfredatı`,
+    examType,
+    true
+  );
 }
