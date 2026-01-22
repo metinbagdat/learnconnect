@@ -1,4 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import Dashboard from './components/Dashboard.jsx'
 import StudyPlan from './components/StudyPlan.jsx'
 import ProgressChart from './components/ProgressChart.jsx'
@@ -145,6 +146,9 @@ export default function App() {
           </p>
         </div>
       </footer>
+
+      {/* Vercel Speed Insights */}
+      <SpeedInsights />
     </div>
   )
 }
