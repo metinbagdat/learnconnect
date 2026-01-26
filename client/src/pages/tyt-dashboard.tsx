@@ -40,7 +40,7 @@ import { BilingualText } from "@/components/ui/bilingual-text";
 import PageWrapper from "@/components/layout/page-wrapper";
 import CurriculumTree from "@/components/curriculum/curriculum-tree";
 import AIPlanGenerator from "@/components/curriculum/ai-plan-generator";
-import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@shared/schema";
+import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@/types/tyt";
 
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {

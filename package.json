@@ -5,12 +5,14 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --config vite.config.ts",
     "preview": "vite preview",
-    "build:vercel": "vite build"
+    "build:vercel": "vite build --config vite.config.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.17.0",
     "firebase": "^12.8.0",
+    "framer-motion": "^11.0.0",
     "lucide-react": "^0.563.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
