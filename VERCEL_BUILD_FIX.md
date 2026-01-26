@@ -47,6 +47,14 @@ npm run build
 npm run preview
 ```
 
+## Rollup `@rollup/rollup-linux-x64-gnu` hatası (MODULE_NOT_FOUND)
+
+npm optional dependency bug’ı ([#4828](https://github.com/npm/cli/issues/4828)) nedeniyle Vercel (Linux) build’inde `Cannot find module @rollup/rollup-linux-x64-gnu` oluşabiliyor.
+
+**Yapılanlar:**
+- `optionalDependencies`: `@rollup/rollup-linux-x64-gnu: ^4.28.0` eklendi (sadece Linux’ta kurulur).
+- `installCommand`: `rm -rf node_modules package-lock.json && npm install --legacy-peer-deps` (npm’in önerdiği temiz kurulum).
+
 ## Sonraki Adım
 
 Değişiklikleri push’layıp Vercel’in yeni deploy’u oluşturmasını bekle. Build’in **Ready** olması gerekir; ardından egitim.today’de güncel sürüm görünür.
