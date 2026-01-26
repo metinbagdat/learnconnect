@@ -10,7 +10,7 @@
 - **`vercel.json` geri eklenmemeli.**
 
 ## Bu Repo’da Durum
-- ✅ `vercel.json` yok (silindi).
+- ✅ `vercel.json` var – sadece SPA `rewrites` (/api hariç). Headers yok.
 - ✅ Build: `npm run build`, çıktı: `dist`.
 - ✅ Node 20.x LTS.
 

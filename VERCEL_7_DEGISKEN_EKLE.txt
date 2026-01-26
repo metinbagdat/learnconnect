@@ -1,0 +1,64 @@
+═══════════════════════════════════════════════════════════════════════════════
+  7 FIREBASE ORTAM DEĞİŞKENİ – VERCEL'E EKLE (KOPYALA-YAPIŞTIR)
+  BÖLÜM 3: Environment Variables – Kaldığın yerden devam
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ BÖLÜM 1–2 tamam (Proje silindi, yeniden import)
+✅ Domain'ler eklendi (egitim.today, www.egitim.today)
+⏳ ŞİMDİ: Vercel → Settings → Environment Variables → Add New (7 kez)
+
+Her biri için: Name + Value gir → Production, Preview, Development SEÇ → Save
+
+───────────────────────────────────────────────────────────────────────────────
+ 1. VITE_FIREBASE_API_KEY
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_API_KEY
+Value: AIzaSyDeZACW1poVyTucZgq0Y1JnqlAumRhnwkg
+       (Firebase Console → Project settings → Web app → apiKey ile kontrol edin)
+
+───────────────────────────────────────────────────────────────────────────────
+ 2. VITE_FIREBASE_AUTH_DOMAIN
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_AUTH_DOMAIN
+Value: learnconnect-7c499.firebaseapp.com
+
+───────────────────────────────────────────────────────────────────────────────
+ 3. VITE_FIREBASE_PROJECT_ID
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_PROJECT_ID
+Value: learnconnect-7c499
+
+───────────────────────────────────────────────────────────────────────────────
+ 4. VITE_FIREBASE_STORAGE_BUCKET
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_STORAGE_BUCKET
+Value: learnconnect-7c499.appspot.com
+
+───────────────────────────────────────────────────────────────────────────────
+ 5. VITE_FIREBASE_MESSAGING_SENDER_ID
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_MESSAGING_SENDER_ID
+Value: 94708429652
+
+───────────────────────────────────────────────────────────────────────────────
+ 6. VITE_FIREBASE_APP_ID
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_APP_ID
+Value: 1:94708429652:web:af1e854867d6eeaf3dcec1
+
+───────────────────────────────────────────────────────────────────────────────
+ 7. VITE_FIREBASE_MEASUREMENT_ID
+───────────────────────────────────────────────────────────────────────────────
+Name:  VITE_FIREBASE_MEASUREMENT_ID
+Value: G-520454055
+
+═══════════════════════════════════════════════════════════════════════════════
+ EKLEDIKTEN SONRA
+═══════════════════════════════════════════════════════════════════════════════
+1. Deployments → En üstteki deployment → ⋯ → Redeploy
+2. "Use existing Build Cache" KALDIR (işaretleme)
+3. Redeploy → Ready olana kadar bekle
+4. https://egitim.today/admin → F12 konsol → Firebase hatası olmamalı
+5. (İsteğe bağlı) Firestore Rules test: allow read, write: if true → Publish
+
+═══════════════════════════════════════════════════════════════════════════════

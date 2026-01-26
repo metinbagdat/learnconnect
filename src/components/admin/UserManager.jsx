@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { db, collection, getDocs, updateDoc, doc } from '@/lib/firebase';
 
 export default function UserManager() {
   const [users, setUsers] = useState([]);
@@ -15,7 +14,7 @@ export default function UserManager() {
     setLoading(true);
     try {
       const snapshot = await getDocs(collection(db, 'users'));
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       setUsers(data);
     } catch (error) {
       console.error('Error loading users:', error);

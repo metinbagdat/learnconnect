@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth, db, onAuthStateChanged, signOut, doc, getDoc } from '@/lib/firebase';
 import AdminLogin from './AdminLogin';
 import AdminPanel from './AdminPanel';
 

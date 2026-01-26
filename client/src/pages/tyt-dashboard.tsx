@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLanguage } from "@/contexts/consolidated-language-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import AuthGuard from "@/components/auth/AuthGuard";
 import { StatCard } from "@/components/dashboard/stat-card";
 import ModernNavigation from "@/components/layout/modern-navigation";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -61,7 +62,7 @@ const getLocalDateString = () => {
 
 export default function TytDashboard() {
   const { language, t } = useLanguage();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
   
@@ -249,11 +250,12 @@ export default function TytDashboard() {
   const studyStreak = studyStats?.streaks.find(s => s.type === 'daily')?.current || 0;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <ModernNavigation 
-        pageTitle={language === 'tr' ? 'TYT Öğrenci Paneli' : 'TYT Student Dashboard'} 
-        currentPage="tytDashboard" 
-      />
+    <AuthGuard>
+      <div className="min-h-screen flex flex-col">
+        <ModernNavigation 
+          pageTitle={language === 'tr' ? 'TYT Öğrenci Paneli' : 'TYT Student Dashboard'} 
+          currentPage="tytDashboard" 
+        />
       <div className="flex-1 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 py-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
@@ -397,6 +399,62 @@ export default function TytDashboard() {
 
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="space-y-6">
+                  {/* Welcome Section with Clear Metrics */}
+                  <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200 dark:border-blue-800">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-2xl">
+                        <BilingualText 
+                          text={`Hoş geldin, ${user?.displayName || 'Öğrenci'}! 👋 – Welcome, ${user?.displayName || 'Student'}! 👋`} 
+                        />
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        <BilingualText 
+                          text="Bugün için hazırlanmış çalışma planın seni hedefine yaklaştırıyor. – Today's prepared study plan brings you closer to your goal." 
+                        />
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
+                          <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                            {tytProfile?.targetExamDate 
+                              ? Math.ceil((new Date(tytProfile.targetExamDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                              : 142}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <BilingualText text="Sınava Kalan Gün – Days Until Exam" />
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            {studyStreak}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <BilingualText text="Bu Hafta Çalışılan Gün – Days Studied This Week" />
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
+                          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                            {Math.round((studyStats?.totalStudyTime || 0) / 60)}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <BilingualText text="Toplam Çalışma Saati – Total Study Hours" />
+                            <span className="text-green-600 dark:text-green-400 ml-1">+12%</span>
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
+                          <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                            {studyStats?.completedTasks || 0}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <BilingualText text="Tamamlanan Konular – Completed Topics" />
+                            <span className="text-green-600 dark:text-green-400 ml-1">+8</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     
                     {/* Progress Overview */}
@@ -478,6 +536,100 @@ export default function TytDashboard() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Weekly Study Plan Table */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Calendar className="h-5 w-5" />
+                        <BilingualText text="Haftalık Çalışma Planı – Weekly Study Plan" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="border-b border-gray-200 dark:border-slate-700">
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                                <BilingualText text="Gün – Day" />
+                              </th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                                <BilingualText text="Süre – Duration" />
+                              </th>
+                              <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                                <BilingualText text="Dersler / Aktivite – Subjects / Activity" />
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { day: language === 'tr' ? 'Pazartesi' : 'Monday', hours: 4, subjects: language === 'tr' ? 'Matematik, Fizik' : 'Mathematics, Physics' },
+                              { day: language === 'tr' ? 'Salı' : 'Tuesday', hours: 3, subjects: language === 'tr' ? 'Türkçe, Tarih' : 'Turkish, History' },
+                              { day: language === 'tr' ? 'Çarşamba' : 'Wednesday', hours: 4, subjects: language === 'tr' ? 'Kimya, Biyoloji' : 'Chemistry, Biology' },
+                              { day: language === 'tr' ? 'Perşembe' : 'Thursday', hours: 4, subjects: language === 'tr' ? 'Matematik, Coğrafya' : 'Mathematics, Geography' },
+                              { day: language === 'tr' ? 'Cuma' : 'Friday', hours: 3, subjects: language === 'tr' ? 'Edebiyat, Felsefe' : 'Literature, Philosophy' },
+                              { day: language === 'tr' ? 'Cumartesi' : 'Saturday', hours: 5, subjects: language === 'tr' ? 'Genel Tekrar, Deneme' : 'General Review, Practice Test' },
+                              { day: language === 'tr' ? 'Pazar' : 'Sunday', hours: 1, subjects: language === 'tr' ? 'Dinlenme, Planlama' : 'Rest, Planning' },
+                            ].map((plan, index) => (
+                              <tr 
+                                key={index} 
+                                className="border-b border-gray-100 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors"
+                              >
+                                <td className="py-3 px-4 font-medium">{plan.day}</td>
+                                <td className="py-3 px-4">{plan.hours} {language === 'tr' ? 'saat' : 'hours'}</td>
+                                <td className="py-3 px-4">{plan.subjects}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-4 flex justify-between items-center text-sm text-gray-600 dark:text-gray-400 pt-4 border-t border-gray-200 dark:border-slate-700">
+                        <span>
+                          <BilingualText text="Toplam Haftalık Süre – Total Weekly Duration" />: <strong className="text-gray-900 dark:text-white">23 {language === 'tr' ? 'saat' : 'hours'}</strong>
+                        </span>
+                        <span>
+                          <BilingualText text="Tamamlanan (bu hafta) – Completed (this week)" />: <strong className="text-green-600 dark:text-green-400">8 {language === 'tr' ? 'saat' : 'hours'}</strong>
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Subject-Based Progress */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        <BilingualText text="Ders Bazında İlerleme – Subject-Based Progress" />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {tytSubjects.slice(0, 4).map((subject) => {
+                          const progress = studyStats?.subjectProgress?.find(p => p.subject === subject.displayName)?.progress || 0;
+                          return (
+                            <div key={subject.id} className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{subject.displayName}</span>
+                                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">{progress}%</span>
+                              </div>
+                              <Progress value={progress} className="h-2" />
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {Math.round((studyStats?.subjectProgress?.find(p => p.subject === subject.displayName)?.timeSpent || 0) / 60)} {language === 'tr' ? 'saat çalışıldı' : 'hours studied'}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {tytSubjects.length === 0 && (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                            <p>
+                              <BilingualText text="Henüz ders verisi yok – No subject data yet" />
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Today's Tasks */}
                   <Card>
@@ -852,6 +1004,7 @@ export default function TytDashboard() {
         </motion.div>
       </div>
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

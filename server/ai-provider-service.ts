@@ -117,6 +117,7 @@ export async function callAIWithFallback(options: AICallOptions): Promise<AIResp
         messages: messageList as any,
         max_tokens: maxTokens,
         temperature,
+        ...(jsonMode && { response_format: { type: "json_object" } }),
       });
 
       const content = response.choices[0]?.message?.content || "";

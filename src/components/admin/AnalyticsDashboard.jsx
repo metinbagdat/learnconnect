@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { db, collection, getDocs } from '@/lib/firebase';
 
 export default function AnalyticsDashboard() {
   const [stats, setStats] = useState({
@@ -23,11 +22,11 @@ export default function AnalyticsDashboard() {
     try {
       // Load users
       const usersSnapshot = await getDocs(collection(db, 'users'));
-      const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const users = usersSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       
       // Load curriculum
       const curriculumSnapshot = await getDocs(collection(db, 'curriculum'));
-      const subjects = curriculumSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const subjects = curriculumSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       
       // Filter by exam type if needed
       const filteredSubjects = examType === 'all' 

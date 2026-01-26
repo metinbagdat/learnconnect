@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { db, collection, getDocs, addDoc, deleteDoc, doc } from '@/lib/firebase';
 
 export default function CurriculumManager() {
   const [examType, setExamType] = useState('TYT');
@@ -24,7 +23,7 @@ export default function CurriculumManager() {
     try {
       const snapshot = await getDocs(collection(db, 'curriculum'));
       const data = snapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map((d) => ({ id: d.id, ...d.data() }))
         .filter(subject => subject.examType === examType);
       setSubjects(data);
     } catch (error) {

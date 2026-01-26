@@ -120,6 +120,10 @@ export default defineConfig({
         ) {
           return true;
         }
+        // Exclude src/App.jsx from build (we use client/src/App.tsx instead)
+        if (id.includes('/src/App.jsx') || id.includes('\\src\\App.jsx')) {
+          return true;
+        }
         return false;
       },
       

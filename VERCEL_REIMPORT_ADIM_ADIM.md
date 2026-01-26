@@ -18,6 +18,22 @@ Bu rehberi **sırayla** uygulayın. Her adımı tamamladıktan sonra ✓ işaret
 
 ---
 
+## KALDIĞIN YERDEN DEVAM (Bölüm 1–2 ve Domain’ler tamam)
+
+**Tamamlananlar:**
+- ✅ BÖLÜM 1: Proje silindi
+- ✅ BÖLÜM 2: `learnconnect-` yeniden import edildi, deploy **Ready**
+- ✅ BÖLÜM 4: Domain’ler eklendi (`egitim.today`, `www.egitim.today`)
+
+**Şimdi yapılacak (sırayla):**
+1. **BÖLÜM 3:** 7 Firebase environment variable ekle → **VERCEL_7_DEGISKEN_EKLE.txt** dosyasındaki değerleri kullan.
+2. **BÖLÜM 3.3:** Redeploy (cache’siz).
+3. **BÖLÜM 5–6:** Git + Build ayarlarını kontrol et.
+4. **BÖLÜM 7:** Firestore test rules (isteğe bağlı).
+5. **Test:** https://egitim.today/admin → Login → Ders ekle.
+
+---
+
 ## ÖN HAZIRLIK (2 dk)
 
 ### 1. Domain’leri not edin
@@ -107,8 +123,10 @@ Her biri için: **Add New** → **Name** + **Value** → **Environments:** Produ
 | 4 | `VITE_FIREBASE_STORAGE_BUCKET` | `learnconnect-7c499.appspot.com` |
 | 5 | `VITE_FIREBASE_MESSAGING_SENDER_ID` | `94708429652` |
 | 6 | `VITE_FIREBASE_APP_ID` | `1:94708429652:web:af1e854867d6eeaf3dcec1` |
-| 7 | `VITE_FIREBASE_MEASUREMENT_ID` | `G-SKHJCN4ST9` |
+| 7 | `VITE_FIREBASE_MEASUREMENT_ID` | `G-520454055` |
 
+**Not:** `VITE_FIREBASE_API_KEY` Firebase Console → Project settings → Web app → `apiKey` ile kontrol edin.  
+Hızlı kopyala-yapıştır için `VERCEL_7_DEGISKEN_EKLE.txt` dosyasını kullanın.  
 Firebase Console’daki değerler farklıysa, oradaki değerleri kullanın.
 
 - [ ] **3.2 tamamlandı:** 7 Firebase environment variable eklendi.

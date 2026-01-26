@@ -5,7 +5,7 @@ export default function Dashboard({ user }) {
     { label: 'Toplam Çalışma Saati', value: '48h', change: '+12%' },
     { label: 'Tamamlanan Konular', value: '24', change: '+8' },
     { label: 'Ortalama Başarı', value: '78%', change: '+5%' },
-    { label: 'Kalan Gün', value: '142', change: '-7' }
+    { label: 'Sınava kalan gün', value: '142', sub: 'Bu hafta 7 gün çalışıldı' }
   ]
 
   const recentActivities = [
@@ -34,7 +34,8 @@ export default function Dashboard({ user }) {
           <div key={index} className="card">
             <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
             <div className="text-sm text-gray-600 mt-1">{stat.label}</div>
-            <div className="text-xs text-green-600 mt-2">{stat.change}</div>
+            {stat.change && <div className="text-xs text-green-600 mt-2">{stat.change}</div>}
+            {stat.sub && <div className="text-xs text-blue-600 mt-2">{stat.sub}</div>}
           </div>
         ))}
       </div>
@@ -67,15 +68,21 @@ export default function Dashboard({ user }) {
       {/* Hızlı Aksiyonlar */}
       <div className="card">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Hızlı Aksiyonlar</h3>
-        <div className="flex flex-wrap gap-3">
-          <button className="btn-primary">Yeni Çalışma Oturumu Başlat</button>
-          <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <button className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-left" title="Yeni çalışma oturumu başlat">
+            <span className="block text-xs text-white/80">Oturum</span>
+            Yeni Çalışma Oturumu Başlat
+          </button>
+          <button className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-left" title="Test çöz">
+            <span className="block text-xs text-gray-500 mt-1">Test</span>
             Test Çöz
           </button>
-          <button className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium">
+          <button className="px-4 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors font-medium text-left" title="İlerleme">
+            <span className="block text-xs text-purple-500 mt-1">İstatistik</span>
             İlerlemeyi Görüntüle
           </button>
-          <button className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium">
+          <button className="px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium text-left" title="Plan güncelle">
+            <span className="block text-xs text-green-600 mt-1">Plan</span>
             Planı Güncelle
           </button>
         </div>
