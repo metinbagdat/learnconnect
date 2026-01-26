@@ -34,3 +34,10 @@ pids
 
 # Vercel
 .vercel
+
+# Firebase Service Account Keys (SENSITIVE - NEVER COMMIT)
+service-account-key.json
+**/service-account-key.json
+*.service-account.json
+firebase-service-account*.json
+scripts/service-account-key.json
