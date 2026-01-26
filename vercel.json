@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "sh -c 'rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && npm run build'",
   "outputDirectory": "dist",
-  "installCommand": "rm -rf node_modules package-lock.json && npm install --legacy-peer-deps",
+  "installCommand": "echo 'Skipping install; clean install runs in buildCommand.'",
   "framework": "vite",
   "rewrites": [
     {
@@ -32,5 +32,8 @@
         }
       ]
     }
-  ]
+  ],
+  "env": {
+    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+  }
 }
