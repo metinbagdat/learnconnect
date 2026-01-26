@@ -6805,6 +6805,47 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     }
   });
 
+  // Batch create daily tasks (for weekly plan distribution)
+  app.post("/api/tyt/tasks/batch", (app as any).ensureAuthenticated, async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    try {
+      const { tasks } = req.body;
+      if (!Array.isArray(tasks) || tasks.length === 0) {
+        return res.status(400).json({ message: "tasks array required" });
+      }
+      
+      const createdTasks = [];
+      for (const taskData of tasks) {
+        try {
+          const validatedData = insertDailyStudyTaskSchema.parse({
+            ...taskData,
+            userId: req.user.id
+          });
+          const task = await storage.createDailyStudyTask(validatedData);
+          createdTasks.push(task);
+        } catch (error) {
+          console.warn('Failed to create task:', taskData, error);
+          // Continue with other tasks
+        }
+      }
+      
+      res.status(201).json({ 
+        success: true, 
+        created: createdTasks.length,
+        tasks: createdTasks 
+      });
+    } catch (error: any) {
+      logger.error("Error creating batch tasks", error instanceof Error ? error : new Error(String(error)), {
+        module: "tyt-tasks",
+        action: "batch-create"
+      });
+      res.status(500).json({ message: "Failed to create tasks", error: error.message });
+    }
+  });
+
   app.post("/api/tyt/tasks", (app as any).ensureAuthenticated, async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -9030,6 +9071,121 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.use("/api/ai", aiRouter);
   // AI Curriculum Generation Routes
   app.use("/api/ai", aiCurriculumRoutes);
+
+  // ============================================================================
+  // TEACHER PANEL ROUTES
+  // ============================================================================
+  
+  // Get teacher's classes and students
+  app.get("/api/teacher/classes", (app as any).ensureAuthenticated, async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const user = req.user as any;
+      if (user.role !== "teacher" && user.role !== "admin") {
+        return res.status(403).json({ message: "Teacher access required" });
+      }
+      
+      // For now, return mock data. Later: query database for teacher's classes
+      // TODO: Add teacher_classes table or user.teacherClassId field
+      const classes: any[] = [];
+      
+      // If admin, show all students as one class
+      if (user.role === "admin") {
+        const allStudents = await db.select().from(schema.users).where(eq(schema.users.role, "student")).limit(50);
+        const studentsWithProgress = await Promise.all(
+          allStudents.map(async (student) => {
+            // Get progress from user_progress or studyStats
+            // For now, return mock progress
+            return {
+              id: student.id,
+              username: student.username,
+              displayName: student.displayName || student.username,
+              email: student.email,
+              progress: {
+                totalTopics: 50,
+                completedTopics: Math.floor(Math.random() * 50),
+                completionRate: Math.floor(Math.random() * 100),
+                lastActivity: new Date().toISOString()
+              }
+            };
+          })
+        );
+        
+        classes.push({
+          classId: "all",
+          className: "Tüm Öğrenciler",
+          studentCount: studentsWithProgress.length,
+          averageProgress: studentsWithProgress.reduce((sum, s) => sum + (s.progress?.completionRate || 0), 0) / studentsWithProgress.length || 0,
+          students: studentsWithProgress
+        });
+      }
+      
+      res.json({ classes });
+    } catch (error: any) {
+      logger.error("Error fetching teacher classes", error instanceof Error ? error : new Error(String(error)), {
+        module: "teacher-routes",
+        action: "get-classes"
+      });
+      res.status(500).json({ message: "Failed to fetch classes", error: error.message });
+    }
+  });
+  
+  // Get specific student progress
+  app.get("/api/teacher/students/:studentId", (app as any).ensureAuthenticated, async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const user = req.user as any;
+      if (user.role !== "teacher" && user.role !== "admin") {
+        return res.status(403).json({ message: "Teacher access required" });
+      }
+      
+      const studentId = parseInt(req.params.studentId);
+      if (isNaN(studentId)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+      
+      // Get student info
+      const [student] = await db.select().from(schema.users).where(eq(schema.users.id, studentId));
+      if (!student || student.role !== "student") {
+        return res.status(404).json({ message: "Student not found" });
+      }
+      
+      // Get progress (mock for now)
+      const progress = {
+        totalTopics: 50,
+        completedTopics: Math.floor(Math.random() * 50),
+        completionRate: Math.floor(Math.random() * 100),
+        lastActivity: new Date().toISOString(),
+        subjects: [
+          { name: "Matematik", progress: 75 },
+          { name: "Türkçe", progress: 65 },
+          { name: "Fizik", progress: 55 }
+        ]
+      };
+      
+      res.json({
+        student: {
+          id: student.id,
+          username: student.username,
+          displayName: student.displayName || student.username,
+          email: student.email
+        },
+        progress
+      });
+    } catch (error: any) {
+      logger.error("Error fetching student progress", error instanceof Error ? error : new Error(String(error)), {
+        module: "teacher-routes",
+        action: "get-student"
+      });
+      res.status(500).json({ message: "Failed to fetch student progress", error: error.message });
+    }
+  });
 
   // Real-time Monitoring Endpoints
   app.get("/api/study-planner/metrics", (app as any).ensureAuthenticated, async (req, res) => {

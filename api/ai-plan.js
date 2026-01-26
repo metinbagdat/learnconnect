@@ -1,59 +1,157 @@
-// TYT AI Study Plan Generator
+// TYT/AYT/YKS AI Study Plan Generator – OpenAI kişiye özel plan
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+const MODEL = process.env.AI_AYT_MODEL || process.env.AI_INTEGRATIONS_OPENAI_MODEL || 'gpt-4o-mini';
+
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // Handle OPTIONS preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  // Only POST allowed
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      error: 'Method not allowed',
-      allowed: ['POST']
-    });
+    return res.status(405).json({ error: 'Method not allowed', allowed: ['POST'] });
   }
-  
+
   try {
-    const { studentProfile, curriculum, preferences } = req.body;
-    
+    const { studentProfile, curriculum, preferences } = req.body ?? {};
+
     if (!studentProfile || !curriculum) {
       return res.status(400).json({
         error: 'Missing required fields',
         required: ['studentProfile', 'curriculum']
       });
     }
-    
-    // Demo AI Plan Generator (gerçek AI için OpenAI/Anthropic bağlanabilir)
-    const studyPlan = generateStudyPlan(studentProfile, curriculum, preferences);
-    
-    // Planı kaydet (Firestore'a)
+
+    let studyPlan;
+    let aiModel = 'demo-v1.0';
+
+    if (OPENAI_API_KEY) {
+      try {
+        studyPlan = await generatePlanWithOpenAI(studentProfile, curriculum, preferences);
+        aiModel = MODEL;
+      } catch (e) {
+        console.warn('[ai-plan] OpenAI failed, using demo:', e?.message);
+        studyPlan = generateStudyPlan(studentProfile, curriculum, preferences);
+      }
+    } else {
+      studyPlan = generateStudyPlan(studentProfile, curriculum, preferences);
+    }
+
     console.log('Generated study plan:', {
       student: studentProfile.name,
       planId: studyPlan.id,
+      aiModel,
       timestamp: new Date().toISOString()
     });
-    
+
     return res.status(200).json({
       success: true,
       plan: studyPlan,
       generatedAt: new Date().toISOString(),
-      aiModel: 'demo-v1.0'
+      aiModel
     });
-    
   } catch (error) {
     console.error('Error generating study plan:', error);
-    
     return res.status(500).json({
       error: 'Internal server error',
       message: error.message
     });
   }
+}
+
+async function generatePlanWithOpenAI(studentProfile, curriculum, preferences = {}) {
+  const OpenAI = (await import('openai')).default;
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+  const systemPrompt = `Sen YKS (TYT/AYT) sınavına yönelik kişiselleştirilmiş haftalık çalışma planı hazırlayan bir koçsun.
+Çıktıyı yalnızca geçerli JSON olarak üret. Açıklama veya markdown ekleme.`;
+
+  const curriculumSummary = curriculum.map(s => ({
+    id: s.id,
+    title: s.title,
+    estimatedHours: s.estimatedHours,
+    totalTopics: s.totalTopics
+  }));
+
+  const userPrompt = `Öğrenci: ${studentProfile.name}
+Hedef sınav: ${studentProfile.targetExam || 'TYT'}
+Günlük çalışma saati: ${studentProfile.dailyStudyHours || 4}
+Hedef gün sayısı: ${studentProfile.targetDays || 120}
+Zayıf dersler: ${(studentProfile.weakSubjects || []).join(', ') || 'yok'}
+Öğrenme stili: ${studentProfile.studyStyle || 'mixed'}
+Seviye: ${studentProfile.currentLevel || 'intermediate'}
+
+Müfredat: ${JSON.stringify(curriculumSummary)}
+
+Tercihler: hafta sonu ${(preferences?.includeWeekends !== false) ? 'dahil' : 'hariç'}, tekrar günleri ${preferences?.revisionDays ?? 7}.
+
+Bu bilgilere göre 7 günlük (bir haftalık) kişiye özel çalışma planı üret.
+
+JSON formatı (bu yapıyı kullan):
+{
+  "id": "plan_<timestamp>",
+  "studentName": "<isim>",
+  "targetExam": "TYT",
+  "totalDays": 120,
+  "dailyHours": 4,
+  "totalHours": 480,
+  "weeklyPlan": [
+    {
+      "day": "Pazartesi",
+      "date": "YYYY-MM-DD",
+      "subjects": [
+        { "subject": "Matematik", "hours": 2, "topics": [{ "id": "...", "name": "Konu adı", "estimatedTime": 45, "difficulty": "Orta" }] }
+      ],
+      "totalHours": 2
+    }
+  ],
+  "monthlySummary": [
+    { "subject": "Matematik", "weeklyHours": 8, "completionWeeks": 15, "priority": "HIGH" }
+  ],
+  "recommendations": [
+    { "type": "FOCUS_AREA", "message": "...", "reason": "..." }
+  ]
+}
+
+Kurallar: weeklyPlan 7 gün olmalı; her günde subjects ve totalHours olmalı; günlük toplam dailyHours'u aşmasın.`;
+
+  const res = await openai.chat.completions.create({
+    model: MODEL,
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.4,
+    max_tokens: 4000,
+    response_format: { type: 'json_object' }
+  });
+
+  const raw = res.choices[0]?.message?.content ?? '';
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) parsed = JSON.parse(m[0]);
+    else throw new Error('OpenAI plan response was not valid JSON');
+  }
+
+  const id = parsed.id || 'plan_' + Date.now();
+  const now = new Date().toISOString();
+  return {
+    id,
+    studentName: parsed.studentName ?? studentProfile.name,
+    targetExam: parsed.targetExam ?? studentProfile.targetExam ?? 'TYT',
+    totalDays: parsed.totalDays ?? studentProfile.targetDays ?? 120,
+    dailyHours: parsed.dailyHours ?? studentProfile.dailyStudyHours ?? 4,
+    totalHours: parsed.totalHours ?? (parsed.totalDays * parsed.dailyHours) ?? 480,
+    weeklyPlan: Array.isArray(parsed.weeklyPlan) ? parsed.weeklyPlan : [],
+    monthlySummary: Array.isArray(parsed.monthlySummary) ? parsed.monthlySummary : [],
+    recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
+    createdAt: now,
+    updatedAt: now
+  };
 }
 
 // Demo AI Plan Generator Function

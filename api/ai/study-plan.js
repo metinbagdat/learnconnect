@@ -17,14 +17,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const {
-      topicTitle,
-      estimatedHours = 8,
-      studentLevel = 'orta',
-      dailyHours = 2,
-      userId,
-      topicId,
-    } = req.body ?? {};
+    const b = req.body ?? {};
+    const topicTitle = b.topicTitle;
+    const estimatedHours = b.totalHours ?? b.estimatedHours ?? 8;
+    const studentLevel = b.level ?? b.studentLevel ?? 'orta';
+    const dailyHours = b.dailyHours ?? 2;
+    const { userId, topicId } = b;
 
     if (!topicTitle || typeof topicTitle !== 'string') {
       return res.status(400).json({

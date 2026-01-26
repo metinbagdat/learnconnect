@@ -104,7 +104,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   passwordHash: text("password_hash"),
   displayName: text("display_name"),
-  role: text("role").notNull().default("student"), // student, instructor, admin
+  role: text("role").notNull().default("student"), // student, teacher, instructor, admin
   interests: text("interests").array().default([]),
   learningPace: text("learning_pace").default("moderate"), // slow, moderate, fast
   profileComplete: boolean("profile_complete").default(false),

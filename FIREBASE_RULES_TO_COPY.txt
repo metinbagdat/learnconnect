@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Admin kontrol fonksiyonu
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Curriculum - public read, admin write
+    match /curriculum/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // AYT curriculum (subjects, topics, learningTree) - public read, admin write
+    match /curriculum_ayt/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+    
+    // Admins koleksiyonu - sadece adminler okuyabilir
+    match /admins/{adminId} {
+      allow read: if request.auth != null && isAdmin();
+      allow write: if false; // Sadece Firebase Console'dan
+    }
+    
+    // User progress - user can read/write own data
+    match /user_progress/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Study plans - user can read/write own data
+    match /study_plans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // AI plans - user can read/write own data
+    match /ai_plans/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Deny all other access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
