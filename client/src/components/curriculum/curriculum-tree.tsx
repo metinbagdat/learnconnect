@@ -1,17 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { getCurriculumTree } from '@/services/curriculumService';
+import { getCurriculumTree, saveUserProgress } from '@/services/curriculumService';
 import type { CurriculumTree } from '@/types/curriculum';
 import { BilingualText } from '@/components/ui/bilingual-text';
+import { useAuth } from '@/hooks/use-auth';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 export default function CurriculumTree() {
+  const { user } = useAuth();
   const [curriculum, setCurriculum] = useState<CurriculumTree[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({});
+  const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     loadCurriculum();
-  }, []);
+    loadUserProgress();
+  }, [user]);
+
+  async function loadUserProgress() {
+    if (!user?.id && !user?.username) return;
+    
+    try {
+      const { db, collections } = await import('@/lib/firebase');
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      
+      const userId = String(user.id || user.username);
+      const progressRef = collection(db, collections.userProgress);
+      const q = query(progressRef, where('userId', '==', userId));
+      const snapshot = await getDocs(q);
+      
+      const completed = new Set<string>();
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.completed && data.topicId) {
+          completed.add(`${data.subjectId}_${data.topicId}`);
+        }
+      });
+      
+      setCompletedTopics(completed);
+    } catch (error) {
+      console.error('Error loading user progress:', error);
+    }
+  }
 
   async function loadCurriculum() {
     try {
@@ -135,6 +167,24 @@ export default function CurriculumTree() {
                         </div>
                       </div>
 
+                      {/* Topic completion checkbox */}
+                      <div className="ml-6 mt-2 flex items-center gap-2">
+                        <button
+                          onClick={() => handleTopicToggle(subject.id, topic.id)}
+                          disabled={saving[`${subject.id}_${topic.id}`]}
+                          className="flex items-center gap-2 text-sm hover:text-blue-600 transition disabled:opacity-50"
+                        >
+                          {completedTopics.has(`${subject.id}_${topic.id}`) ? (
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <Circle className="h-5 w-5 text-gray-400" />
+                          )}
+                          <span className={completedTopics.has(`${subject.id}_${topic.id}`) ? 'text-green-700 line-through' : ''}>
+                            {completedTopics.has(`${subject.id}_${topic.id}`) ? 'Tamamlandı' : 'Tamamla'}
+                          </span>
+                        </button>
+                      </div>
+
                       {/* Subtopics (if expanded) */}
                       {expandedTopics[topic.id] && topic.subtopics && topic.subtopics.length > 0 && (
                         <div className="ml-6 mt-2 space-y-2">
@@ -197,4 +247,43 @@ export default function CurriculumTree() {
       </div>
     </div>
   );
+
+  async function handleTopicToggle(subjectId: string, topicId: string) {
+    if (!user?.id && !user?.username) {
+      alert('İlerleme kaydetmek için giriş yapın');
+      return;
+    }
+    
+    const key = `${subjectId}_${topicId}`;
+    const isCompleted = completedTopics.has(key);
+    setSaving(prev => ({ ...prev, [key]: true }));
+    
+    try {
+      const userId = String(user.id || user.username);
+      const result = await saveUserProgress(userId, subjectId, topicId, {
+        completed: !isCompleted,
+        completedAt: !isCompleted ? new Date().toISOString() : null,
+        updatedAt: new Date().toISOString()
+      });
+      
+      if (result.success) {
+        if (!isCompleted) {
+          setCompletedTopics(prev => new Set([...prev, key]));
+        } else {
+          setCompletedTopics(prev => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        }
+      } else {
+        alert('İlerleme kaydedilemedi: ' + (result.error || 'Bilinmeyen hata'));
+      }
+    } catch (error) {
+      console.error('Error toggling topic:', error);
+      alert('İlerleme kaydedilemedi');
+    } finally {
+      setSaving(prev => ({ ...prev, [key]: false }));
+    }
+  }
 }

@@ -1,12 +1,11 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { useLocation } from 'wouter'
-import Dashboard from '../../../src/components/Dashboard.jsx'
-import StudyPlan from '../../../src/components/StudyPlan.jsx'
-import ProgressChart from '../../../src/components/ProgressChart.jsx'
+import ProgressChart from '@/components/ProgressChart'
+import StudyPlan from '../../src/components/StudyPlan.jsx'
 
 // Import pages (lazy load)
 const AdminDashboard = React.lazy(() => 
-  import('../../../src/components/admin/AdminDashboard.jsx').catch(() => ({ default: () => <div>Admin panel yükleniyor...</div> }))
+  import('./components/admin/AdminDashboard.tsx').catch(() => ({ default: () => <div>Admin panel yükleniyor...</div> }))
 );
 
 const LoginPage = React.lazy(() => 
@@ -19,6 +18,30 @@ const RegisterPage = React.lazy(() =>
 
 const TytDashboard = React.lazy(() => 
   import('./pages/tyt-dashboard.tsx').catch(() => ({ default: () => <div>TYT Dashboard yükleniyor...</div> }))
+);
+
+const AytDashboard = React.lazy(() => 
+  import('./pages/ayt-dashboard.tsx').catch(() => ({ default: () => <div>AYT Dashboard yükleniyor...</div> }))
+);
+
+const YksDashboard = React.lazy(() => 
+  import('./pages/yks-dashboard.tsx').catch(() => ({ default: () => <div>YKS Dashboard yükleniyor...</div> }))
+);
+
+const TeacherDashboard = React.lazy(() => 
+  import('./pages/teacher-dashboard.tsx').catch(() => ({ default: () => <div>Öğretmen Paneli yükleniyor...</div> }))
+);
+
+const Dashboard = React.lazy(() => 
+  import('./pages/dashboard.tsx').catch(() => ({ default: () => <div>Dashboard yükleniyor...</div> }))
+);
+
+const Notebook = React.lazy(() => 
+  import('./pages/notebook.tsx').catch(() => ({ default: () => <div>Defterim yükleniyor...</div> }))
+);
+
+const LearningPaths = React.lazy(() => 
+  import('./pages/paths.tsx').catch(() => ({ default: () => <div>Öğrenme Yolları yükleniyor...</div> }))
 );
 
 const AuthGuard = React.lazy(() => 
@@ -34,10 +57,18 @@ export default function App() {
   const publicRoutes = ['/login', '/register']
   const isPublicRoute = publicRoutes.includes(location)
   const isAdminRoute = location.startsWith('/admin')
+  const isTeacherRoute = location.startsWith('/teacher')
   const isTytRoute = location.startsWith('/tyt-dashboard')
+  const isAytRoute = location.startsWith('/ayt-dashboard')
+  const isYksRoute = location.startsWith('/yks-dashboard')
+  const isDashboardRoute = location === '/dashboard' || location.startsWith('/dashboard/')
+  const isNotebookRoute = location === '/notebook' || location.startsWith('/notebook')
+  const isPathsRoute = location === '/paths' || location.startsWith('/paths/')
+  const isCoursesRoute = location === '/courses' || location.startsWith('/courses/')
+  const isCommunityRoute = location === '/community' || location.startsWith('/community/')
 
   useEffect(() => {
-    if (!isPublicRoute && !isAdminRoute && !isTytRoute) {
+    if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute) {
       fetch('/api/user')
         .then(res => res.json())
         .then(data => {
@@ -48,7 +79,7 @@ export default function App() {
     } else {
       setLoading(false)
     }
-  }, [isPublicRoute, isAdminRoute, isTytRoute])
+  }, [isPublicRoute, isAdminRoute, isTeacherRoute, isTytRoute, isAytRoute, isYksRoute])
 
   // Public routes (Login/Register)
   if (isPublicRoute) {
@@ -83,6 +114,22 @@ export default function App() {
     )
   }
 
+  // Teacher Route (Protected)
+  if (isTeacherRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Öğretmen Paneli Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <TeacherDashboard />
+      </Suspense>
+    )
+  }
+
   // TYT Dashboard Route (Protected)
   if (isTytRoute) {
     return (
@@ -101,6 +148,164 @@ export default function App() {
     )
   }
 
+  // AYT Dashboard Route (Protected)
+  if (isAytRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">AYT Dashboard Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AytDashboard />
+      </Suspense>
+    )
+  }
+
+  // YKS Dashboard Route (Protected)
+  if (isYksRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">YKS Dashboard Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <YksDashboard />
+      </Suspense>
+    )
+  }
+
+  // New Dashboard Route (Protected)
+  if (isDashboardRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Dashboard Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <Dashboard />
+      </Suspense>
+    )
+  }
+
+  // Notebook Route (Protected)
+  if (isNotebookRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Defterim Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <Notebook />
+      </Suspense>
+    )
+  }
+
+  // Learning Paths Route (Protected)
+  if (isPathsRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Öğrenme Yolları Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <LearningPaths />
+      </Suspense>
+    )
+  }
+
+  // Courses Route (Protected)
+  const Courses = React.lazy(() => 
+    import('./pages/courses.tsx').catch(() => ({ default: () => <div>Kurslar yükleniyor...</div> }))
+  );
+
+  if (isCoursesRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Kurslar Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <Courses />
+      </Suspense>
+    )
+  }
+
+  // Certificates Route (Protected)
+  const Certificates = React.lazy(() => 
+    import('./pages/certificates.tsx').catch(() => ({ default: () => <div>Sertifikalar yükleniyor...</div> }))
+  );
+
+  const CertificateVerify = React.lazy(() => 
+    import('./pages/certificate-verify.tsx').catch(() => ({ default: () => <div>Doğrulanıyor...</div> }))
+  );
+
+  if (location === '/certificates' || location.startsWith('/certificates/')) {
+    if (location.startsWith('/certificates/verify/')) {
+      return (
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+              <p className="mt-4 text-gray-600">Doğrulanıyor...</p>
+            </div>
+          </div>
+        }>
+          <CertificateVerify />
+        </Suspense>
+      );
+    }
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Sertifikalar Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <Certificates />
+      </Suspense>
+    );
+  }
+
+  // Community Route (Protected)
+  const Community = React.lazy(() => 
+    import('./pages/community').catch(() => ({ default: () => <div>Topluluk yükleniyor...</div> }))
+  );
+
+  if (isCommunityRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Topluluk Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <Community />
+      </Suspense>
+    )
+  }
+
   // Student Dashboard (existing) - Protected
   if (loading) {
     return (
@@ -113,9 +318,15 @@ export default function App() {
     )
   }
 
-  // If not authenticated, redirect to login
-  if (!user && !isPublicRoute) {
+  // If not authenticated and trying to access protected routes, redirect to login
+  if (!user && !isPublicRoute && !isAdminRoute) {
     window.location.href = '/login'
+    return null
+  }
+
+  // Default redirect: if user is authenticated and on root, go to dashboard
+  if (user && location === '/') {
+    window.location.href = '/dashboard'
     return null
   }
 
@@ -180,18 +391,7 @@ export default function App() {
 
           {/* Main Content */}
           <main className="container mx-auto px-4 py-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Dashboard */}
-              <div className="lg:col-span-2">
-                <Dashboard user={user} />
-              </div>
-
-              {/* Sidebar */}
-              <div className="space-y-8">
-                <StudyPlan />
-                <ProgressChart />
-              </div>
-            </div>
+            <Dashboard />
 
             {/* API Status */}
             <div className="mt-12 p-4 bg-white rounded-lg shadow">

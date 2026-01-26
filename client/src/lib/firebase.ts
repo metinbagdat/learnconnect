@@ -39,7 +39,18 @@ export const collections = {
   studyPlans: 'study_plans',
   userProgress: 'user_progress',
   aiGeneratedPlans: 'ai_generated_plans',
-  aiPlans: 'ai_generated_plans' // Alias for compatibility
+  aiPlans: 'ai_generated_plans', // Alias for compatibility
+  // New collections for Phase 1 MVP
+  notes: 'notes',
+  studyStats: 'studyStats',
+  learningPaths: 'learningPaths',
+  userPathProgress: 'userPathProgress',
+  // Future collections (Phase 3-4)
+  courses: 'courses',
+  lessons: 'lessons',
+  communityPosts: 'communityPosts',
+  comments: 'comments',
+  certificates: 'certificates'
 };
 
 export default app;

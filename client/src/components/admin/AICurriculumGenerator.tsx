@@ -125,6 +125,7 @@ export default function AICurriculumGenerator() {
         const subjectRef = await addDoc(
           collection(db, `curriculum/${selectedExam}/subjects`),
           {
+            name: subject.title,
             title: subject.title,
             description: subject.description || '',
             icon: subject.icon || '📘',

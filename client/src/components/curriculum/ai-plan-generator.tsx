@@ -63,6 +63,16 @@ export default function AIPlanGenerator() {
       const data = await response.json();
       setPlan(data.plan);
       
+      // Haftalık planı Firestore'a kaydet
+      if (data.plan && data.success) {
+        try {
+          await saveWeeklyPlanToFirestore(data.plan);
+        } catch (saveError) {
+          console.warn('Plan Firestore\'a kaydedilemedi:', saveError);
+          // Hata olsa bile plan gösterilmeye devam eder
+        }
+      }
+      
     } catch (error) {
       console.error('Error generating plan:', error);
       alert('Plan oluşturulurken hata: ' + (error instanceof Error ? error.message : 'Unknown error'));
@@ -70,6 +80,76 @@ export default function AIPlanGenerator() {
       setLoading(false);
     }
   };
+
+  // Haftalık planı Firestore'a kaydet ve TYT Tasks'e dönüştür
+  async function saveWeeklyPlanToFirestore(plan: StudyPlan) {
+    const { db, auth, collections } = await import('@/lib/firebase');
+    const { collection, addDoc, doc, setDoc } = await import('firebase/firestore');
+    
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      console.warn('User not authenticated, skipping Firestore save');
+      return;
+    }
+    
+    // Firestore'a kaydet: study_plans/{userId}/weekly_plans/{planId}
+    const planId = plan.id || `plan_${Date.now()}`;
+    const weeklyPlanRef = doc(db, collections.studyPlans, userId, 'weekly_plans', planId);
+    
+    await setDoc(weeklyPlanRef, {
+      ...plan,
+      userId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    
+    // TYT Tasks'e dönüştür: weeklyPlan → daily_tasks
+    if (plan.weeklyPlan && Array.isArray(plan.weeklyPlan)) {
+      const tasksToCreate = [];
+      
+      for (const day of plan.weeklyPlan) {
+        if (day.subjects && Array.isArray(day.subjects)) {
+          for (const subject of day.subjects) {
+            if (subject.topics && Array.isArray(subject.topics)) {
+              for (const topic of subject.topics) {
+                tasksToCreate.push({
+                  title: `${subject.subject}: ${topic.name || 'Konu'}`,
+                  description: topic.difficulty || 'Orta',
+                  estimatedDuration: topic.estimatedTime || 45,
+                  date: day.date,
+                  subject: subject.subject,
+                  topicId: topic.id,
+                  priority: 'medium',
+                  isCompleted: false
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      // TYT Tasks API'ye gönder
+      if (tasksToCreate.length > 0) {
+        try {
+          const tasksResponse = await fetch('/api/tyt/tasks/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tasks: tasksToCreate })
+          });
+          
+          if (tasksResponse.ok) {
+            console.log(`✅ ${tasksToCreate.length} görev TYT Tasks'e eklendi`);
+          } else {
+            console.warn('TYT Tasks batch create failed:', await tasksResponse.text());
+          }
+        } catch (taskError) {
+          console.warn('TYT Tasks batch create error:', taskError);
+        }
+      }
+    }
+    
+    console.log('✅ Haftalık plan Firestore\'a kaydedildi:', planId);
+  }
 
   const updateProfile = (field: keyof StudentProfile, value: string | number | string[] | undefined) => {
     setStudentProfile(prev => ({

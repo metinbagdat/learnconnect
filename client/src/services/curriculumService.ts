@@ -186,18 +186,18 @@ export async function saveUserProgress(
   progress: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const { setDoc } = await import('firebase/firestore');
     const progressRef = doc(db, collections.userProgress, `${userId}_${subjectId}_${topicId}`);
     
-    // TODO: Implement Firestore write
-    // await setDoc(progressRef, {
-    //   userId,
-    //   subjectId,
-    //   topicId,
-    //   ...progress,
-    //   updatedAt: new Date().toISOString()
-    // });
+    await setDoc(progressRef, {
+      userId,
+      subjectId,
+      topicId,
+      ...progress,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
     
-    console.log('Saving progress:', { userId, subjectId, topicId, progress });
+    console.log('✅ Progress saved:', { userId, subjectId, topicId, progress });
     
     return { success: true };
   } catch (error) {
