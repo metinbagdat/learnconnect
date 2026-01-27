@@ -1,0 +1,5 @@
+# Hobby plan: max 12 Serverless Functions. Exclude unused / redundant to stay under limit.
+api/errors/
+api/send-email.js
+api/ai/ayt-curriculum.js
+api/ai/learning-tree.js
