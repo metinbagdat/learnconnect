@@ -1,6 +1,9 @@
 /**
  * Post-build check: dist CSS must not contain -webkit-text-size-adjust
  * (avoids DevTools "parsing error" warning). Run after vite build.
+ *
+ * Usage: npm run check:css   OR   node scripts/check-no-webkit-css.js
+ * Manual grep (PowerShell): Get-ChildItem -Path dist -Recurse -Filter *.css | Select-String "webkit-text-size-adjust"
  */
 import fs from "fs";
 import path from "path";

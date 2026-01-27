@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js",
+    "check:css": "node scripts/check-no-webkit-css.js",
     "preview": "vite preview",
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js"
   },
