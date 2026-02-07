@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,7 +21,8 @@ import {
   Flame,
   Users,
   PlayCircle,
-  PlusCircle
+  PlusCircle,
+  Loader2
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,9 +39,10 @@ import ModernNavigation from "@/components/layout/modern-navigation";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { BilingualText } from "@/components/ui/bilingual-text";
 import PageWrapper from "@/components/layout/page-wrapper";
-import CurriculumTree from "@/components/curriculum/curriculum-tree";
-import AIPlanGenerator from "@/components/curriculum/ai-plan-generator";
 import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@/types/tyt";
+
+const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
+const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
 
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {
@@ -59,6 +61,13 @@ const getLocalDateString = () => {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+const LazySectionFallback = () => (
+  <div className="flex items-center justify-center py-12 text-gray-600">
+    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+    <span>Yükleniyor...</span>
+  </div>
+);
 
 export default function TytDashboard() {
   const { language, t } = useLanguage();
@@ -990,12 +999,16 @@ export default function TytDashboard() {
 
                 {/* Curriculum Tab */}
                 <TabsContent value="curriculum" className="space-y-6">
-                  <CurriculumTree />
+                  <Suspense fallback={<LazySectionFallback />}>
+                    <CurriculumTree />
+                  </Suspense>
                 </TabsContent>
 
                 {/* AI Plan Tab */}
                 <TabsContent value="ai-plan" className="space-y-6">
-                  <AIPlanGenerator />
+                  <Suspense fallback={<LazySectionFallback />}>
+                    <AIPlanGenerator />
+                  </Suspense>
                 </TabsContent>
 
               </motion.div>

@@ -1,5 +1,5 @@
 import { db, collections } from '../lib/firebase';
-import { collection, getDocs, getDoc, doc, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, query, orderBy } from 'firebase/firestore';
 import type { Subject, Topic, Subtopic, CurriculumTree } from '@/types/curriculum';
 
 // TYT Müfredatını getir (alias for compatibility)
@@ -11,21 +11,28 @@ export async function getTYTCurriculum(): Promise<Subject[]> {
 export async function getTYTSubjects(): Promise<Subject[]> {
   try {
     const subjectsRef = collection(db, collections.tytSubjects);
-    const q = query(subjectsRef, orderBy('name'));
-    const snapshot = await getDocs(q);
+    let snapshot;
+    try {
+      const q = query(subjectsRef, orderBy('order'));
+      snapshot = await getDocs(q);
+    } catch (orderError) {
+      // Fallback when order field is missing
+      snapshot = await getDocs(subjectsRef);
+    }
     
-    const subjects: Subject[] = [];
-    snapshot.forEach((doc) => {
-      subjects.push({
-        id: doc.id,
-        ...doc.data()
-      } as Subject);
-    });
-    
-    return subjects;
+    const subjects = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Subject[];
+
+    if (subjects.length === 0) {
+      return getMockSubjects();
+    }
+
+    return subjects.sort((a, b) => (a.order || 0) - (b.order || 0));
   } catch (error) {
     console.error('Error fetching subjects:', error);
-    return getMockCurriculum(); // Fallback
+    return getMockSubjects(); // Fallback
   }
 }
 
@@ -33,8 +40,13 @@ export async function getTYTSubjects(): Promise<Subject[]> {
 export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
   try {
     const topicsRef = collection(db, collections.tytSubjects, subjectId, 'topics');
-    const q = query(topicsRef, orderBy('order'));
-    const snapshot = await getDocs(q);
+    let snapshot;
+    try {
+      const q = query(topicsRef, orderBy('order'));
+      snapshot = await getDocs(q);
+    } catch (orderError) {
+      snapshot = await getDocs(topicsRef);
+    }
     
     const topics = await Promise.all(
       snapshot.docs.map(async (doc) => {
@@ -50,8 +62,13 @@ export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
             doc.id, 
             'subtopics'
           );
-          const subtopicsQ = query(subtopicsRef, orderBy('order'));
-          const subtopicsSnapshot = await getDocs(subtopicsQ);
+          let subtopicsSnapshot;
+          try {
+            const subtopicsQ = query(subtopicsRef, orderBy('order'));
+            subtopicsSnapshot = await getDocs(subtopicsQ);
+          } catch (orderError) {
+            subtopicsSnapshot = await getDocs(subtopicsRef);
+          }
           
           topicData.subtopics = subtopicsSnapshot.docs.map(subDoc => ({
             id: subDoc.id,
@@ -65,57 +82,158 @@ export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
       })
     );
     
-    return topics;
+    return topics.sort((a, b) => (a.order || 0) - (b.order || 0));
   } catch (error) {
     console.error('Error fetching topics:', error);
-    return [];
+    return getMockSubjectTopics(subjectId);
   }
 }
 
-// Demo müfredat (Firestore yoksa)
-function getMockCurriculum(): Subject[] {
-  return [
-    {
-      id: 'mathematics',
-      title: 'Matematik',
-      description: 'TYT Matematik müfredatı',
-      totalTopics: 25,
-      estimatedHours: 120,
-      order: 1,
-      color: 'blue',
-      icon: '🧮'
-    },
-    {
-      id: 'turkish',
-      title: 'Türkçe',
-      description: 'TYT Türkçe müfredatı',
-      totalTopics: 20,
-      estimatedHours: 80,
-      order: 2,
-      color: 'green',
-      icon: '📚'
-    },
-    {
-      id: 'science',
-      title: 'Fen Bilimleri',
-      description: 'TYT Fizik, Kimya, Biyoloji',
-      totalTopics: 35,
-      estimatedHours: 100,
-      order: 3,
-      color: 'purple',
-      icon: '🔬'
-    },
-    {
-      id: 'social',
-      title: 'Sosyal Bilimler',
-      description: 'TYT Tarih, Coğrafya, Felsefe, Din',
-      totalTopics: 30,
-      estimatedHours: 90,
-      order: 4,
-      color: 'yellow',
-      icon: '🌍'
-    }
-  ];
+const mockCurriculumTree: CurriculumTree[] = [
+  {
+    id: 'mathematics',
+    title: 'Matematik',
+    description: 'TYT Matematik müfredatı',
+    totalTopics: 25,
+    estimatedHours: 120,
+    order: 1,
+    color: 'blue',
+    icon: '🧮',
+    topics: [
+      {
+        id: 'algebra',
+        name: 'Cebir',
+        order: 1,
+        estimatedTime: 60,
+        difficulty: 'medium',
+        subtopics: [
+          { id: 'equations', name: 'Denklemler', order: 1, estimatedTime: 30 },
+          { id: 'inequalities', name: 'Eşitsizlikler', order: 2, estimatedTime: 30 }
+        ]
+      },
+      {
+        id: 'geometry',
+        name: 'Geometri',
+        order: 2,
+        estimatedTime: 60,
+        difficulty: 'medium',
+        subtopics: [
+          { id: 'triangles', name: 'Üçgenler', order: 1, estimatedTime: 30 },
+          { id: 'circles', name: 'Çember ve Daire', order: 2, estimatedTime: 30 }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'turkish',
+    title: 'Türkçe',
+    description: 'TYT Türkçe müfredatı',
+    totalTopics: 20,
+    estimatedHours: 80,
+    order: 2,
+    color: 'green',
+    icon: '📚',
+    topics: [
+      {
+        id: 'grammar',
+        name: 'Dil Bilgisi',
+        order: 1,
+        estimatedTime: 45,
+        difficulty: 'easy',
+        subtopics: [
+          { id: 'verbs', name: 'Fiiller', order: 1, estimatedTime: 20 },
+          { id: 'sentence', name: 'Cümle Bilgisi', order: 2, estimatedTime: 25 }
+        ]
+      },
+      {
+        id: 'reading',
+        name: 'Paragraf',
+        order: 2,
+        estimatedTime: 45,
+        difficulty: 'medium',
+        subtopics: [
+          { id: 'main-idea', name: 'Ana Düşünce', order: 1, estimatedTime: 20 },
+          { id: 'structure', name: 'Paragraf Yapısı', order: 2, estimatedTime: 25 }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'science',
+    title: 'Fen Bilimleri',
+    description: 'TYT Fizik, Kimya, Biyoloji',
+    totalTopics: 35,
+    estimatedHours: 100,
+    order: 3,
+    color: 'purple',
+    icon: '🔬',
+    topics: [
+      {
+        id: 'physics',
+        name: 'Fizik',
+        order: 1,
+        estimatedTime: 60,
+        difficulty: 'medium',
+        subtopics: [
+          { id: 'motion', name: 'Hareket', order: 1, estimatedTime: 30 },
+          { id: 'force', name: 'Kuvvet', order: 2, estimatedTime: 30 }
+        ]
+      },
+      {
+        id: 'chemistry',
+        name: 'Kimya',
+        order: 2,
+        estimatedTime: 60,
+        difficulty: 'medium',
+        subtopics: [
+          { id: 'atoms', name: 'Atom ve Periyodik Sistem', order: 1, estimatedTime: 30 },
+          { id: 'bonds', name: 'Kimyasal Bağlar', order: 2, estimatedTime: 30 }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'social',
+    title: 'Sosyal Bilimler',
+    description: 'TYT Tarih, Coğrafya, Felsefe, Din',
+    totalTopics: 30,
+    estimatedHours: 90,
+    order: 4,
+    color: 'yellow',
+    icon: '🌍',
+    topics: [
+      {
+        id: 'history',
+        name: 'Tarih',
+        order: 1,
+        estimatedTime: 50,
+        difficulty: 'medium',
+        subtopics: [
+          { id: 'ottoman', name: 'Osmanlı Tarihi', order: 1, estimatedTime: 25 },
+          { id: 'republic', name: 'Cumhuriyet Dönemi', order: 2, estimatedTime: 25 }
+        ]
+      },
+      {
+        id: 'geography',
+        name: 'Coğrafya',
+        order: 2,
+        estimatedTime: 40,
+        difficulty: 'easy',
+        subtopics: [
+          { id: 'climate', name: 'İklim', order: 1, estimatedTime: 20 },
+          { id: 'population', name: 'Nüfus', order: 2, estimatedTime: 20 }
+        ]
+      }
+    ]
+  }
+];
+
+function getMockSubjects(): Subject[] {
+  return mockCurriculumTree.map(({ topics, ...subject }) => ({ ...subject }));
+}
+
+function getMockSubjectTopics(subjectId: string): Topic[] {
+  return mockCurriculumTree.find((subject) => subject.id === subjectId)?.topics ?? [];
 }
 
 // Müfredat ağacını getir (dersler + konular + alt konular)
@@ -126,55 +244,18 @@ export async function getCurriculumTree(): Promise<CurriculumTree[]> {
     const tree = await Promise.all(
       subjects.map(async (subject) => {
         const topics = await getSubjectTopics(subject.id);
-        
-        const topicsWithSubtopics = await Promise.all(
-          topics.map(async (topic) => {
-            try {
-              const subtopicsRef = collection(
-                db, 
-                collections.tytCurriculum, 
-                subject.id, 
-                'topics', 
-                topic.id, 
-                'subtopics'
-              );
-              
-              const subtopicsSnapshot = await getDocs(subtopicsRef);
-              const subtopics: Subtopic[] = [];
-              
-              subtopicsSnapshot.forEach((doc) => {
-                subtopics.push({
-                  id: doc.id,
-                  ...doc.data()
-                } as Subtopic);
-              });
-              
-              return {
-                ...topic,
-                subtopics: subtopics.sort((a, b) => (a.order || 0) - (b.order || 0))
-              };
-            } catch (error) {
-              return { ...topic, subtopics: [] };
-            }
-          })
-        );
-        
+
         return {
           ...subject,
-          topics: topicsWithSubtopics
+          topics
         } as CurriculumTree;
       })
     );
     
-    return tree;
+    return tree.length > 0 ? tree : mockCurriculumTree;
   } catch (error) {
     console.error('Error fetching curriculum tree:', error);
-    // Return mock data on error
-    const mockSubjects = getMockCurriculum();
-    return mockSubjects.map(subject => ({
-      ...subject,
-      topics: []
-    })) as CurriculumTree[];
+    return mockCurriculumTree;
   }
 }
 

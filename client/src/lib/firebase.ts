@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { collection, getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -51,6 +51,18 @@ export const collections = {
   communityPosts: 'communityPosts',
   comments: 'comments',
   certificates: 'certificates'
+};
+
+// Firestore collection references (top-level collections)
+export const collectionRefs = {
+  curriculum: collection(db, collections.curriculum),
+  tytSubjects: collection(db, collections.tytSubjects),
+  studyPlans: collection(db, collections.studyPlans),
+  userProgress: collection(db, collections.userProgress),
+  aiPlans: collection(db, collections.aiPlans),
+  notes: collection(db, collections.notes),
+  studyStats: collection(db, collections.studyStats),
+  learningPaths: collection(db, collections.learningPaths)
 };
 
 export default app;

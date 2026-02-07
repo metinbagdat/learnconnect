@@ -29,6 +29,22 @@
    - Click "Redeploy" on the latest deployment
    - OR wait for automatic deployment from GitHub push
 
+## Firebase Frontend Variables (Vite)
+
+Add the following `VITE_` variables for the TYT curriculum integration:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID` (optional)
+
+**Source:** Firebase Console → Project Settings → General → Your apps
+
+**Environment:** Select **Production**, **Preview**, and **Development** as needed.
+
 ## After Adding Variables
 
 The deployment will automatically trigger, or you can manually redeploy from the dashboard.

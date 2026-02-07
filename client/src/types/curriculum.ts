@@ -60,6 +60,11 @@ export interface WeeklyPlanDay {
   totalHours: number;
 }
 
+export interface WeeklyPlan {
+  days: WeeklyPlanDay[];
+  totalHours: number;
+}
+
 export interface MonthlySummary {
   subject: string;
   weeklyHours: number;
