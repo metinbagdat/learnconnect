@@ -7,5 +7,8 @@ export default {
   theme: {
     extend: {},
   },
+  corePlugins: {
+    textSizeAdjust: false,
+  },
   plugins: [],
 }
