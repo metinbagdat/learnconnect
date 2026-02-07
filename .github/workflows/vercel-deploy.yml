@@ -20,18 +20,59 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
-
-      - name: Build server (if present)
+      - name: Build frontend (capture logs)
         run: |
-          if [ -f build-server.js ]; then
-            node build-server.js
-          elif [ -f server/index.ts ]; then
-            node build-server.js
+          set -o pipefail
+          npm run build 2>&1 | tee build-frontend.log
+
+      - name: Prepare frontend artifacts
+        if: always()
+        run: |
+          if [ -d dist ]; then
+            tar -czf dist-frontend.tar.gz dist || true
           else
-            echo "No server build required"
+            echo "no-dist" > no-dist-frontend.txt
           fi
+
+      - name: Upload frontend artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build-artifacts
+          path: |
+            build-frontend.log
+            dist-frontend.tar.gz
+            no-dist-frontend.txt
+
+      - name: Build server (if present, capture logs)
+        if: always()
+        run: |
+          set -o pipefail
+          if [ -f build-server.js ] || [ -f server/index.ts ]; then
+            node build-server.js 2>&1 | tee build-server.log
+          else
+            echo "No server build required" > build-server.log
+          fi
+
+      - name: Prepare server artifacts
+        if: always()
+        run: |
+          DIST_PATH=$(pwd)/dist
+          if [ -d "$DIST_PATH" ]; then
+            tar -czf dist-server.tar.gz -C $(dirname "$DIST_PATH") dist || true
+          else
+            echo "no-dist" > no-dist-server.txt
+          fi
+
+      - name: Upload server artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-build-artifacts
+          path: |
+            build-server.log
+            dist-server.tar.gz
+            no-dist-server.txt
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
