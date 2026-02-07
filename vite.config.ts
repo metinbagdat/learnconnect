@@ -7,8 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
-    react(),
-  ],
+  react({
+    jsxRuntime: 'automatic', // Use React 17+ automatic JSX transform
+  }),
+],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
