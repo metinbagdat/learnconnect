@@ -45,8 +45,11 @@ function isSesError(err: unknown): boolean {
   }
   
   // Check for "React is undefined" when it appears in SES context
-  if ((message.includes('React is undefined') || message.includes("can't access property \"useState\", React is undefined")) 
-      && (stack.includes('lockdown') || stack.includes('SES') || errorStr.includes('SES'))) {
+  const isReactUndefinedError = message.includes('React is undefined') || 
+                                 message.includes("can't access property \"useState\", React is undefined");
+  const hasSesContext = stack.includes('lockdown') || stack.includes('SES') || errorStr.includes('SES');
+  
+  if (isReactUndefinedError && hasSesContext) {
     return true;
   }
   
@@ -107,6 +110,10 @@ window.addEventListener('unhandledrejection', (event) => {
   return true;
 }, true);
 
+// Configuration constants
+const REACT_MOUNT_TIMEOUT_MS = 10000; // 10 seconds
+const MIN_CONTENT_LENGTH = 200; // Minimum text length indicating React has rendered content
+
 /**
  * Check if React has mounted after a timeout
  * If not mounted and we've seen SES errors, show a fallback message
@@ -119,11 +126,12 @@ setTimeout(() => {
   }
   
   // Check if React has rendered content (more than just the fallback text)
+  // React apps typically render substantial content, so 200+ chars is a good indicator
   const hasContent = root.children.length > 0 || 
-                     (root.textContent && root.textContent.length > 200);
+                     (root.textContent && root.textContent.length > MIN_CONTENT_LENGTH);
   
   if (!hasContent && sesErrorsSeen > 0) {
-    console.warn(`[SES Guard] React did not mount after 10 seconds and ${sesErrorsSeen} SES errors were seen`);
+    console.warn(`[SES Guard] React did not mount after ${REACT_MOUNT_TIMEOUT_MS / 1000} seconds and ${sesErrorsSeen} SES errors were seen`);
     
     // Show a helpful message in Turkish
     root.innerHTML = `
@@ -186,7 +194,7 @@ setTimeout(() => {
       console.info(`[SES Guard] React mounted successfully despite ${sesErrorsSeen} SES errors`);
     }
   }
-}, 10000); // Wait 10 seconds for React to mount
+}, REACT_MOUNT_TIMEOUT_MS);
 
 // Set a debug flag
 (window as any).__egitimTodaySesGuardActive = true;
