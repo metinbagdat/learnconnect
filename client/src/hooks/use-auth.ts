@@ -32,7 +32,15 @@ export function useAuth(): UseAuthReturn {
 
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
+        const userId = Number(userData?.id ?? 0);
+        const userRole = String(userData?.role ?? '');
+        const isGuest = userRole.toLowerCase() === 'guest' || userData?.username === 'guest';
+
+        if (userId > 0 && !isGuest) {
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
