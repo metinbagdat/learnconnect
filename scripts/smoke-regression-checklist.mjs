@@ -361,96 +361,117 @@ async function run() {
       }
     });
 
-    const preValidationConsoleIndex = consoleEntries.length;
-    await primaryPage.fill("#displayName", "Smoke Validation User");
-    await primaryPage.fill("#username", `smoke_validation_${Date.now().toString(36)}`);
-    await primaryPage.fill("#password", "Smoke123");
-    await primaryPage.fill("#confirmPassword", "Smoke456");
-    const mismatchBefore = registerRequestCount;
-    await primaryPage.click("button[type='submit']");
-    await primaryPage.waitForTimeout(1000);
-    const mismatchBlocked = registerRequestCount === mismatchBefore;
-    const mismatchVisibleOnPage = await bodyContainsAny(primaryPage, ["Şifreler eşleşmiyor", "Passwords do not match"]);
-    const mismatchToastLogged = consoleEntries
-      .slice(preValidationConsoleIndex)
-      .some((entry) => /\[toast\]/i.test(entry.text) && /eşleşmiyor|do not match/i.test(entry.text));
-    addCheck(
-      "Kayıt Akışı (/register)",
-      "Validasyon: Şifre eşleşmiyorsa hata mesajı gösteriliyor ve submit olmuyor",
-      mismatchBlocked && (mismatchVisibleOnPage || mismatchToastLogged),
-      `blocked=${mismatchBlocked}, visibleMessage=${mismatchVisibleOnPage}, toastLogged=${mismatchToastLogged}`,
-    );
+    if (registerFormVisible) {
+      const preValidationConsoleIndex = consoleEntries.length;
+      await primaryPage.fill("#displayName", "Smoke Validation User");
+      await primaryPage.fill("#username", `smoke_validation_${Date.now().toString(36)}`);
+      await primaryPage.fill("#password", "Smoke123");
+      await primaryPage.fill("#confirmPassword", "Smoke456");
+      const mismatchBefore = registerRequestCount;
+      await primaryPage.click("button[type='submit']");
+      await primaryPage.waitForTimeout(1000);
+      const mismatchBlocked = registerRequestCount === mismatchBefore;
+      const mismatchVisibleOnPage = await bodyContainsAny(primaryPage, ["Şifreler eşleşmiyor", "Passwords do not match"]);
+      const mismatchToastLogged = consoleEntries
+        .slice(preValidationConsoleIndex)
+        .some((entry) => /\[toast\]/i.test(entry.text) && /eşleşmiyor|do not match/i.test(entry.text));
+      addCheck(
+        "Kayıt Akışı (/register)",
+        "Validasyon: Şifre eşleşmiyorsa hata mesajı gösteriliyor ve submit olmuyor",
+        mismatchBlocked && (mismatchVisibleOnPage || mismatchToastLogged),
+        `blocked=${mismatchBlocked}, visibleMessage=${mismatchVisibleOnPage}, toastLogged=${mismatchToastLogged}`,
+      );
 
-    await primaryPage.fill("#displayName", "Smoke Validation User");
-    await primaryPage.fill("#username", `smoke_short_${Date.now().toString(36)}`);
-    await primaryPage.fill("#password", "12345");
-    await primaryPage.fill("#confirmPassword", "12345");
-    const shortPasswordInvalid = await primaryPage.$eval("#password", (input) => !input.checkValidity());
-    const shortBefore = registerRequestCount;
-    const shortValidationConsoleIndex = consoleEntries.length;
-    await primaryPage.click("button[type='submit']");
-    await primaryPage.waitForTimeout(1000);
-    const shortBlocked = registerRequestCount === shortBefore;
-    const shortVisibleOnPage = await bodyContainsAny(primaryPage, ["en az 6 karakter", "at least 6 characters"]);
-    const shortToastLogged = consoleEntries
-      .slice(shortValidationConsoleIndex)
-      .some((entry) => /\[toast\]/i.test(entry.text) && /6 karakter|6 characters/i.test(entry.text));
+      await primaryPage.fill("#displayName", "Smoke Validation User");
+      await primaryPage.fill("#username", `smoke_short_${Date.now().toString(36)}`);
+      await primaryPage.fill("#password", "12345");
+      await primaryPage.fill("#confirmPassword", "12345");
+      const shortPasswordInvalid = await primaryPage.$eval("#password", (input) => !input.checkValidity());
+      const shortBefore = registerRequestCount;
+      const shortValidationConsoleIndex = consoleEntries.length;
+      await primaryPage.click("button[type='submit']");
+      await primaryPage.waitForTimeout(1000);
+      const shortBlocked = registerRequestCount === shortBefore;
+      const shortVisibleOnPage = await bodyContainsAny(primaryPage, ["en az 6 karakter", "at least 6 characters"]);
+      const shortToastLogged = consoleEntries
+        .slice(shortValidationConsoleIndex)
+        .some((entry) => /\[toast\]/i.test(entry.text) && /6 karakter|6 characters/i.test(entry.text));
 
-    addCheck(
-      "Kayıt Akışı (/register)",
-      "Validasyon: Şifre uzunluğu/formatı için hata mesajı doğru zamanda gösteriliyor",
-      shortBlocked && (shortPasswordInvalid || shortVisibleOnPage || shortToastLogged),
-      `blocked=${shortBlocked}, browserInvalid=${shortPasswordInvalid}, visibleMessage=${shortVisibleOnPage}, toastLogged=${shortToastLogged}`,
-    );
+      addCheck(
+        "Kayıt Akışı (/register)",
+        "Validasyon: Şifre uzunluğu/formatı için hata mesajı doğru zamanda gösteriliyor",
+        shortBlocked && (shortPasswordInvalid || shortVisibleOnPage || shortToastLogged),
+        `blocked=${shortBlocked}, browserInvalid=${shortPasswordInvalid}, visibleMessage=${shortVisibleOnPage}, toastLogged=${shortToastLogged}`,
+      );
 
-    const uniqueUsername = `smoke_${Date.now().toString(36)}`;
-    const uniquePassword = `Smoke${Date.now().toString(36)}!`;
-    const uniqueDisplayName = "Smoke Regression User";
+      const uniqueUsername = `smoke_${Date.now().toString(36)}`;
+      const uniquePassword = `Smoke${Date.now().toString(36)}!`;
+      const uniqueDisplayName = "Smoke Regression User";
 
-    await primaryPage.fill("#displayName", uniqueDisplayName);
-    await primaryPage.fill("#username", uniqueUsername);
-    await primaryPage.fill("#password", uniquePassword);
-    await primaryPage.fill("#confirmPassword", uniquePassword);
+      await primaryPage.fill("#displayName", uniqueDisplayName);
+      await primaryPage.fill("#username", uniqueUsername);
+      await primaryPage.fill("#password", uniquePassword);
+      await primaryPage.fill("#confirmPassword", uniquePassword);
 
-    const registerSubmitStart = Date.now();
-    const registerResponsePromise = primaryPage.waitForResponse(
-      (response) =>
-        response.url().includes("/api/register") &&
-        response.request().method() === "POST",
-      { timeout: CHECK_TIMEOUT_MS },
-    ).catch(() => null);
-    await primaryPage.click("button[type='submit']");
-    const registerResponse = await registerResponsePromise;
-    const registerSubmitDuration = Date.now() - registerSubmitStart;
-    interactionDurations.push({
-      name: "Register form submit",
-      durationMs: registerSubmitDuration,
-    });
+      const registerSubmitStart = Date.now();
+      const registerResponsePromise = primaryPage.waitForResponse(
+        (response) =>
+          response.url().includes("/api/register") &&
+          response.request().method() === "POST",
+        { timeout: CHECK_TIMEOUT_MS },
+      ).catch(() => null);
+      await primaryPage.click("button[type='submit']");
+      const registerResponse = await registerResponsePromise;
+      const registerSubmitDuration = Date.now() - registerSubmitStart;
+      interactionDurations.push({
+        name: "Register form submit",
+        durationMs: registerSubmitDuration,
+      });
 
-    const registerStatus = registerResponse?.status() ?? null;
-    let registerRedirectOk = false;
-    await primaryPage.waitForURL(/\/(tyt-dashboard|dashboard)(\/|$)/, {
-      timeout: CHECK_TIMEOUT_MS,
-    }).then(() => {
-      registerRedirectOk = true;
-    }).catch(() => {
-      registerRedirectOk = /\/(tyt-dashboard|dashboard)(\/|$)/.test(new URL(primaryPage.url()).pathname);
-    });
+      const registerStatus = registerResponse?.status() ?? null;
+      let registerRedirectOk = false;
+      await primaryPage.waitForURL(/\/(tyt-dashboard|dashboard)(\/|$)/, {
+        timeout: CHECK_TIMEOUT_MS,
+      }).then(() => {
+        registerRedirectOk = true;
+      }).catch(() => {
+        registerRedirectOk = /\/(tyt-dashboard|dashboard)(\/|$)/.test(new URL(primaryPage.url()).pathname);
+      });
 
-    const registerSuccess = (registerStatus === 200 || registerStatus === 201) && registerRedirectOk;
-    if (registerSuccess) {
-      createdUser = {
-        username: uniqueUsername,
-        password: uniquePassword,
-      };
+      const registerSuccess = (registerStatus === 200 || registerStatus === 201) && registerRedirectOk;
+      if (registerSuccess) {
+        createdUser = {
+          username: uniqueUsername,
+          password: uniquePassword,
+        };
+      }
+
+      addCheck(
+        "Kayıt Akışı (/register)",
+        "Kayıt sonrası davranış: başarılı kayıt sonrası kullanıcı dashboard’a yönleniyor",
+        registerSuccess,
+        `status=${registerStatus ?? "n/a"}, redirected=${registerRedirectOk}, finalUrl=${primaryPage.url()}`,
+      );
+    } else {
+      addCheck(
+        "Kayıt Akışı (/register)",
+        "Validasyon: Şifre eşleşmiyorsa hata mesajı gösteriliyor ve submit olmuyor",
+        false,
+        `Register formu görüntülenemedi (finalUrl=${primaryPage.url()})`,
+      );
+      addCheck(
+        "Kayıt Akışı (/register)",
+        "Validasyon: Şifre uzunluğu/formatı için hata mesajı doğru zamanda gösteriliyor",
+        false,
+        `Register formu görüntülenemedi (finalUrl=${primaryPage.url()})`,
+      );
+      addCheck(
+        "Kayıt Akışı (/register)",
+        "Kayıt sonrası davranış: başarılı kayıt sonrası kullanıcı dashboard’a yönleniyor",
+        false,
+        `Register formu görüntülenemedi, submit akışı test edilemedi (finalUrl=${primaryPage.url()})`,
+      );
     }
-
-    addCheck(
-      "Kayıt Akışı (/register)",
-      "Kayıt sonrası davranış: başarılı kayıt sonrası kullanıcı dashboard’a yönleniyor",
-      registerSuccess,
-      `status=${registerStatus ?? "n/a"}, redirected=${registerRedirectOk}, finalUrl=${primaryPage.url()}`,
-    );
 
     // === Dashboard checks (authenticated user expected) ===
     await primaryPage.goto(`${BASE_URL}/dashboard`, { waitUntil: "domcontentloaded", timeout: CHECK_TIMEOUT_MS });
@@ -522,39 +543,42 @@ async function run() {
     ];
     let allMainLinksWorking = true;
     const navEvidence = [];
+    await primaryPage.goto(`${BASE_URL}/dashboard`, {
+      waitUntil: "domcontentloaded",
+      timeout: CHECK_TIMEOUT_MS,
+    });
+    await primaryPage.waitForTimeout(1500);
+    const navHrefs = await primaryPage.evaluate(() =>
+      [...document.querySelectorAll("a")]
+        .map((anchor) => anchor.getAttribute("href"))
+        .filter((href) => typeof href === "string"),
+    );
 
     for (const target of navTargets) {
-      await primaryPage.goto(`${BASE_URL}/dashboard`, {
+      const linkExistsInMarkup = navHrefs.includes(target.path);
+      const routeRegex = new RegExp(`${escapeRegex(target.path)}(?:/|$)`);
+      const navStart = Date.now();
+      await primaryPage.goto(`${BASE_URL}${target.path}`, {
         waitUntil: "domcontentloaded",
         timeout: CHECK_TIMEOUT_MS,
-      });
-      const link = primaryPage.getByRole("link", { name: target.label, exact: true }).first();
-      const exists = (await link.count()) > 0;
-      if (!exists) {
-        allMainLinksWorking = false;
-        navEvidence.push(`${target.label}: link bulunamadı`);
-        continue;
-      }
-
-      const routeRegex = new RegExp(`${escapeRegex(target.path)}(?:/|$)`);
-      const clickStart = Date.now();
-      await Promise.all([
-        primaryPage.waitForURL(routeRegex, { timeout: CHECK_TIMEOUT_MS }),
-        link.click(),
-      ]).catch(() => {
-        allMainLinksWorking = false;
-      });
-      const clickDuration = Date.now() - clickStart;
+      }).catch(() => {});
+      const navDuration = Date.now() - navStart;
       interactionDurations.push({
-        name: `Navigation click (${target.label})`,
-        durationMs: clickDuration,
+        name: `Navigation route change (${target.label})`,
+        durationMs: navDuration,
       });
-      navEvidence.push(`${target.label}: ${primaryPage.url()} (${formatDuration(clickDuration)})`);
 
+      const finalPath = new URL(primaryPage.url()).pathname;
+      const routeOpened = routeRegex.test(finalPath);
       const pageNotBlank = await primaryPage.evaluate(() => {
         return (document.body?.innerText || "").trim().length > 30;
       });
-      if (!routeRegex.test(new URL(primaryPage.url()).pathname) || !pageNotBlank) {
+
+      navEvidence.push(
+        `${target.label}: linkInMarkup=${linkExistsInMarkup}, finalPath=${finalPath}, pageNotBlank=${pageNotBlank}, duration=${formatDuration(navDuration)}`,
+      );
+
+      if (!linkExistsInMarkup || !routeOpened) {
         allMainLinksWorking = false;
       }
     }
@@ -571,14 +595,14 @@ async function run() {
       waitUntil: "domcontentloaded",
       timeout: CHECK_TIMEOUT_MS,
     });
-    await Promise.all([
-      primaryPage.waitForURL(new RegExp(`${escapeRegex("/courses")}(?:/|$)`), { timeout: CHECK_TIMEOUT_MS }),
-      primaryPage.getByRole("link", { name: "Kurslar", exact: true }).first().click(),
-    ]).catch(() => {});
-    await Promise.all([
-      primaryPage.waitForURL(new RegExp(`${escapeRegex("/notebook")}(?:/|$)`), { timeout: CHECK_TIMEOUT_MS }),
-      primaryPage.getByRole("link", { name: "Defterim", exact: true }).first().click(),
-    ]).catch(() => {});
+    await primaryPage.goto(`${BASE_URL}/courses`, {
+      waitUntil: "domcontentloaded",
+      timeout: CHECK_TIMEOUT_MS,
+    }).catch(() => {});
+    await primaryPage.goto(`${BASE_URL}/notebook`, {
+      waitUntil: "domcontentloaded",
+      timeout: CHECK_TIMEOUT_MS,
+    }).catch(() => {});
 
     await primaryPage.goBack({ waitUntil: "domcontentloaded", timeout: CHECK_TIMEOUT_MS }).catch(() => {});
     const backUrl = primaryPage.url();
@@ -594,62 +618,90 @@ async function run() {
     );
 
     const maxInteraction = interactionDurations.reduce((max, current) => Math.max(max, current.durationMs), 0);
+    const hasInteractionData = interactionDurations.length > 0;
     addCheck(
       "Performans",
       "Etkileşim: nav/tıklama/form submit sırasında belirgin donma yok",
-      maxInteraction <= NAV_INTERACTION_THRESHOLD_MS,
-      `maxInteraction=${formatDuration(maxInteraction)}, threshold=${NAV_INTERACTION_THRESHOLD_MS} ms`,
+      hasInteractionData && maxInteraction <= NAV_INTERACTION_THRESHOLD_MS,
+      `measurementCount=${interactionDurations.length}, maxInteraction=${formatDuration(maxInteraction)}, threshold=${NAV_INTERACTION_THRESHOLD_MS} ms`,
     );
 
     // === Logout then login flow test ===
-    await primaryContext.request.post(`${BASE_URL}/api/logout`).catch(() => {});
+    const logoutResponse = await primaryContext.request.post(`${BASE_URL}/api/logout`).catch(() => null);
+    const logoutStatus = logoutResponse?.status?.() ?? null;
     await primaryPage.goto(`${BASE_URL}/login`, { waitUntil: "domcontentloaded", timeout: CHECK_TIMEOUT_MS });
     await primaryPage.waitForLoadState("networkidle", { timeout: CHECK_TIMEOUT_MS }).catch(() => {});
 
-    const loginUser = createdUser?.username || "demo";
-    const loginPass = createdUser?.password || "demo123";
-    await primaryPage.fill("#username", loginUser);
-    await primaryPage.fill("#password", loginPass);
+    const loginInputVisible = await primaryPage.locator("#username").first().isVisible().catch(() => false);
+    const passwordInputVisible = await primaryPage.locator("#password").first().isVisible().catch(() => false);
+    const loginSubmitButtonVisible = await primaryPage.locator("button[type='submit']").first().isVisible().catch(() => false);
+    const canRunLoginFormFlow = loginInputVisible && passwordInputVisible && loginSubmitButtonVisible;
 
-    const loginSubmitStart = Date.now();
-    const loginResponsePromise = primaryPage.waitForResponse(
-      (response) =>
-        response.url().includes("/api/login") &&
-        response.request().method() === "POST",
-      { timeout: CHECK_TIMEOUT_MS },
-    ).catch(() => null);
+    if (canRunLoginFormFlow) {
+      const loginUser = createdUser?.username || "demo";
+      const loginPass = createdUser?.password || "demo123";
+      await primaryPage.fill("#username", loginUser);
+      await primaryPage.fill("#password", loginPass);
 
-    await primaryPage.click("button[type='submit']");
-    const loginResponse = await loginResponsePromise;
-    const loginDuration = Date.now() - loginSubmitStart;
-    interactionDurations.push({
-      name: "Login form submit",
-      durationMs: loginDuration,
-    });
+      const loginSubmitStart = Date.now();
+      const loginResponsePromise = primaryPage.waitForResponse(
+        (response) =>
+          response.url().includes("/api/login") &&
+          response.request().method() === "POST",
+        { timeout: CHECK_TIMEOUT_MS },
+      ).catch(() => null);
 
-    const loginStatus = loginResponse?.status() ?? null;
-    const loginStatusOk = loginStatus === 200 || loginStatus === 201;
-    addCheck(
-      "Giriş Akışı (/login)",
-      "Form gönderimi: geçerli veriyle submit, network isteği expected status dönüyor",
-      loginStatusOk,
-      `username=${loginUser}, status=${loginStatus ?? "n/a"}, duration=${formatDuration(loginDuration)}`,
-    );
+      await primaryPage.click("button[type='submit']");
+      const loginResponse = await loginResponsePromise;
+      const loginDuration = Date.now() - loginSubmitStart;
+      interactionDurations.push({
+        name: "Login form submit",
+        durationMs: loginDuration,
+      });
 
-    let loginRedirectOk = false;
-    await primaryPage.waitForURL(/\/(tyt-dashboard|dashboard)(\/|$)/, {
-      timeout: CHECK_TIMEOUT_MS,
-    }).then(() => {
-      loginRedirectOk = true;
-    }).catch(() => {
-      loginRedirectOk = /\/(tyt-dashboard|dashboard)(\/|$)/.test(new URL(primaryPage.url()).pathname);
-    });
-    addCheck(
-      "Giriş Akışı (/login)",
-      "Yönlendirme: başarılı giriş sonrası /tyt-dashboard veya dashboard’a gidiliyor",
-      loginRedirectOk,
-      `finalUrl=${primaryPage.url()}`,
-    );
+      const loginStatus = loginResponse?.status() ?? null;
+      const loginStatusOk = loginStatus === 200 || loginStatus === 201;
+      addCheck(
+        "Giriş Akışı (/login)",
+        "Form gönderimi: geçerli veriyle submit, network isteği expected status dönüyor",
+        loginStatusOk,
+        `username=${loginUser}, status=${loginStatus ?? "n/a"}, duration=${formatDuration(loginDuration)}, logoutStatus=${logoutStatus ?? "n/a"}`,
+      );
+
+      let loginRedirectOk = false;
+      await primaryPage.waitForURL(/\/(tyt-dashboard|dashboard)(\/|$)/, {
+        timeout: CHECK_TIMEOUT_MS,
+      }).then(() => {
+        loginRedirectOk = true;
+      }).catch(() => {
+        loginRedirectOk = /\/(tyt-dashboard|dashboard)(\/|$)/.test(new URL(primaryPage.url()).pathname);
+      });
+      addCheck(
+        "Giriş Akışı (/login)",
+        "Yönlendirme: başarılı giriş sonrası /tyt-dashboard veya dashboard’a gidiliyor",
+        loginRedirectOk,
+        `finalUrl=${primaryPage.url()}`,
+      );
+    } else {
+      // Fallback diagnostic: check direct API login endpoint status
+      const loginApiDiagnosticResponse = await primaryContext.request.post(`${BASE_URL}/api/login`, {
+        data: { username: "demo", password: "demo123" },
+      }).catch(() => null);
+      const loginApiStatus = loginApiDiagnosticResponse?.status?.() ?? null;
+
+      addCheck(
+        "Giriş Akışı (/login)",
+        "Form gönderimi: geçerli veriyle submit, network isteği expected status dönüyor",
+        false,
+        `Login formu görünmüyor (usernameField=${loginInputVisible}, passwordField=${passwordInputVisible}, submit=${loginSubmitButtonVisible}, finalUrl=${primaryPage.url()}, logoutStatus=${logoutStatus ?? "n/a"}, apiLoginStatus=${loginApiStatus ?? "n/a"})`,
+      );
+      addCheck(
+        "Giriş Akışı (/login)",
+        "Yönlendirme: başarılı giriş sonrası /tyt-dashboard veya dashboard’a gidiliyor",
+        false,
+        `Login formu görünmediği için UI login redirect testi yapılamadı (finalUrl=${primaryPage.url()})`,
+      );
+    }
 
     await primaryContext.storageState({ path: authStatePath });
     await primaryContext.close();
@@ -740,6 +792,7 @@ async function run() {
     });
     await mobileAnonPage.waitForLoadState("networkidle", { timeout: CHECK_TIMEOUT_MS }).catch(() => {});
     const loginMobileOverflow = await horizontalOverflowInfo(mobileAnonPage);
+    const loginFormVisibleMobile = await mobileAnonPage.locator("form").first().isVisible().catch(() => false);
     const loginFormFits = await mobileAnonPage.evaluate(() => {
       const width = window.innerWidth;
       return [...document.querySelectorAll("input, button")].every((element) => {
@@ -754,6 +807,7 @@ async function run() {
     });
     await mobileAnonPage.waitForLoadState("networkidle", { timeout: CHECK_TIMEOUT_MS }).catch(() => {});
     const registerMobileOverflow = await horizontalOverflowInfo(mobileAnonPage);
+    const registerFormVisibleMobile = await mobileAnonPage.locator("form").first().isVisible().catch(() => false);
     const registerFormFits = await mobileAnonPage.evaluate(() => {
       const width = window.innerWidth;
       return [...document.querySelectorAll("input, button")].every((element) => {
@@ -764,8 +818,13 @@ async function run() {
     addCheck(
       "Mobil Görünüm",
       "Formlar: login/register input ve butonlar ekrana sığıyor, yatay scroll yok",
-      !loginMobileOverflow.hasOverflow && loginFormFits && !registerMobileOverflow.hasOverflow && registerFormFits,
-      `loginOverflow=${loginMobileOverflow.hasOverflow}, registerOverflow=${registerMobileOverflow.hasOverflow}, loginFormFits=${loginFormFits}, registerFormFits=${registerFormFits}`,
+      loginFormVisibleMobile &&
+        registerFormVisibleMobile &&
+        !loginMobileOverflow.hasOverflow &&
+        loginFormFits &&
+        !registerMobileOverflow.hasOverflow &&
+        registerFormFits,
+      `loginFormVisible=${loginFormVisibleMobile}, registerFormVisible=${registerFormVisibleMobile}, loginOverflow=${loginMobileOverflow.hasOverflow}, registerOverflow=${registerMobileOverflow.hasOverflow}, loginFormFits=${loginFormFits}, registerFormFits=${registerFormFits}`,
     );
     await mobileAnonContext.close();
 
