@@ -361,7 +361,7 @@ export default function App() {
                     <button
                       onClick={async () => {
                         try {
-                          await fetch('/api/logout', {
+                          await fetch('/api/data?resource=logout', {
                             method: 'POST',
                             credentials: 'include'
                           })

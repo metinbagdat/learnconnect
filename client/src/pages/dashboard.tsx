@@ -44,7 +44,7 @@ export default function Dashboard() {
 
     const fetchNotes = async () => {
       try {
-        const response = await fetch('/api/dashboard/notes?limit=5', {
+        const response = await fetch('/api/data?resource=dashboard-notes&limit=5', {
           credentials: 'include',
         });
 
@@ -69,7 +69,7 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
-        const response = await fetch(`/api/dashboard/stats?date=${encodeURIComponent(today)}`, {
+        const response = await fetch(`/api/data?resource=dashboard-stats&date=${encodeURIComponent(today)}`, {
           credentials: 'include',
         });
 
@@ -100,7 +100,7 @@ export default function Dashboard() {
 
     const fetchPaths = async () => {
       try {
-        const response = await fetch('/api/dashboard/paths', {
+        const response = await fetch('/api/data?resource=dashboard-paths', {
           credentials: 'include',
         });
 
@@ -125,7 +125,7 @@ export default function Dashboard() {
       const tags = (quickNoteTags || '').split(',').map(t => t.trim()).filter(t => t.length > 0);
       const title = quickNoteText.substring(0, 50) || 'Yeni Not';
 
-      const response = await fetch('/api/dashboard/notes', {
+      const response = await fetch('/api/data?resource=dashboard-notes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +146,7 @@ export default function Dashboard() {
       setQuickNoteTags('');
 
       // Refresh notes
-      const notesResponse = await fetch('/api/dashboard/notes?limit=5', {
+      const notesResponse = await fetch('/api/data?resource=dashboard-notes&limit=5', {
         credentials: 'include',
       });
       const notes = await notesResponse.json();

@@ -95,9 +95,9 @@ export default function TytDashboard() {
 
   // Fetch TYT Subjects
   const { data: tytSubjects = [] } = useQuery<TytSubject[]>({
-    queryKey: ['/api/tyt/subjects'],
+    queryKey: ['/api/data', { resource: 'tyt-subjects' }],
     queryFn: async () => {
-      const response = await fetch('/api/tyt/subjects');
+      const response = await fetch('/api/data?resource=tyt-subjects');
       if (!response.ok) throw new Error('Failed to fetch TYT subjects');
       return response.json();
     }

@@ -1,4 +1,4 @@
-const NOTES_API = '/api/notes';
+const NOTES_API = '/api/data';
 
 export interface Note {
   id: string;
@@ -21,6 +21,7 @@ export async function getUserNotes(userId: string, limitCount?: number): Promise
       params.set('limit', String(limitCount));
     }
 
+    params.set('resource', 'notes');
     const response = await fetch(`${NOTES_API}?${params.toString()}`, {
       credentials: 'include',
     });
@@ -42,7 +43,7 @@ export async function getUserNotes(userId: string, limitCount?: number): Promise
  */
 export async function getNoteById(noteId: string): Promise<Note | null> {
   try {
-    const response = await fetch(`${NOTES_API}?noteId=${encodeURIComponent(noteId)}`, {
+    const response = await fetch(`${NOTES_API}?resource=notes&noteId=${encodeURIComponent(noteId)}`, {
       credentials: 'include',
     });
 
@@ -79,7 +80,7 @@ export async function createNote(
 
     const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
 
-    const response = await fetch(NOTES_API, {
+    const response = await fetch(`${NOTES_API}?resource=notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -122,7 +123,7 @@ export async function updateNote(
 
     const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
 
-    const response = await fetch(NOTES_API, {
+    const response = await fetch(`${NOTES_API}?resource=notes`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -150,7 +151,7 @@ export async function updateNote(
  */
 export async function deleteNote(noteId: string): Promise<void> {
   try {
-    const response = await fetch(NOTES_API, {
+    const response = await fetch(`${NOTES_API}?resource=notes`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

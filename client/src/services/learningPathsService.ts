@@ -1,5 +1,5 @@
-const LEARNING_PATHS_API = '/api/learning-paths';
-const LEARNING_PATHS_PROGRESS_API = '/api/learning-paths/progress';
+const LEARNING_PATHS_API = '/api/data?resource=learning-paths';
+const LEARNING_PATHS_PROGRESS_API = '/api/data?resource=learning-paths-progress';
 
 export interface LearningPath {
   id: string;
@@ -52,7 +52,7 @@ export async function getAllPaths(): Promise<LearningPath[]> {
 
 export async function getPathById(pathId: string): Promise<LearningPath | null> {
   try {
-    const response = await fetch(`${LEARNING_PATHS_API}?pathId=${encodeURIComponent(pathId)}`, {
+    const response = await fetch(`${LEARNING_PATHS_API}&pathId=${encodeURIComponent(pathId)}`, {
       credentials: 'include',
     });
 
@@ -82,7 +82,7 @@ export async function getUserProgress(
       params.set('pathId', pathId);
     }
 
-    const response = await fetch(`${LEARNING_PATHS_PROGRESS_API}?${params.toString()}`, {
+    const response = await fetch(`${LEARNING_PATHS_PROGRESS_API}&${params.toString()}`, {
       credentials: 'include',
     });
 
