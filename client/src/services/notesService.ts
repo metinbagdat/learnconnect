@@ -1,17 +1,4 @@
-import { db } from '@/lib/firebase';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  Timestamp,
-  limit,
-} from 'firebase/firestore';
+const NOTES_API = '/api/notes';
 
 export interface Note {
   id: string;
@@ -28,22 +15,22 @@ export interface Note {
  */
 export async function getUserNotes(userId: string, limitCount?: number): Promise<Note[]> {
   try {
-    const notesRef = collection(db, 'notes');
-    let q = query(
-      notesRef,
-      where('userId', '==', String(userId)),
-      orderBy('updatedAt', 'desc')
-    );
-
+    const params = new URLSearchParams();
+    params.set('userId', String(userId));
     if (limitCount) {
-      q = query(q, limit(limitCount));
+      params.set('limit', String(limitCount));
     }
 
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Note[];
+    const response = await fetch(`${NOTES_API}?${params.toString()}`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Notes request failed: ${response.status}`);
+    }
+
+    const notes = await response.json();
+    return Array.isArray(notes) ? (notes as Note[]) : [];
   } catch (error) {
     console.error('Error fetching notes:', error);
     throw error;
@@ -55,18 +42,20 @@ export async function getUserNotes(userId: string, limitCount?: number): Promise
  */
 export async function getNoteById(noteId: string): Promise<Note | null> {
   try {
-    const noteRef = doc(db, 'notes', noteId);
-    const noteSnap = await getDocs(collection(db, 'notes'));
-    const found = noteSnap.docs.find(d => d.id === noteId);
-    
-    if (!found) {
+    const response = await fetch(`${NOTES_API}?noteId=${encodeURIComponent(noteId)}`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Note request failed: ${response.status}`);
+    }
+
+    const notes = await response.json();
+    if (!Array.isArray(notes)) {
       return null;
     }
 
-    return {
-      id: found.id,
-      ...found.data(),
-    } as Note;
+    return notes.find((note: Note) => note.id === noteId) || null;
   } catch (error) {
     console.error('Error fetching note:', error);
     throw error;
@@ -90,16 +79,26 @@ export async function createNote(
 
     const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
 
-    const docRef = await addDoc(collection(db, 'notes'), {
-      userId: String(userId),
-      title: finalTitle,
-      content,
-      tags: tagsArray,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
+    const response = await fetch(NOTES_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        userId: String(userId),
+        title: finalTitle,
+        content,
+        tags: tagsArray,
+      }),
     });
 
-    return docRef.id;
+    if (!response.ok) {
+      throw new Error(`Create note failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return String(result?.id || '');
   } catch (error) {
     console.error('Error creating note:', error);
     throw error;
@@ -123,13 +122,23 @@ export async function updateNote(
 
     const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
 
-    const noteRef = doc(db, 'notes', noteId);
-    await updateDoc(noteRef, {
-      title: finalTitle,
-      content,
-      tags: tagsArray,
-      updatedAt: Timestamp.now(),
+    const response = await fetch(NOTES_API, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        noteId,
+        title: finalTitle,
+        content,
+        tags: tagsArray,
+      }),
     });
+
+    if (!response.ok) {
+      throw new Error(`Update note failed: ${response.status}`);
+    }
   } catch (error) {
     console.error('Error updating note:', error);
     throw error;
@@ -141,8 +150,18 @@ export async function updateNote(
  */
 export async function deleteNote(noteId: string): Promise<void> {
   try {
-    const noteRef = doc(db, 'notes', noteId);
-    await deleteDoc(noteRef);
+    const response = await fetch(NOTES_API, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ noteId }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Delete note failed: ${response.status}`);
+    }
   } catch (error) {
     console.error('Error deleting note:', error);
     throw error;

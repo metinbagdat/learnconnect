@@ -1,16 +1,5 @@
-import { db } from '@/lib/firebase';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  getDocs,
-  getDoc,
-  doc,
-  addDoc,
-  updateDoc,
-  Timestamp,
-} from 'firebase/firestore';
+const LEARNING_PATHS_API = '/api/learning-paths';
+const LEARNING_PATHS_PROGRESS_API = '/api/learning-paths/progress';
 
 export interface LearningPath {
   id: string;
@@ -45,14 +34,16 @@ export interface UserPathProgress {
 
 export async function getAllPaths(): Promise<LearningPath[]> {
   try {
-    const pathsRef = collection(db, 'learningPaths');
-    const q = query(pathsRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as LearningPath[];
+    const response = await fetch(LEARNING_PATHS_API, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Learning paths request failed: ${response.status}`);
+    }
+
+    const paths = await response.json();
+    return Array.isArray(paths) ? (paths as LearningPath[]) : [];
   } catch (error) {
     console.error('Error fetching paths:', error);
     throw error;
@@ -61,17 +52,20 @@ export async function getAllPaths(): Promise<LearningPath[]> {
 
 export async function getPathById(pathId: string): Promise<LearningPath | null> {
   try {
-    const pathRef = doc(db, 'learningPaths', pathId);
-    const pathSnap = await getDoc(pathRef);
-    
-    if (!pathSnap.exists()) {
+    const response = await fetch(`${LEARNING_PATHS_API}?pathId=${encodeURIComponent(pathId)}`, {
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Learning path request failed: ${response.status}`);
+    }
+
+    const paths = await response.json();
+    if (!Array.isArray(paths)) {
       return null;
     }
-    
-    return {
-      id: pathSnap.id,
-      ...pathSnap.data(),
-    } as LearningPath;
+
+    return paths.find((path: LearningPath) => String(path.id) === String(pathId)) || null;
   } catch (error) {
     console.error('Error fetching path:', error);
     throw error;
@@ -83,25 +77,23 @@ export async function getUserProgress(
   pathId?: string
 ): Promise<Record<string, UserPathProgress>> {
   try {
-    const progressRef = collection(db, 'userPathProgress');
-    let q = query(progressRef, where('userId', '==', String(userId)));
-    
+    const params = new URLSearchParams({ userId: String(userId) });
     if (pathId) {
-      q = query(q, where('pathId', '==', pathId));
+      params.set('pathId', pathId);
     }
-    
-    const snapshot = await getDocs(q);
-    const progressMap: Record<string, UserPathProgress> = {};
-    
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
-      progressMap[data.pathId] = {
-        id: doc.id,
-        ...data,
-      } as UserPathProgress;
+
+    const response = await fetch(`${LEARNING_PATHS_PROGRESS_API}?${params.toString()}`, {
+      credentials: 'include',
     });
-    
-    return progressMap;
+
+    if (!response.ok) {
+      throw new Error(`Learning path progress request failed: ${response.status}`);
+    }
+
+    const progress = await response.json();
+    return progress && typeof progress === 'object' && !Array.isArray(progress)
+      ? (progress as Record<string, UserPathProgress>)
+      : {};
   } catch (error) {
     console.error('Error fetching progress:', error);
     throw error;
@@ -110,23 +102,26 @@ export async function getUserProgress(
 
 export async function startPath(userId: string, pathId: string): Promise<string> {
   try {
-    // Check if progress already exists
-    const existing = await getUserProgress(userId, pathId);
-    if (existing[pathId]) {
-      return existing[pathId].id || '';
+    const response = await fetch(LEARNING_PATHS_PROGRESS_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        userId: String(userId),
+        pathId,
+        completedStepIds: [],
+        progressPercent: 0,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Start path failed: ${response.status}`);
     }
 
-    // Create new progress
-    const docRef = await addDoc(collection(db, 'userPathProgress'), {
-      userId: String(userId),
-      pathId,
-      completedStepIds: [],
-      progressPercent: 0,
-      startedAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
-    });
-    
-    return docRef.id;
+    const result = await response.json();
+    return String(result?.id || '');
   } catch (error) {
     console.error('Error starting path:', error);
     throw error;
@@ -140,40 +135,22 @@ export async function completeStep(
   totalSteps: number
 ): Promise<void> {
   try {
-    const progress = await getUserProgress(userId, pathId);
-    const existing = progress[pathId];
-
-    if (!existing) {
-      // Start path if not started
-      await startPath(userId, pathId);
-    }
-
-    const completedSteps = existing
-      ? [...(existing.completedStepIds || []), stepId]
-      : [stepId];
-
-    // Remove duplicates
-    const uniqueCompletedSteps = Array.from(new Set(completedSteps));
-    const progressPercent = Math.round((uniqueCompletedSteps.length / totalSteps) * 100);
-
-    // Update progress
-    if (existing?.id) {
-      const progressRef = doc(db, 'userPathProgress', existing.id);
-      await updateDoc(progressRef, {
-        completedStepIds: uniqueCompletedSteps,
-        progressPercent,
-        updatedAt: Timestamp.now(),
-      });
-    } else {
-      // Create if doesn't exist
-      await addDoc(collection(db, 'userPathProgress'), {
+    const response = await fetch(LEARNING_PATHS_PROGRESS_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
         userId: String(userId),
         pathId,
-        completedStepIds: uniqueCompletedSteps,
-        progressPercent,
-        startedAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-      });
+        stepId,
+        totalSteps,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Complete step failed: ${response.status}`);
     }
   } catch (error) {
     console.error('Error completing step:', error);

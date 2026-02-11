@@ -110,39 +110,19 @@ export default function Notebook() {
       const title = noteTitle.trim() || noteContent.substring(0, 50) || 'Yeni Not';
 
       if (selectedNote) {
-        // Update existing note
-        const noteRef = doc(db, 'notes', selectedNote.id);
-        await updateDoc(noteRef, {
-          title,
-          content: noteContent,
-          tags,
-          updatedAt: Timestamp.now(),
-        });
+        await updateNote(selectedNote.id, title, noteContent, tags);
       } else {
-        // Create new note
-        await addDoc(collection(db, 'notes'), {
-          userId: String(user.id),
-          title,
-          content: noteContent,
-          tags,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
+        await createNote(String(user.id), title, noteContent, tags);
       }
 
       // Refresh notes
-      const notesRef = collection(db, 'notes');
-      const q = query(
-        notesRef,
-        where('userId', '==', String(user.id)),
-        orderBy('updatedAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const updatedNotes = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Note[];
+      const userId = String(user.id || user.username);
+      const [updatedNotes, updatedTags] = await Promise.all([
+        getUserNotes(userId),
+        getUserTags(userId),
+      ]);
       setNotes(updatedNotes);
+      setAllTags(updatedTags);
 
       // Clear form
       setSelectedNote(null);
