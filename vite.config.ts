@@ -148,7 +148,11 @@ export default defineConfig({
           // Don't split node_modules too aggressively - keep related packages together
           if (id.includes('node_modules')) {
             // Core React and DOM - must load first (critical path)
-            if (id.includes('react') || id.includes('react-dom')) {
+            const isReactCore = /node_modules[\\/](react|react-dom|scheduler|react-is)[\\/]/.test(id) ||
+              id.includes('react/jsx-runtime') ||
+              id.includes('react/jsx-dev-runtime');
+
+            if (isReactCore) {
               return 'react-vendor';
             }
             // Router - loads early but after React
