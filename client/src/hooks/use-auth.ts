@@ -59,10 +59,13 @@ export function useAuth(): UseAuthReturn {
         credentials: "include",
       });
 
-      if (response.ok) {
-        setUser(null);
-        setLocation("/login");
+      if (!response.ok) {
+        console.warn("Logout failed with status:", response.status);
       }
+
+      // Clear local state regardless of server response to allow relogin.
+      setUser(null);
+      setLocation("/login");
     } catch (error) {
       console.error("Logout failed:", error);
       // Even if logout fails, clear local state and redirect

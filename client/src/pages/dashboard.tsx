@@ -4,7 +4,15 @@ import { useAuth } from '@/hooks/use-auth';
 import { Clock, Flame, Target, BookOpen, Plus, TrendingUp, CheckCircle2, Award } from 'lucide-react';
 import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
-import type { Note } from '@/services/notesService';
+interface Note {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string | number;
+  updatedAt: string | number;
+}
 
 interface StudyStat {
   id: string;
@@ -36,10 +44,16 @@ export default function Dashboard() {
 
     const fetchNotes = async () => {
       try {
-        const userId = String(user.id || user.username);
-        const { getUserNotes } = await import('@/services/notesService');
-        const notes = await getUserNotes(userId, 5);
-        setRecentNotes(notes);
+        const response = await fetch('/api/dashboard/notes?limit=5', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Notes request failed: ${response.status}`);
+        }
+
+        const notes = await response.json();
+        setRecentNotes(Array.isArray(notes) ? notes : []);
       } catch (error) {
         console.error('Error fetching notes:', error);
       }
@@ -55,17 +69,22 @@ export default function Dashboard() {
     const fetchStats = async () => {
       try {
         const today = new Date().toISOString().split('T')[0];
-        const statsRef = collection(db, 'studyStats');
-        const q = query(
-          statsRef,
-          where('userId', '==', String(user.id)),
-          where('date', '==', today),
-          limit(1)
-        );
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const stat = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as StudyStat;
-          setStudyStats(stat);
+        const response = await fetch(`/api/dashboard/stats?date=${encodeURIComponent(today)}`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(`Stats request failed: ${response.status}`);
+        }
+
+        const stats = await response.json();
+        if (stats && typeof stats === 'object') {
+          setStudyStats({
+            id: stats.id || 'today',
+            date: stats.date || today,
+            minutes: Number(stats.minutes) || 0,
+            streakCount: Number(stats.streakCount) || 0,
+          });
         }
       } catch (error) {
         console.error('Error fetching stats:', error);
@@ -81,27 +100,16 @@ export default function Dashboard() {
 
     const fetchPaths = async () => {
       try {
-        const userId = String(user.id || user.username);
-        const { getAllPaths, getUserProgress } = await import('@/services/learningPathsService');
-        
-        const [paths, progress] = await Promise.all([
-          getAllPaths(),
-          getUserProgress(userId),
-        ]);
+        const response = await fetch('/api/dashboard/paths', {
+          credentials: 'include',
+        });
 
-        // Get paths with progress > 0
-        const active = paths
-          .filter(path => progress[path.id] && progress[path.id].progressPercent > 0)
-          .map(path => ({
-            id: path.id,
-            title: path.title,
-            description: path.description,
-            category: path.category,
-            progress: progress[path.id].progressPercent,
-          }))
-          .slice(0, 3); // Show max 3 active paths
+        if (!response.ok) {
+          throw new Error(`Paths request failed: ${response.status}`);
+        }
 
-        setActivePaths(active);
+        const paths = await response.json();
+        setActivePaths(Array.isArray(paths) ? paths : []);
       } catch (error) {
         console.error('Error fetching active paths:', error);
       }
@@ -114,20 +122,35 @@ export default function Dashboard() {
     if (!quickNoteText.trim() || (!user?.username && !user?.id)) return;
 
     try {
-      const userId = String(user.id || user.username);
-      const { createNote, getUserNotes } = await import('@/services/notesService');
-      
       const tags = (quickNoteTags || '').split(',').map(t => t.trim()).filter(t => t.length > 0);
       const title = quickNoteText.substring(0, 50) || 'Yeni Not';
 
-      await createNote(userId, title, quickNoteText, tags);
+      const response = await fetch('/api/dashboard/notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          title,
+          content: quickNoteText,
+          tags,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Create note failed: ${response.status}`);
+      }
 
       setQuickNoteText('');
       setQuickNoteTags('');
-      
+
       // Refresh notes
-      const notes = await getUserNotes(userId, 5);
-      setRecentNotes(notes);
+      const notesResponse = await fetch('/api/dashboard/notes?limit=5', {
+        credentials: 'include',
+      });
+      const notes = await notesResponse.json();
+      setRecentNotes(Array.isArray(notes) ? notes : []);
     } catch (error) {
       console.error('Error saving note:', error);
     }

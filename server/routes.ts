@@ -2466,6 +2466,70 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
     }
   });
 
+  // Dashboard data APIs (server-side fetching)
+  app.get("/api/dashboard/notes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.json([]);
+    }
+
+    // Notes are not yet stored server-side; return empty list to avoid client Firestore access.
+    return res.json([]);
+  });
+
+  app.post("/api/dashboard/notes", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Notes storage is not available in the server database yet.
+    return res.status(200).json({ id: null, stored: false });
+  });
+
+  app.get("/api/dashboard/paths", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.json([]);
+    }
+
+    try {
+      const learningPaths = await storage.getUserLearningPaths(req.user.id);
+      const mapped = (learningPaths || []).map((path: any) => ({
+        id: String(path.id ?? ''),
+        title: path.title ?? 'Öğrenme Yolu',
+        description: path.description ?? '',
+        category: path.category ?? 'Genel',
+        progress: Number(path.completion ?? 0),
+      }));
+
+      res.json(mapped.slice(0, 3));
+    } catch (error) {
+      console.error("Error fetching dashboard paths:", error);
+      res.json([]);
+    }
+  });
+
+  app.get("/api/dashboard/stats", async (req, res) => {
+    const dateParam = typeof req.query.date === 'string' ? req.query.date : undefined;
+    const today = new Date().toISOString().split('T')[0];
+    const date = dateParam || today;
+
+    if (!req.isAuthenticated()) {
+      return res.json({ id: 'today', date, minutes: 0, streakCount: 0 });
+    }
+
+    try {
+      const stats = await storage.getTytStudyStats(req.user.id, 'daily');
+      res.json({
+        id: stats?.id ?? 'today',
+        date: stats?.date ?? date,
+        minutes: Number(stats?.minutes ?? stats?.totalMinutes ?? 0),
+        streakCount: Number(stats?.streakCount ?? stats?.streak ?? 0),
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      res.json({ id: 'today', date, minutes: 0, streakCount: 0 });
+    }
+  });
+
   // Entrance Exam Learning Paths API
   app.post("/api/exam-learning-paths/generate", (app as any).ensureAuthenticated, async (req, res) => {
     if (!req.isAuthenticated()) {
