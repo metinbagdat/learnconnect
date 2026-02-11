@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4.1.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.4.2
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -94,5 +94,3 @@ jobs:
           echo "| TypeScript Check | ${{ job.status == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ job.status == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Verification | ${{ job.status == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-
-
