@@ -88,6 +88,24 @@ service cloud.firestore {
       allow read, delete: if isOwner(resource.data.userId);
       allow update: if isOwnerAndKeepsOwnership();
     }
+
+    // Community posts (public read, controlled write by document userId)
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId is string;
+      allow update: if resource.data.userId is string
+                    && request.resource.data.userId == resource.data.userId;
+      allow delete: if false;
+
+      // Nested comments under each post
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.userId is string;
+        allow update: if resource.data.userId is string
+                      && request.resource.data.userId == resource.data.userId;
+        allow delete: if false;
+      }
+    }
     
     // Deny all other access by default
     match /{document=**} {

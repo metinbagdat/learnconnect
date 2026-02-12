@@ -171,6 +171,26 @@ service cloud.firestore {
       allow read, delete: if isOwner(resource.data.userId) || isAdmin();
       allow update: if isUpdatingOwnedDoc() || isAdmin();
     }
+
+    // Community posts (public read; write constrained by userId field)
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId is string;
+      allow update: if (resource.data.userId is string
+                       && request.resource.data.userId == resource.data.userId)
+                    || isAdmin();
+      allow delete: if isAdmin();
+
+      // Nested comments
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.userId is string;
+        allow update: if (resource.data.userId is string
+                         && request.resource.data.userId == resource.data.userId)
+                      || isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
     
     // ============================================
     // DEFAULT DENY
