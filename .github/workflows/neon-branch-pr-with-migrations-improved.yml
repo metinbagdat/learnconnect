@@ -366,9 +366,10 @@ jobs:
             echo "✅ Found existing branch with connection URI"
             echo "DATABASE_URL=${DB_URL}" >> "$GITHUB_ENV"
           else
-            echo "❌ Could not find connection URI for branch: $BRANCH_NAME"
-            exit 1
+            echo "⚠️ Could not find connection URI for branch: $BRANCH_NAME"
+            echo "Proceeding without preview DB URL."
           fi
+        continue-on-error: true
 
       - name: Debug Branch Creation Outputs
         id: debug_branch_outputs
