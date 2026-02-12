@@ -5,6 +5,67 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LearnConnect - TYT & AYT Akıllı Planlayıcı</title>
+    <!-- Inline SES noise filter: run as early as possible -->
+    <script>
+      (function() {
+        'use strict';
+
+        window.__sesConsoleNoiseSuppressed = 0;
+
+        function stringOf(value) {
+          try {
+            if (typeof value === 'string') return value;
+            if (value && typeof value.message === 'string') return value.message;
+            return String(value);
+          } catch (_) {
+            return '';
+          }
+        }
+
+        function isSesNoise(args) {
+          var patterns = [
+            'SES Removing unpermitted intrinsics',
+            'Removing intrinsics.%',
+            'lockdown-install.js',
+            '%MapPrototype%.getOrInsert',
+            '%MapPrototype%.getOrInsertComputed',
+            '%WeakMapPrototype%.getOrInsert',
+            '%WeakMapPrototype%.getOrInsertComputed',
+            '%DatePrototype%.toTemporalInstant'
+          ];
+
+          for (var i = 0; i < args.length; i++) {
+            var raw = args[i];
+            var text = stringOf(raw);
+            for (var j = 0; j < patterns.length; j++) {
+              if (text.indexOf(patterns[j]) !== -1) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+
+        function wrapConsoleMethod(methodName) {
+          var original = console[methodName];
+          if (typeof original !== 'function') return;
+          console[methodName] = function() {
+            var args = Array.prototype.slice.call(arguments);
+            if (isSesNoise(args)) {
+              window.__sesConsoleNoiseSuppressed++;
+              return;
+            }
+            return original.apply(console, args);
+          };
+        }
+
+        wrapConsoleMethod('error');
+        wrapConsoleMethod('warn');
+        wrapConsoleMethod('info');
+        wrapConsoleMethod('log');
+        wrapConsoleMethod('debug');
+      })();
+    </script>
   </head>
   <body>
     <div id="root">Yükleniyor... Eğer bu ekran gitmiyorsa, güvenlik eklentilerinizi geçici olarak devre dışı bırakmayı deneyin.</div>
@@ -67,7 +128,7 @@
           
           if (isSesRelated(error) || isSesRelated(event.message)) {
             window.__sesInlineGuardErrors++;
-            console.warn('[SES Inline Guard] Intercepted SES error:', event.message);
+            window.__sesInlineGuardLastError = String(event.message || error || '');
             event.preventDefault();
             event.stopImmediatePropagation();
             return false;
@@ -85,7 +146,7 @@
           
           if (isSesRelated(reason)) {
             window.__sesInlineGuardErrors++;
-            console.warn('[SES Inline Guard] Intercepted SES promise rejection:', reason);
+            window.__sesInlineGuardLastRejection = String(reason || '');
             event.preventDefault();
             event.stopImmediatePropagation();
             return false;
@@ -95,7 +156,7 @@
           return true;
         }, true); // Capture phase
         
-        console.info('[SES Inline Guard] Activated');
+        window.__sesInlineGuardActive = true;
       })();
     </script>
     

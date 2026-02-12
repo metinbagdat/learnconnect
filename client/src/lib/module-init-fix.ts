@@ -57,22 +57,30 @@ function isSesError(err: unknown): boolean {
 }
 
 /**
- * Wrap console.error to downgrade SES noise to warnings
+ * Wrap console methods to suppress SES/lockdown noise
  */
 const originalConsoleError = console.error;
-console.error = function(...args: any[]) {
-  // Check if any argument looks like a SES error
-  const hasSesError = args.some(arg => isSesError(arg));
-  
-  if (hasSesError) {
-    sesErrorsSeen++;
-    console.warn('[SES Guard] Downgraded SES error to warning:', ...args);
-    return;
-  }
-  
-  // Forward non-SES errors normally
-  originalConsoleError.apply(console, args);
-};
+const originalConsoleWarn = console.warn;
+const originalConsoleInfo = console.info;
+const originalConsoleLog = console.log;
+const originalConsoleDebug = console.debug;
+
+function wrapConsoleMethod(method: (...args: any[]) => void) {
+  return function(...args: any[]) {
+    const hasSesError = args.some(arg => isSesError(arg));
+    if (hasSesError) {
+      sesErrorsSeen++;
+      return;
+    }
+    method.apply(console, args);
+  };
+}
+
+console.error = wrapConsoleMethod(originalConsoleError);
+console.warn = wrapConsoleMethod(originalConsoleWarn);
+console.info = wrapConsoleMethod(originalConsoleInfo);
+console.log = wrapConsoleMethod(originalConsoleLog);
+console.debug = wrapConsoleMethod(originalConsoleDebug);
 
 /**
  * Install global error handlers for runtime errors
@@ -82,7 +90,6 @@ window.addEventListener('error', (event) => {
   
   if (isSesError(error) || isSesError(event.message)) {
     sesErrorsSeen++;
-    console.warn('[SES Guard] Intercepted SES error event:', event.message);
     event.preventDefault();
     event.stopImmediatePropagation();
     return false;
@@ -100,7 +107,6 @@ window.addEventListener('unhandledrejection', (event) => {
   
   if (isSesError(reason)) {
     sesErrorsSeen++;
-    console.warn('[SES Guard] Intercepted SES promise rejection:', reason);
     event.preventDefault();
     event.stopImmediatePropagation();
     return false;
@@ -131,7 +137,7 @@ setTimeout(() => {
                      (root.textContent && root.textContent.length > MIN_CONTENT_LENGTH);
   
   if (!hasContent && sesErrorsSeen > 0) {
-    console.warn(`[SES Guard] React did not mount after ${REACT_MOUNT_TIMEOUT_MS / 1000} seconds and ${sesErrorsSeen} SES errors were seen`);
+    (window as any).__sesGuardFallbackTriggered = true;
     
     // Show a helpful message in Turkish
     root.innerHTML = `
@@ -190,14 +196,10 @@ setTimeout(() => {
     `;
   } else if (hasContent) {
     reactMounted = true;
-    if (sesErrorsSeen > 0) {
-      console.info(`[SES Guard] React mounted successfully despite ${sesErrorsSeen} SES errors`);
-    }
+    (window as any).__sesGuardReactMounted = true;
   }
 }, REACT_MOUNT_TIMEOUT_MS);
 
 // Set a debug flag
 (window as any).__egitimTodaySesGuardActive = true;
 (window as any).__sesErrorCount = () => sesErrorsSeen;
-
-console.info('[SES Guard] Module loaded and active');
