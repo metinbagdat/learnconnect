@@ -146,3 +146,9 @@ export function guestUser() {
     },
   };
 }
+
+// Vercel treats every file under /api as a serverless route.
+// Expose a default handler so helper modules don't break deployment.
+export default function handler(_req, res) {
+  return res.status(404).json({ error: 'Not Found' });
+}
