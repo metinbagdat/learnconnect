@@ -90,12 +90,12 @@ jobs:
           vercel-project-id: ${{ env.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
 
-      - name: Optional: Run Neon migrations
+      - name: "Optional: Run Neon migrations"
         if: ${{ env.NEON_DATABASE_URL != '' }}
         run: |
           echo "NEON_DATABASE_URL present — run your migration commands here"
 
-      - name: Optional: Firestore / Firebase steps
+      - name: "Optional: Firestore / Firebase steps"
         if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
         run: |
           echo "FIREBASE_SERVICE_ACCOUNT present — add deployment/migration commands here"
