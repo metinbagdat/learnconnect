@@ -269,7 +269,7 @@ jobs:
             echo "Branch exists, updating ref (force) to ${SHA}"
             update_api="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
             response=$(curl -s -w "\n%{http_code}" -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
-              -d '{"sha":"${SHA}","force":true}' "$update_api")
+              -d "{\"sha\":\"${SHA}\",\"force\":true}" "$update_api")
             resp_code=$(echo "$response" | tail -n1)
             resp_body=$(echo "$response" | sed '$d')
             
@@ -296,7 +296,7 @@ jobs:
             echo "Branch does not exist, creating ref..."
             create_api="https://api.github.com/repos/${REPO}/git/refs"
             response=$(curl -s -w "\n%{http_code}" -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
-              -d '{"ref":"refs/heads/${BRANCH}","sha":"${SHA}"}' "$create_api")
+              -d "{\"ref\":\"refs/heads/${BRANCH}\",\"sha\":\"${SHA}\"}" "$create_api")
             resp_code=$(echo "$response" | tail -n1)
             resp_body=$(echo "$response" | sed '$d')
             
@@ -413,8 +413,8 @@ jobs:
             echo "NEON_PROJECT_ID: ${NEON_PROJECT_ID:+SET}" 
             echo "NEON_API_KEY: ${NEON_API_KEY:+SET}"
             echo ""
-            echo "Skipping migrations because preview database URL is unavailable."
-            echo "NEON_SKIP_MIGRATIONS=true" >> "$GITHUB_ENV"
+            echo "If these are not SET, please add them to GitHub Secrets/Variables"
+            exit 1
           else
             echo "✅ DATABASE_URL is set (length: ${#DATABASE_URL} characters)"
             echo "First 20 chars: ${DATABASE_URL:0:20}..."
