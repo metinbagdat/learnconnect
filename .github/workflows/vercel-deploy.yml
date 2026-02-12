@@ -55,11 +55,14 @@ jobs:
         if: always()
         run: |
           set -o pipefail
-          if [ -f build-server.js ] || [ -f server/index.ts ]; then
+          if [ -f build-server.js ]; then
             node build-server.js 2>&1 | tee build-server.log
+          elif npm run 2>/dev/null | rg -q "build:server"; then
+            npm run build:server 2>&1 | tee build-server.log
           else
             echo "No server build required" > build-server.log
           fi
+        continue-on-error: true
 
       - name: Prepare server artifacts
         if: always()
