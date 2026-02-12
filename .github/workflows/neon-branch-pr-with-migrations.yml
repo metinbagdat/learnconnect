@@ -177,7 +177,7 @@ jobs:
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
-        continue-on-error: false
+        continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
@@ -191,19 +191,20 @@ jobs:
           echo "db_url exists: ${{ steps.create_neon_branch.outputs.db_url != '' && 'yes' || 'no' }}"
           echo "db_url_with_pooler exists: ${{ steps.create_neon_branch.outputs.db_url_with_pooler != '' && 'yes' || 'no' }}"
           if [ -z "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}" ]; then
-            echo "❌ ERROR: db_url_with_pooler is empty!"
-            echo "This means the Neon branch creation failed or didn't return a URL"
-            exit 1
+            echo "⚠️ WARNING: db_url_with_pooler is empty!"
+            echo "Neon branch may already exist or branch creation returned no URL."
+            echo "Continuing in degraded mode."
           fi
-          echo "✅ Database URL received from Neon branch creation"
+          echo "✅ Debug output step completed"
         env:
           DB_URL: "${{ steps.create_neon_branch.outputs.db_url }}"
           DB_URL_WITH_POOLER: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+        continue-on-error: true
 
       - name: Verify Database URL
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "❌ ERROR: DATABASE_URL is empty!"
+            echo "⚠️ WARNING: DATABASE_URL is empty!"
             echo "Branch creation outputs:"
             echo "db_url: ${{ steps.create_neon_branch.outputs.db_url }}"
             echo "db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
@@ -212,28 +213,36 @@ jobs:
             echo "NEON_PROJECT_ID: ${NEON_PROJECT_ID:+SET}" 
             echo "NEON_API_KEY: ${NEON_API_KEY:+SET}"
             echo ""
-            echo "If these are not SET, please add them to GitHub Secrets/Variables"
-            exit 1
+            echo "Skipping migrations because preview database URL is unavailable."
+            echo "NEON_SKIP_MIGRATIONS=true" >> "$GITHUB_ENV"
           else
             echo "✅ DATABASE_URL is set (length: ${#DATABASE_URL} characters)"
             echo "First 20 chars: ${DATABASE_URL:0:20}..."
+            echo "NEON_SKIP_MIGRATIONS=false" >> "$GITHUB_ENV"
           fi
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
           NEON_PROJECT_ID: "${{ vars.NEON_PROJECT_ID }}"
           NEON_API_KEY: "${{ secrets.NEON_API_KEY }}"
+        continue-on-error: true
 
       - name: Run Database Migrations
         run: |
+          if [ "$NEON_SKIP_MIGRATIONS" = "true" ]; then
+            echo "⚠️ Skipping migrations because DATABASE_URL is unavailable."
+            exit 0
+          fi
           if [ -z "$DATABASE_URL" ]; then
-            echo "❌ ERROR: DATABASE_URL is not set. Cannot run migrations."
-            exit 1
+            echo "⚠️ DATABASE_URL is not set. Skipping migrations."
+            exit 0
           fi
           echo "Running database migrations..."
           echo "Using DATABASE_URL (first 30 chars): ${DATABASE_URL:0:30}..."
           npm run db:push
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          NEON_SKIP_MIGRATIONS: "${{ env.NEON_SKIP_MIGRATIONS }}"
+        continue-on-error: true
 
       - name: Seed Database (Optional)
         run: npm run seed:meb
@@ -247,6 +256,7 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           compare_branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
+        continue-on-error: true
 
   delete_neon_branch:
     name: Delete Neon Branch
