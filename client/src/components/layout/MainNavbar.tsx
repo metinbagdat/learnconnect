@@ -39,7 +39,7 @@ export default function MainNavbar() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link href="/dashboard" className="flex items-center space-x-2">
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent inline-block">
                 egitim.today
               </span>
             </Link>
@@ -110,8 +110,10 @@ export default function MainNavbar() {
       <nav className="md:hidden bg-white border-b sticky top-0 z-50 shadow-sm">
         <div className="px-4 py-3">
           <div className="flex justify-between items-center">
-            <Link href="/dashboard" className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              egitim.today
+            <Link href="/dashboard" className="inline-block">
+              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent inline-block">
+                egitim.today
+              </span>
             </Link>
             <div className="flex items-center space-x-2">
               <button

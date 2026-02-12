@@ -144,60 +144,8 @@ export default defineConfig({
         // ✅ Simplified chunk splitting strategy to prevent initialization order issues
         // Keep related code together and ensure proper load order
         // Lazy-loaded pages are automatically split by Vite, so we only need to handle vendors
-        manualChunks: (id) => {
-          // Don't split node_modules too aggressively - keep related packages together
-          if (id.includes('node_modules')) {
-            // Core React and DOM - must load first (critical path)
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'react-vendor';
-            }
-            // Router - loads early but after React
-            if (id.includes('wouter')) {
-              return 'router-vendor';
-            }
-            // Query library - depends on React
-            if (id.includes('@tanstack/react-query')) {
-              return 'query-vendor';
-            }
-            // UI components - group all Radix UI together (large but cohesive)
-            if (id.includes('@radix-ui')) {
-              return 'ui-vendor';
-            }
-            // Form handling - depends on React
-            if (id.includes('react-hook-form') || id.includes('@hookform/resolvers')) {
-              return 'form-vendor';
-            }
-            // Charts - large library, keep separate
-            if (id.includes('recharts')) {
-              return 'chart-vendor';
-            }
-            // Icons - lightweight, can be grouped
-            if (id.includes('lucide-react') || id.includes('react-icons')) {
-              return 'icons-vendor';
-            }
-            // Date utilities - small, can be grouped
-            if (id.includes('date-fns') || id.includes('react-day-picker')) {
-              return 'date-vendor';
-            }
-            // Markdown - medium size
-            if (id.includes('react-markdown')) {
-              return 'markdown-vendor';
-            }
-            // Animation - large library
-            if (id.includes('framer-motion')) {
-              return 'motion-vendor';
-            }
-            // Utilities - small, group together to reduce chunks
-            if (id.includes('clsx') || id.includes('tailwind-merge') || id.includes('zod') || id.includes('zod-validation-error')) {
-              return 'utils-vendor';
-            }
-            // All other node_modules in one chunk to avoid too many chunks
-            // This reduces the chance of TDZ errors from complex dependency chains
-            return 'vendor';
-          }
-          // App code stays in separate chunks (handled by Vite automatically)
-          // Vite's automatic code splitting is better at handling app code dependencies
-          return null;
+        manualChunks: {
+          'react-core': ['react', 'react-dom', 'react/jsx-runtime'],
         },
         
         chunkFileNames: 'js/chunk-[name]-[hash:8].js',

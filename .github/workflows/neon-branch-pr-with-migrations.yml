@@ -19,12 +19,21 @@ jobs:
   setup:
     name: Setup
     outputs:
-      branch: ${{ steps.branch_name.outputs.current_branch }}
+      branch: ${{ steps.sanitize_branch.outputs.SANITIZED_BRANCH }}
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
         id: branch_name
         uses: tj-actions/branch-names@v8
+
+      - name: Sanitize branch name
+        id: sanitize_branch
+        run: |
+          BRANCH_NAME="${{ steps.branch_name.outputs.current_branch }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g')
+          echo "SANITIZED_BRANCH=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Original branch: $BRANCH_NAME"
+          echo "Sanitized branch: $SANITIZED_BRANCH"
 
       - name: Checkout code
         uses: actions/checkout@v4
