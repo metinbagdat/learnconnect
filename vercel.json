@@ -4,10 +4,16 @@
   "outputDirectory": "dist",
   "installCommand": "echo 'Skipping install; clean install runs in buildCommand.'",
   "framework": "vite",
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "source": "/api/:path*",
+      "destination": "/api"
     },
     {
       "source": "/((?!api/).*)",
