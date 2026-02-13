@@ -54,21 +54,13 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const statsRef = collection(db, 'studyStats');
-        const q = query(
-          statsRef,
-          where('userId', '==', String(user.id)),
-          where('date', '==', today),
-          limit(1)
-        );
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const stat = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as StudyStat;
-          setStudyStats(stat);
-        }
+        const userId = String(user.id);
+        const { getTodayStats } = await import('@/services/studyStatsService');
+        const stat = await getTodayStats(userId);
+        setStudyStats(stat);
       } catch (error) {
         console.error('Error fetching stats:', error);
+        setStudyStats(null);
       }
     };
 

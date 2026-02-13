@@ -1,27 +1,26 @@
-import { getUserFromRequest, guestUser } from './lib/session-auth.js';
+import { clearSessionCookie } from './lib/session-auth.js';
 
-// Session-backed user endpoint for serverless auth flow.
-export default function handler(req, res) {
+function setCommonHeaders(req, res) {
   const origin = req.headers.origin || 'https://www.egitim.today';
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+export default function handler(req, res) {
+  setCommonHeaders(req, res);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const user = getUserFromRequest(req);
-  if (!user) {
-    return res.status(200).json(guestUser());
-  }
-
-  return res.status(200).json(user);
+  clearSessionCookie(res);
+  return res.status(200).json({ success: true });
 }
