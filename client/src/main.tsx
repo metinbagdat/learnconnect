@@ -5,16 +5,22 @@ import './lib/module-init-fix';
 import React from 'react'
 // Expose React on window to guard against environments that expect a global React
 ;(window as any).React = React;
-import ReactDOM from 'react-dom/client'
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClient } from './lib/queryClient'
-import App from './App.tsx'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </React.StrictMode>,
-)
+async function bootstrap() {
+  // Load app modules only after global React is set.
+  const ReactDOM = await import('react-dom/client');
+  const { QueryClientProvider } = await import('@tanstack/react-query');
+  const { queryClient } = await import('./lib/queryClient');
+  const { default: App } = await import('./App.tsx');
+
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </React.StrictMode>,
+  );
+}
+
+void bootstrap();
