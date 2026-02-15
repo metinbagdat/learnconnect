@@ -38,6 +38,42 @@ service cloud.firestore {
     match /ai_plans/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
+
+    // Learning paths - public read, admin write
+    match /learningPaths/{pathId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // User path progress - user can access only own progress docs
+    match /userPathProgress/{progressId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId is string
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId is string
+                                  && resource.data.userId == request.auth.uid;
+    }
+
+    // Notes - user can access only own note docs
+    match /notes/{noteId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId is string
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId is string
+                                  && resource.data.userId == request.auth.uid;
+    }
+
+    // Daily study stats - user can access only own stats docs
+    match /studyStats/{statId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId is string
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId is string
+                                  && resource.data.userId == request.auth.uid;
+    }
     
     // Deny all other access by default
     match /{document=**} {

@@ -2,6 +2,8 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useLocation } from 'wouter'
 import ProgressChart from '@/components/ProgressChart'
 import StudyPlan from '../../src/components/StudyPlan.jsx'
+import { auth } from '@/lib/firebase'
+import { getFirebaseAuthHeaders, syncFirebaseUserToNeon } from '@/lib/api-auth'
 
 // Import pages (lazy load)
 const AdminDashboard = React.lazy(() => 
@@ -69,13 +71,32 @@ export default function App() {
 
   useEffect(() => {
     if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute) {
-      fetch('/api/user')
-        .then(res => res.json())
-        .then(data => {
+      const run = async () => {
+        try {
+          if (!auth.currentUser) {
+            setUser(null)
+            return
+          }
+
+          await syncFirebaseUserToNeon()
+          const headers = await getFirebaseAuthHeaders()
+
+          const res = await fetch('/api/user', { headers })
+          if (!res.ok) {
+            setUser(null)
+            return
+          }
+
+          const data = await res.json()
           setUser(data)
+        } catch {
+          setUser(null)
+        } finally {
           setLoading(false)
-        })
-        .catch(() => setLoading(false))
+        }
+      }
+
+      run()
     } else {
       setLoading(false)
     }
@@ -361,10 +382,7 @@ export default function App() {
                     <button
                       onClick={async () => {
                         try {
-                          await fetch('/api/logout', {
-                            method: 'POST',
-                            credentials: 'include'
-                          })
+                          await auth.signOut()
                           window.location.href = '/login'
                         } catch (error) {
                           console.error('Logout failed:', error)

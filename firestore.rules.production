@@ -131,6 +131,42 @@ service cloud.firestore {
       allow read, write: if isOwner(userId);
       allow create: if request.auth != null;
     }
+
+    // Learning paths - public read, admin write
+    match /learningPaths/{pathId} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // User path progress - user can access only own progress docs
+    match /userPathProgress/{progressId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId is string
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId is string
+                                  && resource.data.userId == request.auth.uid;
+    }
+
+    // Notes - user can access only own notes
+    match /notes/{noteId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId is string
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId is string
+                                  && resource.data.userId == request.auth.uid;
+    }
+
+    // Daily study stats - user can access only own stats
+    match /studyStats/{statId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId is string
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId is string
+                                  && resource.data.userId == request.auth.uid;
+    }
     
     // ============================================
     // DEFAULT DENY

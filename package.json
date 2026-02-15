@@ -11,8 +11,10 @@
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
     "@tanstack/react-query": "^5.17.0",
     "firebase": "^12.8.0",
+    "firebase-admin": "^13.2.0",
     "framer-motion": "^11.0.0",
     "lucide-react": "^0.563.0",
     "react": "^18.2.0",

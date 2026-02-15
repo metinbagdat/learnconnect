@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { auth, db } from '@/lib/firebase';
+import { collection, query, where, limit, getDocs } from 'firebase/firestore';
 import { Clock, Flame, Target, BookOpen, Plus, TrendingUp, CheckCircle2, Award } from 'lucide-react';
 import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
@@ -32,13 +34,13 @@ export default function Dashboard() {
 
   // Fetch recent notes
   useEffect(() => {
-    if (!user?.username && !user?.id) return;
+    const firebaseUserId = auth.currentUser?.uid;
+    if (!firebaseUserId) return;
 
     const fetchNotes = async () => {
       try {
-        const userId = String(user.id || user.username);
         const { getUserNotes } = await import('@/services/notesService');
-        const notes = await getUserNotes(userId, 5);
+        const notes = await getUserNotes(firebaseUserId, 5);
         setRecentNotes(notes);
       } catch (error) {
         console.error('Error fetching notes:', error);
@@ -77,16 +79,16 @@ export default function Dashboard() {
 
   // Fetch active learning paths
   useEffect(() => {
-    if (!user?.username && !user?.id) return;
+    const firebaseUserId = auth.currentUser?.uid;
+    if (!firebaseUserId) return;
 
     const fetchPaths = async () => {
       try {
-        const userId = String(user.id || user.username);
         const { getAllPaths, getUserProgress } = await import('@/services/learningPathsService');
         
         const [paths, progress] = await Promise.all([
           getAllPaths(),
-          getUserProgress(userId),
+          getUserProgress(firebaseUserId),
         ]);
 
         // Get paths with progress > 0
@@ -111,22 +113,22 @@ export default function Dashboard() {
   }, [user]);
 
   const handleQuickNote = async () => {
-    if (!quickNoteText.trim() || (!user?.username && !user?.id)) return;
+    const firebaseUserId = auth.currentUser?.uid;
+    if (!quickNoteText.trim() || !firebaseUserId) return;
 
     try {
-      const userId = String(user.id || user.username);
       const { createNote, getUserNotes } = await import('@/services/notesService');
       
       const tags = (quickNoteTags || '').split(',').map(t => t.trim()).filter(t => t.length > 0);
       const title = quickNoteText.substring(0, 50) || 'Yeni Not';
 
-      await createNote(userId, title, quickNoteText, tags);
+      await createNote(firebaseUserId, title, quickNoteText, tags);
 
       setQuickNoteText('');
       setQuickNoteTags('');
       
       // Refresh notes
-      const notes = await getUserNotes(userId, 5);
+      const notes = await getUserNotes(firebaseUserId, 5);
       setRecentNotes(notes);
     } catch (error) {
       console.error('Error saving note:', error);

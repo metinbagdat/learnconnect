@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { auth } from "@/lib/firebase";
+import { getFirebaseAuthHeaders, syncFirebaseUserToNeon } from "@/lib/api-auth";
 
 interface User {
   id: number;
@@ -26,8 +28,16 @@ export function useAuth(): UseAuthReturn {
 
   const checkAuth = async () => {
     try {
+      if (!auth.currentUser) {
+        setUser(null);
+        return;
+      }
+
+      await syncFirebaseUserToNeon();
+      const headers = await getFirebaseAuthHeaders();
+
       const response = await fetch("/api/user", {
-        credentials: "include",
+        headers,
       });
 
       if (response.ok) {
@@ -46,15 +56,9 @@ export function useAuth(): UseAuthReturn {
 
   const logout = async () => {
     try {
-      const response = await fetch("/api/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        setUser(null);
-        setLocation("/login");
-      }
+      await auth.signOut();
+      setUser(null);
+      setLocation("/login");
     } catch (error) {
       console.error("Logout failed:", error);
       // Even if logout fails, clear local state and redirect
