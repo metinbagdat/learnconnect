@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Minimal base (preflight disabled to avoid -webkit-text-size-adjust DevTools warning) */
+/* Minimal base - preflight disabled in tailwind.config; no -webkit-text-size-adjust */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
   html { line-height: 1.5; }
