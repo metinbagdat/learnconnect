@@ -7,7 +7,63 @@
     <title>LearnConnect - TYT & AYT Akıllı Planlayıcı</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">Yükleniyor...</div>
+
+    <script>
+      // Early SES / lockdown guard: runs before Vite bundle
+      (function () {
+        try {
+          var sesKeywords = [
+            'SES_UNCAUGHT_EXCEPTION',
+            'lockdown-install.js',
+            'Removing intrinsics.%',
+            '%MapPrototype%.getOrInsert',
+            '%WeakMapPrototype%.getOrInsert',
+            "can't access property \"useState\", React is undefined"
+          ];
+
+          function isSesRelatedMessage(msg) {
+            if (!msg || typeof msg !== 'string') return false;
+            return sesKeywords.some(function (k) {
+              return msg.indexOf(k) !== -1;
+            });
+          }
+
+          function handleGlobalError(event) {
+            try {
+              var msg =
+                (event && event.message) ||
+                (event && event.reason && String(event.reason)) ||
+                (event && event.error && String(event.error)) ||
+                '';
+
+              if (isSesRelatedMessage(msg)) {
+                // Downgrade SES/lockdown noise so it doesn't break the app
+                try {
+                  console.warn('[SES guard] Suppressed SES-related error:', msg);
+                } catch (_) {}
+                if (event && typeof event.preventDefault === 'function') {
+                  event.preventDefault();
+                }
+                if (event && typeof event.stopImmediatePropagation === 'function') {
+                  event.stopImmediatePropagation();
+                }
+                return false;
+              }
+            } catch (_) {
+              // Never throw from the guard itself
+            }
+          }
+
+          window.__egitimTodaySesGuardActive = true;
+          window.addEventListener('error', handleGlobalError, true);
+          window.addEventListener('unhandledrejection', handleGlobalError, true);
+        } catch (e) {
+          // Guard must never crash the page
+        }
+      })();
+    </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -52,6 +52,11 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [location] = useLocation()
+
+  // Mark successful mount for SES guard
+  if (typeof window !== 'undefined') {
+    window.__egitimTodayMountOk = true
+  }
   
   // Routes that don't need authentication
   const publicRoutes = ['/login', '/register']
