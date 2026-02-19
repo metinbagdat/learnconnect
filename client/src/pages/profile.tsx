@@ -19,11 +19,11 @@ export default function Profile() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
             <div className="flex items-center space-x-4 mb-6">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                {(user?.displayName || user?.username)?.charAt(0).toUpperCase()}
+                {(user?.displayName || user?.username || '?').charAt(0).toUpperCase()}
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">
-                  {user?.displayName || user?.username}
+                  {user?.displayName || user?.username || 'Kullanıcı'}
                 </h2>
                 <p className="text-gray-500">{user?.profile?.grade || 'Öğrenci'}</p>
               </div>

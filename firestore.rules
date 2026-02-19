@@ -41,12 +41,22 @@ service cloud.firestore {
 
     // Notes (Defterim) - user can read/write own notes
     match /notes/{noteId} {
-      allow read, write: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if request.auth != null
+                                  && resource.data.userId == request.auth.uid;
     }
 
     // Study stats - user can read/write own stats
     match /studyStats/{statId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null
+                 && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null
+                   && (isAdmin() || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if request.auth != null
+                           && (isAdmin()
+                               || (resource.data.userId == request.auth.uid
+                                   && request.resource.data.userId == request.auth.uid));
     }
 
     // Learning paths - read for all authenticated; write for admin (paths created by admin/seed)
@@ -57,22 +67,26 @@ service cloud.firestore {
 
     // User path progress - user can read/write own progress
     match /userPathProgress/{progressId} {
-      allow read, write: if request.auth != null;
+      allow create: if request.auth != null
+                    && (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow read, update, delete: if request.auth != null
+                                  && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Community posts - authenticated read/write; comments subcollection
     match /communityPosts/{postId} {
       allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null;
+      allow update, delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
       match /comments/{commentId} {
         allow read, create: if request.auth != null;
-        allow update, delete: if request.auth != null;
+        allow update, delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
       }
     }
 
     // Certificates - created by admin/backend; public read for verification
     match /certificates/{certId} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow create: if request.auth != null && isAdmin();
       allow update, delete: if false;
     }

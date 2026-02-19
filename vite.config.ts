@@ -33,6 +33,7 @@ export default defineConfig({
         format: "es",
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
+            if (/\/node_modules\/react\//.test(id) || /\/node_modules\/react-dom\//.test(id)) return "react-vendor";
             return "vendor";
           }
           return undefined;
@@ -47,7 +48,11 @@ export default defineConfig({
         },
       },
       onwarn(warning, warn) {
-        if (warning.code === "CIRCULAR_DEPENDENCY") return;
+        if (warning.code === "CIRCULAR_DEPENDENCY") {
+          // Suppress known circular deps from third-party libraries only
+          const ids = warning.ids || [];
+          if (ids.every((id: string) => id.includes("node_modules"))) return;
+        }
         warn(warning);
       },
     },
