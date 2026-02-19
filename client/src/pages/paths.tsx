@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { BookOpen, Clock, CheckCircle2, ArrowRight, TrendingUp } from 'lucide-react';
+import { BookOpen, Clock, CheckCircle2, ArrowRight, TrendingUp, Share2 } from 'lucide-react';
 import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { getAllPaths, getUserProgress, startPath, completeStep, type LearningPath, type UserPathProgress } from '@/services/learningPathsService';
+import { issueCertificate, hasPathCertificate } from '@/services/certificatesService';
 
 export default function LearningPaths() {
   const { user } = useAuth();
@@ -96,6 +97,25 @@ export default function LearningPaths() {
       // Refresh progress
       const updatedProgress = await getUserProgress(userId);
       setUserProgress(updatedProgress);
+
+      // Issue certificate when path is 100% complete (avoid duplicates)
+      const progress = updatedProgress[pathId];
+      if (progress?.progressPercent === 100) {
+        try {
+          const alreadyHas = await hasPathCertificate(userId, pathId);
+          if (!alreadyHas) {
+            await issueCertificate(
+              userId,
+              user.displayName || user.username || 'Öğrenci',
+              'path',
+              pathId,
+              path.title
+            );
+          }
+        } catch (e) {
+          console.warn('Certificate issuance skipped:', e);
+        }
+      }
     } catch (error) {
       console.error('Error completing step:', error);
       alert('Adım tamamlanırken hata oluştu');
@@ -213,14 +233,29 @@ export default function LearningPaths() {
                           </div>
                         </div>
                       </div>
-                      {!isStepCompleted(step.id) && (
-                        <button
-                          onClick={() => handleCompleteStep(selectedPath.id, step.id)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                        >
-                          Tamamla
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {!isStepCompleted(step.id) && (
+                          <button
+                            onClick={() => handleCompleteStep(selectedPath.id, step.id)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            Tamamla
+                          </button>
+                        )}
+                        {isStepCompleted(step.id) && (
+                          <button
+                            onClick={() => {
+                              const shareContent = `**${selectedPath.title}** – ${step.title} tamamlandı ✓\n\n${step.description || ''}`;
+                              const shareTags = selectedPath.tags?.join(', ') || 'tyt, matematik';
+                              setLocation(`/community?share=${encodeURIComponent(shareContent)}&tags=${encodeURIComponent(shareTags)}`);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors text-sm"
+                          >
+                            <Share2 className="h-4 w-4" />
+                            Toplulukta Paylaş
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))

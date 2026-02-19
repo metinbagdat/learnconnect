@@ -19,6 +19,8 @@ export interface Note {
   title: string;
   content: string;
   tags: string[];
+  relatedPathId?: string;
+  relatedCourseId?: string;
   createdAt: any;
   updatedAt: any;
 }
@@ -80,7 +82,9 @@ export async function createNote(
   userId: string,
   title: string,
   content: string,
-  tags: string[]
+  tags: string[],
+  relatedPathId?: string,
+  relatedCourseId?: string
 ): Promise<string> {
   try {
     const tagsArray = tags
@@ -90,14 +94,18 @@ export async function createNote(
 
     const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
 
-    const docRef = await addDoc(collection(db, 'notes'), {
+    const doc: Record<string, unknown> = {
       userId: String(userId),
       title: finalTitle,
       content,
       tags: tagsArray,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    });
+    };
+    if (relatedPathId) doc.relatedPathId = relatedPathId;
+    if (relatedCourseId) doc.relatedCourseId = relatedCourseId;
+
+    const docRef = await addDoc(collection(db, 'notes'), doc);
 
     return docRef.id;
   } catch (error) {
@@ -113,7 +121,9 @@ export async function updateNote(
   noteId: string,
   title: string,
   content: string,
-  tags: string[]
+  tags: string[],
+  relatedPathId?: string,
+  relatedCourseId?: string
 ): Promise<void> {
   try {
     const tagsArray = tags
@@ -123,13 +133,17 @@ export async function updateNote(
 
     const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
 
-    const noteRef = doc(db, 'notes', noteId);
-    await updateDoc(noteRef, {
+    const updates: Record<string, unknown> = {
       title: finalTitle,
       content,
       tags: tagsArray,
       updatedAt: Timestamp.now(),
-    });
+    };
+    if (relatedPathId !== undefined) updates.relatedPathId = relatedPathId || null;
+    if (relatedCourseId !== undefined) updates.relatedCourseId = relatedCourseId || null;
+
+    const noteRef = doc(db, 'notes', noteId);
+    await updateDoc(noteRef, updates);
   } catch (error) {
     console.error('Error updating note:', error);
     throw error;

@@ -41,3 +41,4 @@ service-account-key.json
 *.service-account.json
 firebase-service-account*.json
 scripts/service-account-key.json
+.env*.local

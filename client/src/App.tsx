@@ -52,6 +52,11 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [location] = useLocation()
+
+  // Mark successful mount for SES guard
+  if (typeof window !== 'undefined') {
+    window.__egitimTodayMountOk = true
+  }
   
   // Routes that don't need authentication
   const publicRoutes = ['/login', '/register']
@@ -66,6 +71,7 @@ export default function App() {
   const isPathsRoute = location === '/paths' || location.startsWith('/paths/')
   const isCoursesRoute = location === '/courses' || location.startsWith('/courses/')
   const isCommunityRoute = location === '/community' || location.startsWith('/community/')
+  const isProfileRoute = location === '/profile' || location.startsWith('/profile/')
 
   useEffect(() => {
     if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute) {
@@ -302,6 +308,26 @@ export default function App() {
         </div>
       }>
         <Community />
+      </Suspense>
+    )
+  }
+
+  // Profile Route (Protected)
+  const ProfilePage = React.lazy(() =>
+    import('./pages/profile.tsx').catch(() => ({ default: () => <div>Profil yükleniyor...</div> }))
+  );
+
+  if (isProfileRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Profil Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <ProfilePage />
       </Suspense>
     )
   }
