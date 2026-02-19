@@ -70,10 +70,10 @@ service cloud.firestore {
       }
     }
 
-    // Certificates - user can create (via path completion); public read for verification
+    // Certificates - created by admin/backend; public read for verification
     match /certificates/{certId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && isAdmin();
       allow update, delete: if false;
     }
     
