@@ -63,7 +63,11 @@ service cloud.firestore {
 
     // User path progress - user can read/write own progress
     match /userPathProgress/{progressId} {
-      allow read, write: if request.auth != null;
+      // Only the owner of the document (by userId field) or an admin can create/read/update/delete
+      allow create: if request.auth != null
+                    && (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow read, update, delete: if request.auth != null
+                                  && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Community posts - authenticated read/write; comments subcollection
