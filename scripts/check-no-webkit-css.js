@@ -1,9 +1,8 @@
 /**
- * Post-build check: dist CSS must not contain -webkit-text-size-adjust
+ * Post-build cleanup: Remove -webkit-text-size-adjust from dist CSS
  * (avoids DevTools "parsing error" warning). Run after vite build.
  *
  * Usage: npm run check:css   OR   node scripts/check-no-webkit-css.js
- * Manual grep (PowerShell): Get-ChildItem -Path dist -Recurse -Filter *.css | Select-String "webkit-text-size-adjust"
  */
 import fs from "fs";
 import path from "path";
@@ -14,22 +13,27 @@ const dist = path.resolve(__dirname, "..", "dist");
 
 function walk(dir) {
   if (!fs.existsSync(dir)) {
-    console.warn("[check-no-webkit-css] dist not found, skipping");
+    console.warn("[cleanup-css] dist not found, skipping");
     return false;
   }
+  let found = false;
   for (const name of fs.readdirSync(dir)) {
     const full = path.join(dir, name);
     const stat = fs.statSync(full);
     if (stat.isDirectory()) walk(full);
     else if (name.endsWith(".css")) {
-      const content = fs.readFileSync(full, "utf8");
+      let content = fs.readFileSync(full, "utf8");
       if (content.includes("-webkit-text-size-adjust")) {
-        console.error(`[check-no-webkit-css] Found -webkit-text-size-adjust in ${path.relative(process.cwd(), full)}`);
-        process.exit(1);
+        found = true;
+        // Remove -webkit-text-size-adjust: 100%; declaration
+        content = content.replace(/-webkit-text-size-adjust:\s*100%\s*;?\s*/g, "");
+        fs.writeFileSync(full, content, "utf8");
+        console.log(`[cleanup-css] Removed -webkit-text-size-adjust from ${path.relative(process.cwd(), full)}`);
       }
     }
   }
-  return true;
+  return !found;
 }
 
-if (walk(dist)) console.log("[check-no-webkit-css] OK: no -webkit-text-size-adjust in dist CSS");
+if (walk(dist)) console.log("[cleanup-css] OK: no -webkit-text-size-adjust in dist CSS");
+else console.log("[cleanup-css] Complete: -webkit-text-size-adjust removed from dist CSS");

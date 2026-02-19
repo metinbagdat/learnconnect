@@ -6,6 +6,29 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Authentication helper
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Owner helpers for user-scoped documents (userId field based)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isCreatingOwnData() {
+      return isAuthenticated()
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    function isOwnerAndKeepsOwnership() {
+      return isAuthenticated()
+        && resource.data.userId is string
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+    }
+
     // Curriculum - public read, admin write
     match /curriculum/{document=**} {
       allow read: if true;
@@ -39,52 +62,49 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Notes (Defterim) - user can read/write own notes
-    match /notes/{noteId} {
-      // Users can create notes only for themselves
-      allow create: if request.auth != null
-                    && request.resource.data.userId == request.auth.uid;
-
-      // Users can read/update/delete only their own notes
-      allow read, update, delete: if request.auth != null
-                                  && resource.data.userId == request.auth.uid;
-    }
-
-    // Study stats - user can read/write own stats
-    match /studyStats/{statId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // Learning paths - read for all authenticated; write for admin (paths created by admin/seed)
+    // Learning paths are public content
     match /learningPaths/{pathId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && isAdmin();
-    }
-
-    // User path progress - user can read/write own progress
-    match /userPathProgress/{progressId} {
-      // Only the owner of the document (by userId field) or an admin can create/read/update/delete
-      allow create: if request.auth != null
-                    && (request.resource.data.userId == request.auth.uid || isAdmin());
-      allow read, update, delete: if request.auth != null
-                                  && (resource.data.userId == request.auth.uid || isAdmin());
-    }
-
-    // Community posts - authenticated read/write; comments subcollection
-    match /communityPosts/{postId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null;
-      match /comments/{commentId} {
-        allow read, create: if request.auth != null;
-        allow update, delete: if request.auth != null;
-      }
-    }
-
-    // Certificates - created by admin/backend; public read for verification
-    match /certificates/{certId} {
       allow read: if true;
-      allow create: if request.auth != null && isAdmin();
-      allow update, delete: if false;
+      allow write: if isAuthenticated() && isAdmin();
+    }
+
+    // User notes
+    match /notes/{noteId} {
+      allow create: if isCreatingOwnData();
+      allow read, delete: if isOwner(resource.data.userId);
+      allow update: if isOwnerAndKeepsOwnership();
+    }
+
+    // Daily study statistics
+    match /studyStats/{statId} {
+      allow create: if isCreatingOwnData();
+      allow read, delete: if isOwner(resource.data.userId);
+      allow update: if isOwnerAndKeepsOwnership();
+    }
+
+    // Learning path progress per user
+    match /userPathProgress/{progressId} {
+      allow create: if isCreatingOwnData();
+      allow read, delete: if isOwner(resource.data.userId);
+      allow update: if isOwnerAndKeepsOwnership();
+    }
+
+    // Community posts (public read, controlled write by document userId)
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId is string;
+      allow update: if resource.data.userId is string
+                    && request.resource.data.userId == resource.data.userId;
+      allow delete: if false;
+
+      // Nested comments under each post
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.userId is string;
+        allow update: if resource.data.userId is string
+                      && request.resource.data.userId == resource.data.userId;
+        allow delete: if false;
+      }
     }
     
     // Deny all other access by default

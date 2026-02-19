@@ -8,6 +8,8 @@
     "*.tsx": "typescriptreact",
     "*.ts": "typescript"
   },
-  "css.lint.unknownAtRules": "ignore"
+  "githubPullRequests.ignoredPullRequestBranches": [
+    "main"
+  ]
 }
 

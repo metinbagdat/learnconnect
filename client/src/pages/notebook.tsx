@@ -108,10 +108,10 @@ export default function Notebook() {
   };
 
   const handleSaveNote = async () => {
-    const userId = String(user?.id || user?.username);
-    if (!userId || (!noteTitle.trim() && !noteContent.trim())) return;
+    if ((!user?.username && !user?.id) || (!noteTitle.trim() && !noteContent.trim())) return;
 
     try {
+      const userId = String(user.id || user.username);
       const tags = noteTags
         .split(',')
         .map(t => t.trim())
@@ -122,11 +122,14 @@ export default function Notebook() {
 
       const pathId = relatedPathId.trim() || undefined;
       if (selectedNote) {
-        await updateNote(selectedNote.id, title, noteContent, tags, pathId);
+        // Update existing note
+        await updateNote(selectedNote.id, title, noteContent, tags);
       } else {
-        await createNote(userId, title, noteContent, tags, pathId);
+        // Create new note
+        await createNote(userId, title, noteContent, tags);
       }
 
+      // Refresh notes
       const [updatedNotes, updatedTags] = await Promise.all([
         getUserNotes(userId),
         getUserTags(userId),

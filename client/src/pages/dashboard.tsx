@@ -55,12 +55,13 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
       try {
-        const userId = String(user.id || user.username);
+        const userId = String(user.id);
         const { getTodayStats } = await import('@/services/studyStatsService');
         const stat = await getTodayStats(userId);
-        if (stat) setStudyStats(stat);
+        setStudyStats(stat);
       } catch (error) {
         console.error('Error fetching stats:', error);
+        setStudyStats(null);
       }
     };
 
