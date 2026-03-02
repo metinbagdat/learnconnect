@@ -80,7 +80,7 @@ if (!process.env.DATABASE_URL) {
 // Configure connection pool - ultra-minimal for Replit deployment constraints
     _pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 2, // Minimal pool size - 2 connections max to prevent "too many connections" during deployment
+  max: 5, // Allow up to 5 concurrent connections
   idleTimeoutMillis: 5000, // Close idle connections quickly
   connectionTimeoutMillis: 15000, // Longer timeout for deployment phases
   statement_timeout: 45000, // Longer query timeout for schema introspection

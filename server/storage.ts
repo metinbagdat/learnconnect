@@ -123,6 +123,7 @@ export interface IStorage {
   // Module and Lesson methods
   createModule(moduleData: any): Promise<any>;
   createLesson(lessonData: any): Promise<any>;
+  getLessonWithContext(lessonId: number): Promise<{ lesson: any; moduleTitle: string; courseTitle: string; courseId: number } | null>;
   // Assignment methods
   createAssignment(assignmentData: any): Promise<any>;
   createUserAssignment(assignmentData: any): Promise<any>;
@@ -568,23 +569,18 @@ class DatabaseStorage implements IStorage {
 
   async getUserMentor(userId: number) {
     try {
-      const [userMentor] = await db
-        .select()
+      const [result] = await db
+        .select({ userMentor: userMentors, mentor: mentors })
         .from(userMentors)
+        .leftJoin(mentors, eq(userMentors.mentorId, mentors.id))
         .where(eq(userMentors.userId, userId))
         .limit(1);
-      
-      if (!userMentor || !userMentor.mentorId) {
-    return null;
+
+      if (!result || !result.userMentor.mentorId) {
+        return null;
       }
 
-      // Get mentor details
-      const [mentor] = await db
-        .select()
-        .from(mentors)
-        .where(eq(mentors.id, userMentor.mentorId));
-
-      return mentor ? { ...userMentor, mentor } : null;
+      return result.mentor ? { ...result.userMentor, mentor: result.mentor } : null;
     } catch (error: any) {
       console.error(`[STORAGE] Error getting user mentor for ${userId}:`, error?.message || error);
       return null;
@@ -782,16 +778,13 @@ class DatabaseStorage implements IStorage {
 
   async getUserLessons(userId: number) {
     try {
-      // Get all lessons from courses the user is enrolled in
-      const userCoursesList = await db.select().from(userCourses).where(eq(userCourses.userId, userId));
-      if (userCoursesList.length === 0) return [];
-      
-      const courseIds = userCoursesList.map(uc => uc.courseId);
-      const modulesList = await db.select().from(modules).where(inArray(modules.courseId, courseIds));
-      if (modulesList.length === 0) return [];
-      
-      const moduleIds = modulesList.map(m => m.id);
-      return db.select().from(lessons).where(inArray(lessons.moduleId, moduleIds));
+      const rows = await db
+        .selectDistinct({ lesson: lessons })
+        .from(lessons)
+        .innerJoin(modules, eq(lessons.moduleId, modules.id))
+        .innerJoin(userCourses, eq(modules.courseId, userCourses.courseId))
+        .where(eq(userCourses.userId, userId));
+      return rows.map(r => r.lesson);
     } catch (error) {
       console.error('Error fetching user lessons:', error);
       return [];
@@ -1404,6 +1397,28 @@ class DatabaseStorage implements IStorage {
     }
   }
 
+  async getLessonWithContext(lessonId: number) {
+    try {
+      const [row] = await db
+        .select({ lesson: lessons, module: modules, course: courses })
+        .from(lessons)
+        .innerJoin(modules, eq(lessons.moduleId, modules.id))
+        .innerJoin(courses, eq(modules.courseId, courses.id))
+        .where(eq(lessons.id, lessonId))
+        .limit(1);
+      if (!row) return null;
+      return {
+        ...row.lesson,
+        moduleTitle: row.module.title,
+        courseTitle: row.course.title,
+        courseId: row.course.id,
+      };
+    } catch (error: any) {
+      console.error('[STORAGE] Error getting lesson with context:', error?.message || error);
+      return null;
+    }
+  }
+
   async updateUserCourseProgress(userId: number, courseId: number, progress: number) {
     try {
       // Schema doesn't have progress field, skip update
@@ -1864,6 +1879,7 @@ class InMemoryStorage implements IStorage {
   // Module and Lesson methods
   async createModule(_moduleData: any) { return { id: this.nextId++, ..._moduleData }; }
   async createLesson(_lessonData: any) { return { id: this.nextId++, ..._lessonData }; }
+  async getLessonWithContext(_lessonId: number) { return null; }
   async updateUserCourseProgress(_userId: number, _courseId: number, _progress: number) { return { progress: _progress }; }
   // Course methods
   async getAllCourses() { return []; }

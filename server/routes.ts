@@ -2089,9 +2089,8 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
         
         const module = await storage.createModule(moduleValidatedData);
         
-        // Create lessons for this module
-        for (let lessonIndex = 0; lessonIndex < moduleData.lessons.length; lessonIndex++) {
-          const lessonTitle = moduleData.lessons[lessonIndex];
+        // Create all lessons in this module in parallel
+        await Promise.all(moduleData.lessons.map((lessonTitle: string, lessonIndex: number) => {
           const lessonValidatedData = schema.insertLessonSchema.parse({
             moduleId: module.id,
             title: lessonTitle,
@@ -2099,9 +2098,8 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
             order: lessonIndex + 1,
             duration: null // Duration can be set later
           });
-          
-          await storage.createLesson(lessonValidatedData);
-        }
+          return storage.createLesson(lessonValidatedData);
+        }));
       }
       
       res.status(201).json({
@@ -2258,36 +2256,18 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   app.get("/api/lessons/:lessonId", async (req, res) => {
     try {
       const lessonId = parseInt(req.params.lessonId);
-      const language = req.query.lang as string || 'en';
       
       if (isNaN(lessonId)) {
         return res.status(400).json({ message: "Invalid lesson ID" });
       }
 
-      // Import the AI module service to get lesson data
-      const { generateAIEnhancedModules } = await import("./ai-module-service.js");
-      
-      // For now, we'll find the lesson by searching through all courses
-      // This is a temporary solution until we have proper lesson storage
-      const courses = await storage.getCourses();
-      
-      for (const course of courses) {
-        const aiModules = await generateAIEnhancedModules(course.id, 4, language); // Using user ID 4 as default
-        
-        for (const module of aiModules) {
-          const lesson = module.lessons.find(l => l.id === lessonId);
-          if (lesson) {
-            // Return lesson with additional context
-            return res.json({
-              ...lesson,
-              moduleTitle: module.title,
-              courseTitle: course.title,
-              courseId: course.id
-            });
-          }
-        }
+      // Look up the lesson directly in the database with a single JOIN query
+      const lesson = await storage.getLessonWithContext(lessonId);
+
+      if (lesson) {
+        return res.json(lesson);
       }
-      
+
       res.status(404).json({ message: "Lesson not found" });
     } catch (error) {
       console.error("Error fetching lesson:", error);
