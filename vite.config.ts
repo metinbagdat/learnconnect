@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [
   react({
-    jsxRuntime: 'automatic', // Use React 17+ automatic JSX transform
+    jsxRuntime: 'automatic',
   }),
 ],
   resolve: {
@@ -20,7 +20,7 @@ export default defineConfig({
   },
   root: path.resolve(__dirname, "client"),
   optimizeDeps: {
-    include: ["firebase", "firebase/auth", "firebase/firestore"],
+    include: ["firebase/app", "firebase/auth", "firebase/firestore"],
     exclude: ["@anthropic-ai/sdk", "ws", "bufferutil"],
   },
   build: {

@@ -11703,8 +11703,8 @@ Keep responses concise, encouraging, and actionable. Respond in the same languag
     }
   });
 
-  // 404 Handler - must be after all routes
-  app.use((req, res) => {
+  // 404 Handler - only for API routes so that non-API requests fall through to Vite/static middleware
+  app.use("/api", (req, res) => {
     res.status(404).json({
       success: false,
       message: "Route not found",
