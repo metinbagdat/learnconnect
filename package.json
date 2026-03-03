@@ -1,6 +1,4 @@
-git add package.json package-lock.json
-git commit -m "Add package-lock.json for CI stability"
-git push origin deploy-fixgit pull origin deploy-fix{
+{
   "name": "learnconnect",
   "private": true,
   "type": "module",
