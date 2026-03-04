@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
@@ -14,7 +14,6 @@ const firebaseConfig = {
 };
 
 // Singleton Firebase başlatıcı
-import { getApps, getApp } from 'firebase/app';
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize services
