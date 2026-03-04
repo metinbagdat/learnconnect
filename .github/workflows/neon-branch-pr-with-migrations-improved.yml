@@ -512,8 +512,12 @@ jobs:
 
       - name: Seed Database (Optional)
         run: |
-          echo "🌱 Seeding database..."
-          npm run seed:meb
+          echo "🌱 Seeding database (optional)..."
+          if npm run | grep -qE ' seed:meb\b'; then
+            npm run seed:meb
+          else
+            echo "ℹ️ seed:meb script not found in package.json; skipping seeding."
+          fi
         env:
           DATABASE_URL: "${{ env.DATABASE_URL }}"
         continue-on-error: true
