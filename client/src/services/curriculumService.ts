@@ -322,6 +322,10 @@ export async function saveUserProgress(
   topicId: string, 
   progress: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
+  if (!isFirebaseConfigured) {
+    return { success: false, error: 'Firebase yapılandırılmadı' };
+  }
+
   try {
     const { setDoc } = await import('firebase/firestore');
     const progressRef = doc(db, collections.userProgress, `${userId}_${subjectId}_${topicId}`);

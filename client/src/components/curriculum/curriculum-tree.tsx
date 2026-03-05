@@ -30,7 +30,9 @@ export default function CurriculumTree() {
     if (!user?.id && !user?.username) return;
     
     try {
-      const { db, collections } = await import('@/lib/firebase');
+      const { db, collections, isFirebaseConfigured } = await import('@/lib/firebase');
+      if (!isFirebaseConfigured) return;
+
       const { collection, query, where, getDocs } = await import('firebase/firestore');
       
       const userId = String(user.id || user.username);

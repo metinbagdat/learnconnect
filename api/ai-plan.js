@@ -114,12 +114,13 @@ function generateStudyPlan(studentProfile, curriculum, preferences = {}) {
       if (remaining <= 0) break;
       if (subject.remainingHours <= 0) continue;
 
+      const subjectTitle = subject.title || subject.name || subject.id;
       const allocation = Math.min(2, remaining, subject.remainingHours);
       subject.remainingHours -= allocation;
       remaining -= allocation;
 
       daySubjects.push({
-        subject: subject.title,
+        subject: subjectTitle,
         hours: allocation,
         topics: selectTopicsForDay(subject, dayIndex)
       });
@@ -135,7 +136,7 @@ function generateStudyPlan(studentProfile, curriculum, preferences = {}) {
 
   // Aylık özet
   const monthlySummary = subjectsWithWeeklyHours.map((subject) => ({
-    subject: subject.title,
+    subject: subject.title || subject.name || subject.id,
     weeklyHours: subject.weeklyHours,
     completionWeeks: Math.ceil((subject.estimatedHours || 60) / Math.max(1, subject.weeklyHours)),
     priority: subject.weight > 150 ? 'HIGH' : subject.weight > 90 ? 'MEDIUM' : 'LOW'
@@ -180,11 +181,12 @@ function getFutureDate(daysToAdd) {
 
 function generateRecommendations(studentProfile, subjects, preferences) {
   const recommendations = [];
+  const primarySubjectLabel = subjects[0]?.title || subjects[0]?.name || subjects[0]?.id;
 
-  if (subjects[0]?.weight > 150) {
+  if (subjects[0]?.weight > 150 && primarySubjectLabel) {
     recommendations.push({
       type: 'FOCUS_AREA',
-      message: `${subjects[0].title} dersine öncelik verin`,
+      message: `${primarySubjectLabel} dersine öncelik verin`,
       reason: 'En yüksek ağırlığa sahip'
     });
   }
