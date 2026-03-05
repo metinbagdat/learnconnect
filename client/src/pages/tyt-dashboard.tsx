@@ -41,6 +41,7 @@ import PageWrapper from "@/components/layout/page-wrapper";
 import CurriculumTree from "@/components/curriculum/curriculum-tree";
 import AIPlanGenerator from "@/components/curriculum/ai-plan-generator";
 import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@/types/tyt";
+import { getLocalDateString } from "@/lib/date-utils";
 
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {
@@ -50,15 +51,6 @@ interface TytStudyStats {
   subjectProgress: Array<{ subject: string; progress: number; timeSpent: number }>;
   streaks: Array<{ type: string; current: number; longest: number }>;
 }
-
-// Helper function to get local date string (fixes timezone issue)
-const getLocalDateString = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 export default function TytDashboard() {
   const { language, t } = useLanguage();
