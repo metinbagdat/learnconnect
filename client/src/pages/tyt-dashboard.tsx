@@ -64,16 +64,16 @@ const getLocalDateString = (d?: Date) => {
 const getWeekStart = () => {
   const d = new Date();
   const day = d.getDay();
-  const diff = d.getDate() - (day === 0 ? 6 : day - 1); // Monday-based
-  d.setDate(diff);
+  const daysToMonday = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - daysToMonday);
   return getLocalDateString(d);
 };
 
 const getWeekEnd = () => {
   const d = new Date();
   const day = d.getDay();
-  const diff = d.getDate() + (day === 0 ? 0 : 7 - day);
-  d.setDate(diff);
+  const daysToSunday = day === 0 ? 0 : 7 - day;
+  d.setDate(d.getDate() + daysToSunday);
   return getLocalDateString(d);
 };
 
@@ -1064,7 +1064,18 @@ export default function TytDashboard() {
                       <CardContent className="p-12 text-center">
                         <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                         <h3 className="text-lg font-semibold mb-2">
-                          <BilingualText text="Bugün için görev yok – No tasks for today" />
+                          {taskDateFilter === 'today' && (
+                            <BilingualText text="Bugün için görev yok – No tasks for today" />
+                          )}
+                          {taskDateFilter === 'week' && (
+                            <BilingualText text="Bu hafta için görev yok – No tasks for this week" />
+                          )}
+                          {taskDateFilter === 'next7' && (
+                            <BilingualText text="Önümüzdeki 7 günde görev yok – No tasks in the next 7 days" />
+                          )}
+                          {taskDateFilter === 'custom' && (
+                            <BilingualText text="Seçilen tarih aralığında görev yok – No tasks in selected date range" />
+                          )}
                         </h3>
                         <p className="text-muted-foreground mb-4">
                           <BilingualText 
