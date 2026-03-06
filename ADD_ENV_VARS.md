@@ -1,5 +1,3 @@
-<<<<<<< Current (Your changes)
-=======
 # Add Environment Variables in Vercel Dashboard
 
 ## Current Status
@@ -58,5 +56,3 @@ The deployment will automatically trigger, or you can manually redeploy from the
 
 Your app will be available at:
 - **Production**: https://learn-connect.vercel.app (or your custom domain)
-
->>>>>>> Incoming (Background Agent changes)

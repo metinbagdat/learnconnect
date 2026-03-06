@@ -120,7 +120,7 @@ export default function App() {
     )
   }
 
-  // Teacher Route (Protected)
+  // Teacher Route (Protected - teacher/admin only)
   if (isTeacherRoute) {
     return (
       <Suspense fallback={
@@ -131,7 +131,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <TeacherDashboard />
+        <AuthGuard allowedRoles={['teacher', 'admin']} fallbackRedirect="/dashboard">
+          <TeacherDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -165,7 +167,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <AytDashboard />
+        <AuthGuard>
+          <AytDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -181,7 +185,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <YksDashboard />
+        <AuthGuard>
+          <YksDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -197,7 +203,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Dashboard />
+        <AuthGuard>
+          <Dashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -213,7 +221,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Notebook />
+        <AuthGuard>
+          <Notebook />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -229,7 +239,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <LearningPaths />
+        <AuthGuard>
+          <LearningPaths />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -249,7 +261,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Courses />
+        <AuthGuard>
+          <Courses />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -274,7 +288,9 @@ export default function App() {
             </div>
           </div>
         }>
-          <CertificateVerify />
+          <AuthGuard>
+            <CertificateVerify />
+          </AuthGuard>
         </Suspense>
       );
     }
@@ -287,7 +303,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Certificates />
+        <AuthGuard>
+          <Certificates />
+        </AuthGuard>
       </Suspense>
     );
   }
@@ -307,7 +325,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Community />
+        <AuthGuard>
+          <Community />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -327,7 +347,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <ProfilePage />
+        <AuthGuard>
+          <ProfilePage />
+        </AuthGuard>
       </Suspense>
     )
   }
