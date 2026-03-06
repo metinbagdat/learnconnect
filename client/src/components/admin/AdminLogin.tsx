@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
 import { BilingualText } from '@/components/ui/bilingual-text';
 import { useLanguage } from '@/contexts/consolidated-language-context';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseConfigured || !auth) return;
     setLoading(true);
     setError('');
     
@@ -49,6 +50,16 @@ export default function AdminLogin() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {!isFirebaseConfigured ? (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
+              <p className="font-medium mb-2">
+                <BilingualText text="Firebase yapılandırılmamış – Firebase not configured" />
+              </p>
+              <p>
+                <BilingualText text="Admin paneli için .env.local dosyasına VITE_FIREBASE_* değişkenlerini ekleyin. – Add VITE_FIREBASE_* variables to .env.local for admin panel." />
+              </p>
+            </div>
+          ) : (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">

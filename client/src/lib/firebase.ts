@@ -71,13 +71,15 @@ export const collections = {
   certificates: 'certificates'
 };
 
-// Firestore collection references (client-side)
-export const collectionRefs = {
-  curriculum: collection(db, 'curriculum'),
-  tytSubjects: collection(db, 'curriculum', 'tyt', 'subjects'),
-  studyPlans: collection(db, 'study_plans'),
-  userProgress: collection(db, 'user_progress'),
-  aiGeneratedPlans: collection(db, 'ai_generated_plans')
-};
+// Firestore collection references (client-side) - only available when Firebase is configured
+export const collectionRefs = _db
+  ? {
+      curriculum: collection(_db, 'curriculum'),
+      tytSubjects: collection(_db, 'curriculum', 'tyt', 'subjects'),
+      studyPlans: collection(_db, 'study_plans'),
+      userProgress: collection(_db, 'user_progress'),
+      aiGeneratedPlans: collection(_db, 'ai_generated_plans')
+    }
+  : null;
 
 export default app;
