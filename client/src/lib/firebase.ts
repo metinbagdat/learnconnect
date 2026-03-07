@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { collection, getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
@@ -13,11 +13,6 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-<<<<<<< Current (Your changes)
-// Singleton Firebase başlatıcı
-import { getApps, getApp } from 'firebase/app';
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-=======
 export const isFirebaseConfigured = Boolean(
   firebaseConfig.apiKey &&
   firebaseConfig.authDomain &&
@@ -25,17 +20,27 @@ export const isFirebaseConfigured = Boolean(
   firebaseConfig.appId
 );
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
->>>>>>> Incoming (Background Agent changes)
+// Initialize Firebase only when all required keys exist (avoids auth/invalid-api-key in local dev)
+let app: FirebaseApp | null = null;
+let _db: ReturnType<typeof getFirestore> | null = null;
+let _auth: ReturnType<typeof getAuth> | null = null;
 
-// Initialize services
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+if (isFirebaseConfigured) {
+  app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+  _db = getFirestore(app);
+  _auth = getAuth(app);
+} else if (typeof window !== 'undefined') {
+  console.info(
+    '[LearnConnect] Firebase not configured (missing VITE_FIREBASE_* env vars). Add .env.local with Firebase config for admin panel.'
+  );
+}
 
-// Initialize Analytics (only in browser environment)
+export const db = _db;
+export const auth = _auth;
+
+// Initialize Analytics (only in browser environment, only when configured)
 let analytics: ReturnType<typeof getAnalytics> | null = null;
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && app) {
   try {
     analytics = getAnalytics(app);
   } catch (error) {
@@ -44,7 +49,7 @@ if (typeof window !== 'undefined') {
 }
 export { analytics };
 
-// Firestore collection references
+// Firestore collection references (string names only - safe without db)
 export const collections = {
   curriculum: 'curriculum',
   tytSubjects: 'curriculum/tyt/subjects',
@@ -66,13 +71,15 @@ export const collections = {
   certificates: 'certificates'
 };
 
-// Firestore collection references (client-side)
-export const collectionRefs = {
-  curriculum: collection(db, 'curriculum'),
-  tytSubjects: collection(db, 'curriculum', 'tyt', 'subjects'),
-  studyPlans: collection(db, 'study_plans'),
-  userProgress: collection(db, 'user_progress'),
-  aiGeneratedPlans: collection(db, 'ai_generated_plans')
-};
+// Firestore collection references (client-side) - only available when Firebase is configured
+export const collectionRefs = _db
+  ? {
+      curriculum: collection(_db, 'curriculum'),
+      tytSubjects: collection(_db, 'curriculum', 'tyt', 'subjects'),
+      studyPlans: collection(_db, 'study_plans'),
+      userProgress: collection(_db, 'user_progress'),
+      aiGeneratedPlans: collection(_db, 'ai_generated_plans')
+    }
+  : null;
 
 export default app;
