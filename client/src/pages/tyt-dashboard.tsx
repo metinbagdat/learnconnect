@@ -39,6 +39,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { BilingualText } from "@/components/ui/bilingual-text";
 import PageWrapper from "@/components/layout/page-wrapper";
 import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@/types/tyt";
+import { getLocalDateString } from "@/lib/date-utils";
 
 const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
 const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
@@ -51,15 +52,6 @@ interface TytStudyStats {
   subjectProgress: Array<{ subject: string; progress: number; timeSpent: number }>;
   streaks: Array<{ type: string; current: number; longest: number }>;
 }
-
-// Helper function to get local date string (fixes timezone issue)
-const getLocalDateString = (d?: Date) => {
-  const now = d || new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
 
 const getWeekStart = () => {
   const d = new Date();
