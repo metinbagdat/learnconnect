@@ -16,6 +16,10 @@ const RegisterPage = React.lazy(() =>
   import('./pages/register.tsx').catch(() => ({ default: () => <div>Register sayfası yükleniyor...</div> }))
 );
 
+const HomePage = React.lazy(() => 
+  import('./pages/home.tsx').catch(() => ({ default: () => <div>Ana sayfa yükleniyor...</div> }))
+);
+
 const TytDashboard = React.lazy(() => 
   import('./pages/tyt-dashboard.tsx').catch(() => ({ default: () => <div>TYT Dashboard yükleniyor...</div> }))
 );
@@ -56,6 +60,7 @@ export default function App() {
   // Routes that don't need authentication
   const publicRoutes = ['/login', '/register']
   const isPublicRoute = publicRoutes.includes(location)
+  const isHomeRoute = location === '/'
   const isAdminRoute = location.startsWith('/admin')
   const isTeacherRoute = location.startsWith('/teacher')
   const isTytRoute = location.startsWith('/tyt-dashboard')
@@ -94,6 +99,38 @@ export default function App() {
       }>
         {location === '/login' && <LoginPage />}
         {location === '/register' && <RegisterPage />}
+      </Suspense>
+    )
+  }
+
+  // Home Route (Public)
+  if (isHomeRoute) {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (user) {
+      window.location.href = '/dashboard'
+      return null
+    }
+
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Ana sayfa yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <HomePage />
       </Suspense>
     )
   }
@@ -319,7 +356,7 @@ export default function App() {
   }
 
   // If not authenticated and trying to access protected routes, redirect to login
-  if (!user && !isPublicRoute && !isAdminRoute) {
+  if (!user && !isPublicRoute && !isAdminRoute && !isHomeRoute) {
     window.location.href = '/login'
     return null
   }
