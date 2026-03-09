@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Clock, Flame, Target, BookOpen, Plus, TrendingUp, CheckCircle2, Award } from 'lucide-react';
 import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
+import LiveStatsSection from '@/components/home/live-stats-section';
 import type { Note } from '@/services/notesService';
 
 interface StudyStat {
@@ -197,6 +198,8 @@ export default function Dashboard() {
               <p className="text-sm text-gray-500">öğrenme yolunda ilerliyorsun</p>
             </div>
           </div>
+
+          <LiveStatsSection context="dashboard" showRoutine={false} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column: Active Paths */}

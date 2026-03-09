@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import type { Subject } from '@/types/curriculum';
 import { getTYTCurriculum } from '@/services/curriculumService';
+import LiveStatsSection from '@/components/home/live-stats-section';
 import { Calendar, ChevronRight, Sparkles, Target, Timer } from 'lucide-react';
 
 type ExamType = 'TYT' | 'AYT' | 'LGS';
@@ -18,22 +19,6 @@ type SubjectPreview = {
   color: string;
   estimatedHours?: number;
   totalTopics?: number;
-};
-
-type SystemSuccessMetrics = {
-  aiAccuracy: number;
-  userEngagement: number;
-  goalCompletionRate: number;
-  systemReliability: number;
-  userSatisfaction: number;
-  timeToValue: string;
-  scalability: string;
-};
-
-type TrialStats = {
-  count: number;
-  avgNet: number;
-  latestNet: number;
 };
 
 const examOptions: Array<{ id: ExamType; title: string; description: string }> = [
@@ -87,11 +72,6 @@ export default function HomePage() {
   const [tytCurriculum, setTytCurriculum] = useState<Subject[]>([]);
   const [curriculumLoading, setCurriculumLoading] = useState(true);
   const [curriculumError, setCurriculumError] = useState<string | null>(null);
-  const [systemMetrics, setSystemMetrics] = useState<SystemSuccessMetrics | null>(null);
-  const [systemMetricsLoading, setSystemMetricsLoading] = useState(true);
-  const [systemMetricsError, setSystemMetricsError] = useState<string | null>(null);
-  const [trialStats, setTrialStats] = useState<TrialStats | null>(null);
-  const [trialStatsStatus, setTrialStatsStatus] = useState<'loading' | 'ready' | 'unauthorized' | 'error'>('loading');
   const [examDate, setExamDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() + 4);
@@ -122,67 +102,6 @@ export default function HomePage() {
     };
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadMetrics = async () => {
-      setSystemMetricsLoading(true);
-      setSystemMetricsError(null);
-
-      try {
-        const response = await fetch('/api/system/metrics');
-        if (!response.ok) {
-          throw new Error('Failed to fetch system metrics');
-        }
-        const payload = await response.json();
-        if (isMounted) {
-          setSystemMetrics(payload?.data ?? null);
-        }
-      } catch (error) {
-        console.error('Error fetching system metrics:', error);
-        if (isMounted) {
-          setSystemMetricsError('İstatistikler yüklenemedi');
-        }
-      } finally {
-        if (isMounted) setSystemMetricsLoading(false);
-      }
-    };
-
-    const loadTrialStats = async () => {
-      setTrialStatsStatus('loading');
-      try {
-        const response = await fetch('/api/tyt/trials', { credentials: 'include' });
-        if (response.status === 401) {
-          if (isMounted) setTrialStatsStatus('unauthorized');
-          return;
-        }
-        if (!response.ok) {
-          throw new Error('Failed to fetch trial stats');
-        }
-        const trials = await response.json();
-        const count = Array.isArray(trials) ? trials.length : 0;
-        const latestNet = count > 0 ? Number(trials[0]?.netScore || 0) : 0;
-        const avgNet = count > 0
-          ? Math.round(trials.reduce((sum: number, t: any) => sum + Number(t?.netScore || 0), 0) / count)
-          : 0;
-
-        if (isMounted) {
-          setTrialStats({ count, avgNet, latestNet });
-          setTrialStatsStatus('ready');
-        }
-      } catch (error) {
-        console.error('Error fetching trial stats:', error);
-        if (isMounted) setTrialStatsStatus('error');
-      }
-    };
-
-    loadMetrics();
-    loadTrialStats();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const tytSubjectsFromService = useMemo<SubjectPreview[]>(() => {
     if (tytCurriculum.length === 0) return [];
@@ -652,114 +571,13 @@ export default function HomePage() {
           </Card>
         </section>
 
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="border-gray-100 lg:col-span-2">
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                <div>
-                  <CardTitle>Deneme & İstatistik Merkezi</CardTitle>
-                  <CardDescription>Canlı API verileriyle anlık performans özeti.</CardDescription>
-                </div>
-                <Badge variant="secondary">Live API</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  {
-                    label: 'AI Başarı Oranı',
-                    value: systemMetrics ? `${systemMetrics.aiAccuracy}%` : '--',
-                    helper: 'Model doğruluğu'
-                  },
-                  {
-                    label: 'Hedef Tamamlama',
-                    value: systemMetrics ? `${systemMetrics.goalCompletionRate}%` : '--',
-                    helper: 'Plan tamamlama'
-                  },
-                  {
-                    label: 'Kullanıcı Etkileşimi',
-                    value: systemMetrics ? `${systemMetrics.userEngagement}%` : '--',
-                    helper: 'Son 30 gün'
-                  }
-                ].map((item) => (
-                  <div key={item.label} className="rounded-lg border bg-white p-4">
-                    <div className="text-xs text-gray-500">{item.label}</div>
-                    <div className="text-2xl font-semibold text-gray-900 mt-1">{item.value}</div>
-                    <div className="text-xs text-gray-500 mt-1">{item.helper}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-lg border bg-white p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                  <div className="font-semibold text-gray-900">Deneme Performansı</div>
-                  <p className="text-sm text-gray-500">
-                    {trialStatsStatus === 'unauthorized'
-                      ? 'Giriş yaparak deneme istatistiklerinizi görüntüleyin.'
-                      : trialStatsStatus === 'error'
-                      ? 'Deneme verileri yüklenemedi.'
-                      : 'Son denemelerinizin net ortalaması ve trendi.'}
-                  </p>
-                </div>
-                {trialStatsStatus === 'ready' ? (
-                  <div className="flex flex-wrap gap-3">
-                    <Badge variant="secondary">{trialStats?.count || 0} deneme</Badge>
-                    <Badge variant="secondary">Ort. {trialStats?.avgNet || 0} net</Badge>
-                    <Badge variant="secondary">Son {trialStats?.latestNet || 0} net</Badge>
-                  </div>
-                ) : (
-                  <Button variant="outline" onClick={() => setLocation('/login')}>
-                    Denemelerimi Gör
-                  </Button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { label: 'Sistem Güvenilirliği', value: systemMetrics ? `${systemMetrics.systemReliability}%` : '--' },
-                  { label: 'Kullanıcı Memnuniyeti', value: systemMetrics ? `${systemMetrics.userSatisfaction}/5` : '--' },
-                  { label: 'Time-to-Value', value: systemMetrics ? systemMetrics.timeToValue : '--' }
-                ].map((item) => (
-                  <div key={item.label} className="rounded-lg border bg-white p-4">
-                    <div className="text-xs text-gray-500">{item.label}</div>
-                    <div className="text-lg font-semibold text-gray-900 mt-1">{item.value}</div>
-                  </div>
-                ))}
-              </div>
-
-              {(systemMetricsLoading || systemMetricsError) && (
-                <div className="text-xs text-gray-500">
-                  {systemMetricsLoading && 'İstatistikler güncelleniyor...'}
-                  {systemMetricsError && ` • ${systemMetricsError}`}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-100">
-            <CardHeader>
-              <CardTitle>Deneme Rutini</CardTitle>
-              <CardDescription>Hedefe giden yolda haftalık deneme takibi.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="rounded-lg border bg-white p-4">
-                <div className="text-sm text-gray-500">Bu hafta hedef</div>
-                <div className="text-2xl font-semibold text-gray-900 mt-1">
-                  {examType === 'LGS' ? '1 deneme' : '2 deneme'}
-                </div>
-                <Progress value={examType === 'LGS' ? 40 : 60} className="mt-3" />
-              </div>
-              <div className="rounded-lg border bg-white p-4">
-                <div className="text-sm text-gray-500">Sonraki deneme</div>
-                <div className="text-lg font-semibold text-gray-900 mt-1">Cumartesi 10:00</div>
-                <p className="text-xs text-gray-500 mt-2">Bildirimle hatırlatma al</p>
-              </div>
-              <Button className="w-full" onClick={() => setLocation('/register')}>
-                Deneme Planı Oluştur
-              </Button>
-            </CardContent>
-          </Card>
-        </section>
+        <LiveStatsSection
+          context="home"
+          showRoutine
+          routineTargetLabel={examType === 'LGS' ? '1 deneme' : '2 deneme'}
+          routineProgress={examType === 'LGS' ? 40 : 60}
+          routineCtaHref="/register"
+        />
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="border-gray-100">
