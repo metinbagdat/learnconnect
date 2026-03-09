@@ -1,35 +1,37 @@
+name: Neon Branch PR with Migrations Improved
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
 jobs:
-  migration:
+  setup:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '14'
-
       - name: Install dependencies
         run: npm install
 
-      - name: Seed Database (Optional)
+  create_neon_branch:
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '14'
+      - name: Create Neon Branch
         run: |
-          if [ -f package.json ] && grep -q '"seed:meb"' package.json; then
-            npm run seed:meb;
-          else
-            echo "Skipping database seeding: script 'seed:meb' does not exist.";
-          fi
-        continue-on-error: true
-
-      - name: Seed Database (Optional)
-        run: |
-          echo "🌱 Seeding database (optional)..."
-          if npm run | grep -qE ' seed:meb\b'; then
-            npm run seed:meb
-          else
-            echo "ℹ️ seed:meb script not found in package.json; skipping seeding."
-          fi
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        continue-on-error: true
+          git checkout -b neon-branch
+          # Additional commands to create the branch go here.
