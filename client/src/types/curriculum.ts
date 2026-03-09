@@ -60,6 +60,8 @@ export interface WeeklyPlanDay {
   totalHours: number;
 }
 
+export type WeeklyPlan = WeeklyPlanDay[];
+
 export interface MonthlySummary {
   subject: string;
   weeklyHours: number;
@@ -80,7 +82,7 @@ export interface StudyPlan {
   totalDays: number;
   dailyHours: number;
   totalHours: number;
-  weeklyPlan: WeeklyPlanDay[];
+  weeklyPlan: WeeklyPlan;
   monthlySummary: MonthlySummary[];
   recommendations: Recommendation[];
   createdAt: string;

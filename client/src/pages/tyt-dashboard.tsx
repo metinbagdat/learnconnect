@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,10 +38,11 @@ import ModernNavigation from "@/components/layout/modern-navigation";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { BilingualText } from "@/components/ui/bilingual-text";
 import PageWrapper from "@/components/layout/page-wrapper";
-import CurriculumTree from "@/components/curriculum/curriculum-tree";
-import AIPlanGenerator from "@/components/curriculum/ai-plan-generator";
 import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@/types/tyt";
 import { getLocalDateString } from "@/lib/date-utils";
+
+const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
+const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
 
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {
@@ -51,6 +52,37 @@ interface TytStudyStats {
   subjectProgress: Array<{ subject: string; progress: number; timeSpent: number }>;
   streaks: Array<{ type: string; current: number; longest: number }>;
 }
+
+// Helper function to get local date string (fixes timezone issue)
+const getLocalDateString = (d?: Date) => {
+  const now = d || new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getWeekStart = () => {
+  const d = new Date();
+  const day = d.getDay();
+  const daysToMonday = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - daysToMonday);
+  return getLocalDateString(d);
+};
+
+const getWeekEnd = () => {
+  const d = new Date();
+  const day = d.getDay();
+  const daysToSunday = day === 0 ? 0 : 7 - day;
+  d.setDate(d.getDate() + daysToSunday);
+  return getLocalDateString(d);
+};
+
+const getNext7DaysEnd = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 6);
+  return getLocalDateString(d);
+};
 
 export default function TytDashboard() {
   const { language, t } = useLanguage();
@@ -68,6 +100,20 @@ export default function TytDashboard() {
   
   const isCreationMode = location === '/tyt/tasks/new' || location === '/tyt/trials/new';
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'trials' | 'tasks' | 'curriculum' | 'ai-plan'>(getTabFromRoute());
+  
+  // Date range filter for tasks
+  type TaskDateFilter = 'today' | 'week' | 'next7' | 'custom';
+  const [taskDateFilter, setTaskDateFilter] = useState<TaskDateFilter>('today');
+  const [taskDateCustomStart, setTaskDateCustomStart] = useState(getLocalDateString());
+  const [taskDateCustomEnd, setTaskDateCustomEnd] = useState(getLocalDateString());
+  
+  const getTasksDateParams = (): { date?: string; startDate?: string; endDate?: string } => {
+    const today = getLocalDateString();
+    if (taskDateFilter === 'today') return { date: today };
+    if (taskDateFilter === 'week') return { startDate: getWeekStart(), endDate: getWeekEnd() };
+    if (taskDateFilter === 'next7') return { startDate: today, endDate: getNext7DaysEnd() };
+    return { startDate: taskDateCustomStart, endDate: taskDateCustomEnd };
+  };
   
   // Update active tab when route changes
   useEffect(() => {
@@ -106,17 +152,34 @@ export default function TytDashboard() {
     enabled: !!tytProfile
   });
 
-  // Fetch Today's Tasks
-  const { data: todayTasks = [] } = useQuery<DailyStudyTask[]>({
+  // Fetch today's tasks (for Overview stats and preview)
+  const { data: todayTasksForOverview = [] } = useQuery<DailyStudyTask[]>({
     queryKey: ['/api/tyt/tasks', { date: getLocalDateString() }],
     queryFn: async () => {
-      const today = getLocalDateString();
-      const response = await fetch(`/api/tyt/tasks?date=${today}`);
+      const response = await fetch(`/api/tyt/tasks?date=${getLocalDateString()}`);
       if (!response.ok) throw new Error('Failed to fetch daily tasks');
       return response.json();
     },
     enabled: !!tytProfile
   });
+
+  // Fetch Tasks with date/range filter (for Tasks tab)
+  const taskDateParams = getTasksDateParams();
+  const { data: filteredTasks = [] } = useQuery<DailyStudyTask[]>({
+    queryKey: ['/api/tyt/tasks', 'filtered', taskDateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (taskDateParams.date) params.set('date', taskDateParams.date);
+      if (taskDateParams.startDate) params.set('startDate', taskDateParams.startDate);
+      if (taskDateParams.endDate) params.set('endDate', taskDateParams.endDate);
+      const response = await fetch(`/api/tyt/tasks?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch daily tasks');
+      return response.json();
+    },
+    enabled: !!tytProfile && activeTab === 'tasks'
+  });
+
+  const tasksForDisplay = activeTab === 'tasks' ? filteredTasks : todayTasksForOverview;
 
   // Fetch TYT Study Stats
   const { data: studyStats } = useQuery<TytStudyStats>({
@@ -234,8 +297,8 @@ export default function TytDashboard() {
     );
   }
 
-  const completedTasksToday = todayTasks.filter(task => task.isCompleted).length;
-  const totalTasksToday = todayTasks.length;
+  const completedTasksToday = todayTasksForOverview.filter(task => task.isCompleted).length;
+  const totalTasksToday = todayTasksForOverview.length;
   const completionRate = totalTasksToday > 0 ? (completedTasksToday / totalTasksToday) * 100 : 0;
 
   const lastTrialScore = recentTrials.length > 0 ? recentTrials[0].netScore : 0;
@@ -655,7 +718,7 @@ export default function TytDashboard() {
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {todayTasks.slice(0, 3).map((task, index) => (
+                          {todayTasksForOverview.slice(0, 3).map((task, index) => (
                             <motion.div
                               key={task.id}
                               initial={{ opacity: 0, x: -20 }}
@@ -704,15 +767,15 @@ export default function TytDashboard() {
                             </motion.div>
                           ))}
                           
-                          {todayTasks.length > 3 && (
+                          {todayTasksForOverview.length > 3 && (
                             <Button 
                               variant="outline" 
                               className="w-full mt-4"
                               onClick={() => setActiveTab('tasks')}
                             >
                               <BilingualText 
-                                text={`${todayTasks.length - 3} görev daha görüntüle`} 
-                                en={`View ${todayTasks.length - 3} more tasks`} 
+                                text={`${todayTasksForOverview.length - 3} görev daha görüntüle`} 
+                                en={`View ${todayTasksForOverview.length - 3} more tasks`} 
                               />
                               <ArrowRight className="h-4 w-4 ml-2" />
                             </Button>
@@ -865,7 +928,7 @@ export default function TytDashboard() {
 
                 {/* Tasks Tab */}
                 <TabsContent value="tasks" className="space-y-6">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <h2 className="text-2xl font-bold">
                       <BilingualText text="Günlük Görevler – Daily Tasks" />
                     </h2>
@@ -875,8 +938,46 @@ export default function TytDashboard() {
                     </Button>
                   </div>
 
+                  {/* Date range filter */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground mr-2">
+                      <BilingualText text="Tarih aralığı – Date range" />
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(['today', 'week', 'next7', 'custom'] as const).map((mode) => (
+                        <Button
+                          key={mode}
+                          variant={taskDateFilter === mode ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setTaskDateFilter(mode)}
+                        >
+                          {language === 'tr'
+                            ? mode === 'today' ? 'Bugün' : mode === 'week' ? 'Bu Hafta' : mode === 'next7' ? 'Önümüzdeki 7 Gün' : 'Özel'
+                            : mode === 'today' ? 'Today' : mode === 'week' ? 'This Week' : mode === 'next7' ? 'Next 7 Days' : 'Custom'}
+                        </Button>
+                      ))}
+                    </div>
+                    {taskDateFilter === 'custom' && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="date"
+                          value={taskDateCustomStart}
+                          onChange={(e) => setTaskDateCustomStart(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm"
+                        />
+                        <span className="text-muted-foreground">–</span>
+                        <input
+                          type="date"
+                          value={taskDateCustomEnd}
+                          onChange={(e) => setTaskDateCustomEnd(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   <div className="space-y-4">
-                    {todayTasks.map((task, index) => (
+                    {tasksForDisplay.map((task, index) => (
                       <motion.div
                         key={task.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -959,12 +1060,23 @@ export default function TytDashboard() {
                     ))}
                   </div>
 
-                  {todayTasks.length === 0 && (
+                  {tasksForDisplay.length === 0 && (
                     <Card>
                       <CardContent className="p-12 text-center">
                         <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                         <h3 className="text-lg font-semibold mb-2">
-                          <BilingualText text="Bugün için görev yok – No tasks for today" />
+                          {taskDateFilter === 'today' && (
+                            <BilingualText text="Bugün için görev yok – No tasks for today" />
+                          )}
+                          {taskDateFilter === 'week' && (
+                            <BilingualText text="Bu hafta için görev yok – No tasks for this week" />
+                          )}
+                          {taskDateFilter === 'next7' && (
+                            <BilingualText text="Önümüzdeki 7 günde görev yok – No tasks in the next 7 days" />
+                          )}
+                          {taskDateFilter === 'custom' && (
+                            <BilingualText text="Seçilen tarih aralığında görev yok – No tasks in selected date range" />
+                          )}
                         </h3>
                         <p className="text-muted-foreground mb-4">
                           <BilingualText 
@@ -982,12 +1094,32 @@ export default function TytDashboard() {
 
                 {/* Curriculum Tab */}
                 <TabsContent value="curriculum" className="space-y-6">
-                  <CurriculumTree />
+                  <Suspense
+                    fallback={
+                      <Card>
+                        <CardContent className="py-12 text-center text-muted-foreground">
+                          Müfredat yükleniyor...
+                        </CardContent>
+                      </Card>
+                    }
+                  >
+                    <CurriculumTree />
+                  </Suspense>
                 </TabsContent>
 
                 {/* AI Plan Tab */}
                 <TabsContent value="ai-plan" className="space-y-6">
-                  <AIPlanGenerator />
+                  <Suspense
+                    fallback={
+                      <Card>
+                        <CardContent className="py-12 text-center text-muted-foreground">
+                          AI plan bileşeni yükleniyor...
+                        </CardContent>
+                      </Card>
+                    }
+                  >
+                    <AIPlanGenerator />
+                  </Suspense>
                 </TabsContent>
 
               </motion.div>

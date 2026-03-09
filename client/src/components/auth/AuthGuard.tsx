@@ -6,17 +6,28 @@ import { motion } from "framer-motion";
 interface AuthGuardProps {
   children: React.ReactNode;
   redirectTo?: string;
+  /** When set, only users with one of these roles can access. Others redirect to fallbackRedirect. */
+  allowedRoles?: string[];
+  /** Where to redirect when role check fails. Default: /dashboard */
+  fallbackRedirect?: string;
 }
 
-export default function AuthGuard({ children, redirectTo = "/login" }: AuthGuardProps) {
-  const { isAuthenticated, loading } = useAuth();
+export default function AuthGuard({ children, redirectTo = "/login", allowedRoles, fallbackRedirect = "/dashboard" }: AuthGuardProps) {
+  const { user, isAuthenticated, loading } = useAuth();
   const [, setLocation] = useLocation();
 
+  const hasAllowedRole = !allowedRoles || allowedRoles.length === 0 || (user?.role && allowedRoles.includes(user.role));
+
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
+    if (loading) return;
+    if (!isAuthenticated) {
       setLocation(redirectTo);
+      return;
     }
-  }, [isAuthenticated, loading, redirectTo, setLocation]);
+    if (allowedRoles && allowedRoles.length > 0 && !hasAllowedRole) {
+      setLocation(fallbackRedirect);
+    }
+  }, [isAuthenticated, loading, redirectTo, setLocation, allowedRoles, hasAllowedRole, fallbackRedirect]);
 
   if (loading) {
     return (
@@ -33,7 +44,7 @@ export default function AuthGuard({ children, redirectTo = "/login" }: AuthGuard
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || (allowedRoles && allowedRoles.length > 0 && !hasAllowedRole)) {
     return null; // Will redirect via useEffect
   }
 

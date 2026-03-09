@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: learnconnect-app
+    ports:
+      - "5173:5173"
+      - "5000:5000"
+    environment:
+      NODE_ENV: development
+      VITE_PORT: 5173
+    volumes:
+      - ./client/src:/app/client/src
+      - ./server:/app/server
+      - ./public:/app/public
+      - node_modules:/app/node_modules
+    networks:
+      - learnconnect-network
+    command: sh -c "npm run dev & node --loader tsx /app/server/index.ts"
+
+volumes:
+  node_modules:
+
+networks:
+  learnconnect-network:
+    driver: bridge
