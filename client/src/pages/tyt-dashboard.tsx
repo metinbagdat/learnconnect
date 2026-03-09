@@ -53,15 +53,6 @@ interface TytStudyStats {
   streaks: Array<{ type: string; current: number; longest: number }>;
 }
 
-// Helper function to get local date string (fixes timezone issue)
-const getLocalDateString = (d?: Date) => {
-  const now = d || new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const getWeekStart = () => {
   const d = new Date();
   const day = d.getDay();
