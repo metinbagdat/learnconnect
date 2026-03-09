@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -6,9 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Calendar, ChevronRight, Sparkles, Target } from 'lucide-react';
+import type { Subject } from '@/types/curriculum';
+import { getTYTCurriculum } from '@/services/curriculumService';
+import { Calendar, ChevronRight, Sparkles, Target, Timer } from 'lucide-react';
 
 type ExamType = 'TYT' | 'AYT' | 'LGS';
+
+type SubjectPreview = {
+  id: string;
+  title: string;
+  color: string;
+  estimatedHours?: number;
+  totalTopics?: number;
+};
 
 const examOptions: Array<{ id: ExamType; title: string; description: string }> = [
   { id: 'TYT', title: 'TYT', description: 'Temel yeterlilik, güçlü temel ve deneme odaklı.' },
@@ -16,30 +26,38 @@ const examOptions: Array<{ id: ExamType; title: string; description: string }> =
   { id: 'LGS', title: 'LGS', description: 'Sekizinci sınıf odaklı, düzenli tekrar ve hız.' }
 ];
 
-const subjectCatalog: Record<ExamType, Array<{ id: string; title: string; color: string }>> = {
+const subjectCatalog: Record<ExamType, SubjectPreview[]> = {
   TYT: [
-    { id: 'math', title: 'Matematik', color: 'bg-blue-100 text-blue-700' },
-    { id: 'turkish', title: 'Türkçe', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'science', title: 'Fen Bilimleri', color: 'bg-purple-100 text-purple-700' },
-    { id: 'social', title: 'Sosyal Bilimler', color: 'bg-amber-100 text-amber-700' }
+    { id: 'math', title: 'Matematik', color: 'bg-blue-100 text-blue-700', estimatedHours: 120, totalTopics: 25 },
+    { id: 'turkish', title: 'Türkçe', color: 'bg-emerald-100 text-emerald-700', estimatedHours: 80, totalTopics: 20 },
+    { id: 'science', title: 'Fen Bilimleri', color: 'bg-purple-100 text-purple-700', estimatedHours: 100, totalTopics: 35 },
+    { id: 'social', title: 'Sosyal Bilimler', color: 'bg-amber-100 text-amber-700', estimatedHours: 90, totalTopics: 30 }
   ],
   AYT: [
-    { id: 'math-2', title: 'Matematik-2', color: 'bg-blue-100 text-blue-700' },
-    { id: 'physics', title: 'Fizik', color: 'bg-rose-100 text-rose-700' },
-    { id: 'chemistry', title: 'Kimya', color: 'bg-lime-100 text-lime-700' },
-    { id: 'biology', title: 'Biyoloji', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'literature', title: 'Edebiyat', color: 'bg-amber-100 text-amber-700' }
+    { id: 'math-2', title: 'Matematik-2', color: 'bg-blue-100 text-blue-700', estimatedHours: 140, totalTopics: 30 },
+    { id: 'physics', title: 'Fizik', color: 'bg-rose-100 text-rose-700', estimatedHours: 90, totalTopics: 22 },
+    { id: 'chemistry', title: 'Kimya', color: 'bg-lime-100 text-lime-700', estimatedHours: 80, totalTopics: 20 },
+    { id: 'biology', title: 'Biyoloji', color: 'bg-emerald-100 text-emerald-700', estimatedHours: 85, totalTopics: 24 },
+    { id: 'literature', title: 'Edebiyat', color: 'bg-amber-100 text-amber-700', estimatedHours: 70, totalTopics: 18 }
   ],
   LGS: [
-    { id: 'math', title: 'Matematik', color: 'bg-blue-100 text-blue-700' },
-    { id: 'turkish', title: 'Türkçe', color: 'bg-emerald-100 text-emerald-700' },
-    { id: 'science', title: 'Fen Bilimleri', color: 'bg-purple-100 text-purple-700' },
-    { id: 'history', title: 'İnkılap Tarihi', color: 'bg-amber-100 text-amber-700' },
-    { id: 'english', title: 'İngilizce', color: 'bg-sky-100 text-sky-700' }
+    { id: 'math', title: 'Matematik', color: 'bg-blue-100 text-blue-700', estimatedHours: 90, totalTopics: 20 },
+    { id: 'turkish', title: 'Türkçe', color: 'bg-emerald-100 text-emerald-700', estimatedHours: 70, totalTopics: 18 },
+    { id: 'science', title: 'Fen Bilimleri', color: 'bg-purple-100 text-purple-700', estimatedHours: 75, totalTopics: 20 },
+    { id: 'history', title: 'İnkılap Tarihi', color: 'bg-amber-100 text-amber-700', estimatedHours: 55, totalTopics: 14 },
+    { id: 'english', title: 'İngilizce', color: 'bg-sky-100 text-sky-700', estimatedHours: 50, totalTopics: 12 }
   ]
 };
 
 const dayNames = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+const colorPalette = [
+  'bg-blue-100 text-blue-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-purple-100 text-purple-700',
+  'bg-amber-100 text-amber-700',
+  'bg-rose-100 text-rose-700',
+  'bg-sky-100 text-sky-700'
+];
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
@@ -50,14 +68,84 @@ export default function HomePage() {
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('intermediate');
   const [studentName, setStudentName] = useState('');
   const [weakSubjects, setWeakSubjects] = useState<string[]>(['math']);
+  const [tytCurriculum, setTytCurriculum] = useState<Subject[]>([]);
+  const [curriculumLoading, setCurriculumLoading] = useState(true);
+  const [curriculumError, setCurriculumError] = useState<string | null>(null);
+  const [examDate, setExamDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 4);
+    return date.toISOString().split('T')[0];
+  });
 
-  const subjects = subjectCatalog[examType];
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCurriculum = async () => {
+      setCurriculumLoading(true);
+      setCurriculumError(null);
+
+      try {
+        const data = await getTYTCurriculum();
+        if (isMounted) setTytCurriculum(data);
+      } catch (error) {
+        console.error('Failed to load TYT curriculum:', error);
+        if (isMounted) setCurriculumError('Müfredat yüklenemedi');
+      } finally {
+        if (isMounted) setCurriculumLoading(false);
+      }
+    };
+
+    loadCurriculum();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const tytSubjectsFromService = useMemo<SubjectPreview[]>(() => {
+    if (tytCurriculum.length === 0) return [];
+    return tytCurriculum.map((subject, index) => ({
+      id: subject.id,
+      title: subject.title,
+      estimatedHours: subject.estimatedHours,
+      totalTopics: subject.totalTopics,
+      color: colorPalette[index % colorPalette.length]
+    }));
+  }, [tytCurriculum]);
+
+  const subjects = useMemo<SubjectPreview[]>(() => {
+    if (examType === 'TYT' && tytSubjectsFromService.length > 0) {
+      return tytSubjectsFromService;
+    }
+    return subjectCatalog[examType];
+  }, [examType, tytSubjectsFromService]);
+
+  useEffect(() => {
+    setWeakSubjects((prev) => {
+      const valid = prev.filter((id) => subjects.some((subject) => subject.id === id));
+      if (valid.length > 0) return valid;
+      return subjects.length > 0 ? [subjects[0].id] : [];
+    });
+  }, [subjects]);
+
+  const curriculumStats = useMemo(() => {
+    const totalTopics = subjects.reduce((sum, subject) => sum + (subject.totalTopics || 0), 0);
+    const totalHours = subjects.reduce((sum, subject) => sum + (subject.estimatedHours || 0), 0);
+    return { totalTopics, totalHours };
+  }, [subjects]);
+
+  const daysUntilExam = useMemo(() => {
+    if (!examDate) return 0;
+    const target = new Date(examDate);
+    const today = new Date();
+    const diff = target.getTime() - today.getTime();
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }, [examDate]);
 
   const distribution = useMemo(() => {
     const weeklyHours = dailyHours * 7;
     const weights = subjects.map((subject) => ({
       ...subject,
-      weight: weakSubjects.includes(subject.id) ? 1.8 : 1
+      weight: Math.max(1, (subject.estimatedHours || 60) / 60) * (weakSubjects.includes(subject.id) ? 1.8 : 1)
     }));
     const totalWeight = weights.reduce((sum, item) => sum + item.weight, 0);
 
@@ -136,7 +224,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-white text-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-white text-gray-900 relative overflow-hidden">
       <header className="sticky top-0 z-20 bg-white/80 backdrop-blur border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div>
@@ -152,17 +240,24 @@ export default function HomePage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-10 space-y-16">
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+      <main className="max-w-7xl mx-auto px-4 py-10 space-y-16 relative">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-blue-200/40 blur-3xl" />
+        <div className="absolute top-40 -left-20 h-64 w-64 rounded-full bg-purple-200/40 blur-3xl" />
+
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center relative">
           <div className="space-y-6">
-            <Badge variant="secondary" className="w-fit">
+            <Badge variant="secondary" className="w-fit bg-white/70">
               <Sparkles className="h-4 w-4 mr-2" />
               Yeni: AI destekli planlayıcı
             </Badge>
-            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
-              Öğrenciler için <span className="text-blue-600">kişiselleştirilmiş</span> sınav planı
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              Öğrenciler için{' '}
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-transparent bg-clip-text">
+                kişiselleştirilmiş
+              </span>{' '}
+              sınav planı
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 max-w-xl">
               LearnConnect; TYT, AYT ve LGS hazırlığını tek panelde yönetmeniz için akıllı planlar,
               müfredat takibi ve motivasyon araçları sunar.
             </p>
@@ -174,20 +269,20 @@ export default function HomePage() {
                 Hemen Başla
               </Button>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-500">
+              <div className="flex items-center gap-2 rounded-lg border border-white/60 bg-white/70 px-3 py-2 shadow-sm">
                 <Target className="h-4 w-4 text-blue-600" /> 3 adımda kişisel plan
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-lg border border-white/60 bg-white/70 px-3 py-2 shadow-sm">
                 <Calendar className="h-4 w-4 text-purple-600" /> Haftalık otomatik dağılım
               </div>
             </div>
           </div>
 
-          <Card className="shadow-lg border-gray-100">
+          <Card className="shadow-lg border-gray-100 bg-white/90">
             <CardHeader>
               <CardTitle>Plan Özet Kartı</CardTitle>
-              <CardDescription>Seçimlerinize göre anlık güncellenir.</CardDescription>
+              <CardDescription>Gerçek müfredat verileriyle anlık güncellenir.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -220,6 +315,16 @@ export default function HomePage() {
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <span>Önerilen tempo</span>
                 <span className="font-medium text-blue-600">Dengeli</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                {curriculumLoading && <Badge variant="secondary">Müfredat yükleniyor</Badge>}
+                {!curriculumLoading && (
+                  <>
+                    <Badge variant="secondary">{curriculumStats.totalTopics || 0} konu</Badge>
+                    <Badge variant="secondary">{curriculumStats.totalHours || 0} saat</Badge>
+                  </>
+                )}
+                {curriculumError && <Badge variant="secondary">{curriculumError}</Badge>}
               </div>
             </CardContent>
           </Card>
@@ -371,6 +476,97 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </div>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="border-gray-100 lg:col-span-2">
+            <CardHeader>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                <div>
+                  <CardTitle>Canlı Müfredat Önizlemesi</CardTitle>
+                  <CardDescription>
+                    {examType === 'TYT' && tytSubjectsFromService.length > 0
+                      ? 'Firestore verisiyle güncellenen TYT özeti.'
+                      : 'Seçtiğiniz sınava göre örnek müfredat görünümü.'}
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary">
+                  {examType} • {curriculumStats.totalTopics || 0} konu
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {subjects.map((subject) => (
+                  <div key={subject.id} className="rounded-lg border bg-white p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-semibold">{subject.title}</div>
+                      <Badge className={subject.color}>
+                        {subject.estimatedHours || 0} saat
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2">
+                      {subject.totalTopics || 0} konu • {weakSubjects.includes(subject.id) ? 'Zayıf alan' : 'Dengeli'}
+                    </div>
+                    <Progress
+                      value={Math.min(100, ((subject.estimatedHours || 0) / Math.max(1, curriculumStats.totalHours)) * 100)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-lg border bg-gradient-to-r from-blue-50 to-purple-50 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <div className="font-semibold">Öneri: Haftalık deneme ritmi</div>
+                  <p className="text-sm text-gray-500">
+                    Haftada {examType === 'LGS' ? '1' : '2'} deneme ile net artışını hızlandır.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => setLocation('/register')}>
+                  Deneme Programı Oluştur <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-100">
+            <CardHeader>
+              <CardTitle>Sınav Takvimi</CardTitle>
+              <CardDescription>Kalan süreye göre tempo önerisi.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border bg-white p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-gray-500">Kalan gün</div>
+                  <div className="flex items-center gap-2 text-lg font-semibold text-blue-600">
+                    <Timer className="h-4 w-4" /> {daysUntilExam} gün
+                  </div>
+                </div>
+                <Progress value={Math.min(100, (daysUntilExam / Math.max(1, targetDays)) * 100)} className="mt-3" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="exam-date">Sınav Tarihi</Label>
+                <Input
+                  id="exam-date"
+                  type="date"
+                  value={examDate}
+                  onChange={(event) => setExamDate(event.target.value)}
+                />
+              </div>
+              <div className="rounded-lg border bg-white p-4 text-sm text-gray-600 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>Önerilen tekrar günü</span>
+                  <span className="font-semibold">Her {examType === 'LGS' ? '5' : '7'} günde 1</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Haftalık hedef</span>
+                  <span className="font-semibold">{dailyHours * 7} saat</span>
+                </div>
+              </div>
+              <Button className="w-full" onClick={() => setLocation('/register')}>
+                Takvimi Kaydet
+              </Button>
+            </CardContent>
+          </Card>
         </section>
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
