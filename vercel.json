@@ -1,8 +1,8 @@
 {
   "version": 2,
   "buildCommand": "npm run build",
-  "outputDirectory": "client/dist",
-  "installCommand": "npm ci",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "framework": "vite",
   "functions": {
     "api/**/*.js": {
