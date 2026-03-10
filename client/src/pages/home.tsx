@@ -573,10 +573,12 @@ export default function HomePage() {
 
         <LiveStatsSection
           context="home"
+          variant="default"
           showRoutine
           routineTargetLabel={examType === 'LGS' ? '1 deneme' : '2 deneme'}
           routineProgress={examType === 'LGS' ? 40 : 60}
           routineCtaHref="/register"
+          refreshMs={30000}
         />
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -199,7 +199,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <LiveStatsSection context="dashboard" showRoutine={false} />
+          <LiveStatsSection context="dashboard" variant="compact" showRoutine={false} refreshMs={20000} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column: Active Paths */}

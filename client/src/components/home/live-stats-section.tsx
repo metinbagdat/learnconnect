@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,67 +24,98 @@ type TrialStats = {
 
 type LiveStatsSectionProps = {
   context?: 'home' | 'dashboard';
+  variant?: 'default' | 'compact';
   showRoutine?: boolean;
   routineTargetLabel?: string;
   routineProgress?: number;
   routineCtaHref?: string;
+  refreshMs?: number;
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-function MiniBarChart({ values }: { values: number[] }) {
+function MiniBarChart({ values, compact }: { values: number[]; compact?: boolean }) {
   const max = Math.max(...values, 1);
+  const gradientId = useId();
+  const height = compact ? 32 : 40;
+  const barWidth = values.length > 0 ? 100 / values.length : 100;
   return (
-    <div className="flex items-end gap-1 h-12">
-      {values.map((value, index) => (
-        <div
-          key={`${value}-${index}`}
-          className="flex-1 rounded-t bg-gradient-to-t from-blue-500/70 to-indigo-400/70"
-          style={{ height: `${clamp((value / max) * 100, 8, 100)}%` }}
-        />
-      ))}
-    </div>
+    <svg viewBox={`0 0 100 ${height}`} className={compact ? 'h-10 w-full' : 'h-12 w-full'}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(99, 102, 241, 0.9)" />
+          <stop offset="100%" stopColor="rgba(59, 130, 246, 0.5)" />
+        </linearGradient>
+      </defs>
+      {values.map((value, index) => {
+        const barHeight = clamp((value / max) * (height - 6), 6, height - 6);
+        const x = index * barWidth + barWidth * 0.2;
+        const y = height - barHeight;
+        const width = barWidth * 0.6;
+        return (
+          <rect
+            key={`${value}-${index}`}
+            x={x}
+            y={y}
+            width={width}
+            height={barHeight}
+            rx={2}
+            fill={`url(#${gradientId})`}
+          />
+        );
+      })}
+    </svg>
   );
 }
 
-function MiniLineChart({ values }: { values: number[] }) {
+function MiniLineChart({ values, compact }: { values: number[]; compact?: boolean }) {
   if (values.length === 0) return null;
+  const gradientId = useId();
   const max = Math.max(...values, 1);
   const min = Math.min(...values, 0);
   const range = Math.max(max - min, 1);
-  const points = values
-    .map((value, index) => {
-      const x = (index / (values.length - 1 || 1)) * 100;
-      const y = 100 - ((value - min) / range) * 100;
-      return `${x},${y}`;
-    })
+  const points = values.map((value, index) => {
+    const x = (index / (values.length - 1 || 1)) * 100;
+    const y = 100 - ((value - min) / range) * 100;
+    return { x, y };
+  });
+  const path = points
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
     .join(' ');
-
+  const area = `${path} L 100 100 L 0 100 Z`;
+  const heightClass = compact ? 'h-14' : 'h-16';
   return (
-    <svg viewBox="0 0 100 100" className="h-16 w-full">
-      <polyline
-        points={points}
+    <svg viewBox="0 0 100 100" className={`${heightClass} w-full`}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(59, 130, 246, 0.35)" />
+          <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gradientId})`} />
+      <path
+        d={path}
         fill="none"
-        stroke="rgba(59, 130, 246, 0.8)"
+        stroke="rgba(59, 130, 246, 0.9)"
         strokeWidth="4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <polyline
-        points={`${points} 100,100 0,100`}
-        fill="rgba(59, 130, 246, 0.15)"
-        stroke="none"
-      />
+      {points.map((point, index) => (
+        <circle key={index} cx={point.x} cy={point.y} r="2.5" fill="rgba(37, 99, 235, 0.9)" />
+      ))}
     </svg>
   );
 }
 
 export default function LiveStatsSection({
   context = 'home',
+  variant = 'default',
   showRoutine = true,
   routineTargetLabel,
   routineProgress,
-  routineCtaHref
+  routineCtaHref,
+  refreshMs = 30000
 }: LiveStatsSectionProps) {
   const [, setLocation] = useLocation();
   const [systemMetrics, setSystemMetrics] = useState<SystemSuccessMetrics | null>(null);
@@ -92,75 +123,85 @@ export default function LiveStatsSection({
   const [systemMetricsError, setSystemMetricsError] = useState<string | null>(null);
   const [trialStats, setTrialStats] = useState<TrialStats | null>(null);
   const [trialStatsStatus, setTrialStatsStatus] = useState<'loading' | 'ready' | 'unauthorized' | 'error'>('loading');
+  const metricsInFlight = useRef(false);
+  const trialsInFlight = useRef(false);
+
+  const loadMetrics = useCallback(async () => {
+    if (metricsInFlight.current) return;
+    metricsInFlight.current = true;
+    setSystemMetricsLoading(true);
+    setSystemMetricsError(null);
+
+    try {
+      const response = await fetch('/api/system/metrics');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system metrics');
+      }
+      const payload = await response.json();
+      setSystemMetrics(payload?.data ?? null);
+    } catch (error) {
+      console.error('Error fetching system metrics:', error);
+      setSystemMetricsError('İstatistikler yüklenemedi');
+    } finally {
+      setSystemMetricsLoading(false);
+      metricsInFlight.current = false;
+    }
+  }, []);
+
+  const loadTrialStats = useCallback(async () => {
+    if (trialsInFlight.current) return;
+    trialsInFlight.current = true;
+    setTrialStatsStatus('loading');
+    try {
+      const response = await fetch('/api/tyt/trials', { credentials: 'include' });
+      if (response.status === 401) {
+        setTrialStatsStatus('unauthorized');
+        return;
+      }
+      if (!response.ok) {
+        throw new Error('Failed to fetch trial stats');
+      }
+      const trials = await response.json();
+      const list = Array.isArray(trials) ? trials : [];
+      const nets = list
+        .map((trial: any) => Number(trial?.netScore || 0))
+        .filter((value: number) => Number.isFinite(value))
+        .slice(0, 6)
+        .reverse();
+
+      const count = list.length;
+      const latestNet = count > 0 ? Number(list[0]?.netScore || 0) : 0;
+      const avgNet = count > 0
+        ? Math.round(list.reduce((sum: number, t: any) => sum + Number(t?.netScore || 0), 0) / count)
+        : 0;
+
+      setTrialStats({ count, avgNet, latestNet, netSeries: nets });
+      setTrialStatsStatus('ready');
+    } catch (error) {
+      console.error('Error fetching trial stats:', error);
+      setTrialStatsStatus('error');
+    } finally {
+      trialsInFlight.current = false;
+    }
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadMetrics = async () => {
-      setSystemMetricsLoading(true);
-      setSystemMetricsError(null);
-
-      try {
-        const response = await fetch('/api/system/metrics');
-        if (!response.ok) {
-          throw new Error('Failed to fetch system metrics');
-        }
-        const payload = await response.json();
-        if (isMounted) {
-          setSystemMetrics(payload?.data ?? null);
-        }
-      } catch (error) {
-        console.error('Error fetching system metrics:', error);
-        if (isMounted) {
-          setSystemMetricsError('İstatistikler yüklenemedi');
-        }
-      } finally {
-        if (isMounted) setSystemMetricsLoading(false);
-      }
+    let timer: number | null = null;
+    const loadAll = () => {
+      loadMetrics();
+      loadTrialStats();
     };
 
-    const loadTrialStats = async () => {
-      setTrialStatsStatus('loading');
-      try {
-        const response = await fetch('/api/tyt/trials', { credentials: 'include' });
-        if (response.status === 401) {
-          if (isMounted) setTrialStatsStatus('unauthorized');
-          return;
-        }
-        if (!response.ok) {
-          throw new Error('Failed to fetch trial stats');
-        }
-        const trials = await response.json();
-        const list = Array.isArray(trials) ? trials : [];
-        const nets = list
-          .map((trial: any) => Number(trial?.netScore || 0))
-          .filter((value: number) => Number.isFinite(value))
-          .slice(0, 6)
-          .reverse();
+    loadAll();
 
-        const count = list.length;
-        const latestNet = count > 0 ? Number(list[0]?.netScore || 0) : 0;
-        const avgNet = count > 0
-          ? Math.round(list.reduce((sum: number, t: any) => sum + Number(t?.netScore || 0), 0) / count)
-          : 0;
-
-        if (isMounted) {
-          setTrialStats({ count, avgNet, latestNet, netSeries: nets });
-          setTrialStatsStatus('ready');
-        }
-      } catch (error) {
-        console.error('Error fetching trial stats:', error);
-        if (isMounted) setTrialStatsStatus('error');
-      }
-    };
-
-    loadMetrics();
-    loadTrialStats();
+    if (refreshMs > 0) {
+      timer = window.setInterval(loadAll, refreshMs);
+    }
 
     return () => {
-      isMounted = false;
+      if (timer) window.clearInterval(timer);
     };
-  }, []);
+  }, [loadMetrics, loadTrialStats, refreshMs]);
 
   const systemSeries = useMemo(() => {
     if (!systemMetrics) return [];
@@ -177,6 +218,10 @@ export default function LiveStatsSection({
   const routineTarget = routineTargetLabel ?? '2 deneme';
   const routineProgressValue = routineProgress ?? 60;
   const routineHref = routineCtaHref ?? trialCtaHref;
+  const isCompact = variant === 'compact';
+  const cardPadding = isCompact ? 'p-3' : 'p-4';
+  const metricValueClass = isCompact ? 'text-xl' : 'text-2xl';
+  const metricGridClass = isCompact ? 'grid-cols-1 md:grid-cols-3 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4';
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -190,8 +235,8 @@ export default function LiveStatsSection({
             <Badge variant="secondary">Live API</Badge>
           </div>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className={isCompact ? 'space-y-4' : 'space-y-5'}>
+          <div className={`grid ${metricGridClass}`}>
             {[
               {
                 label: 'AI Başarı Oranı',
@@ -209,15 +254,15 @@ export default function LiveStatsSection({
                 helper: 'Son 30 gün'
               }
             ].map((item) => (
-              <div key={item.label} className="rounded-lg border bg-white p-4">
+              <div key={item.label} className={`rounded-lg border bg-white ${cardPadding}`}>
                 <div className="text-xs text-gray-500">{item.label}</div>
-                <div className="text-2xl font-semibold text-gray-900 mt-1">{item.value}</div>
+                <div className={`${metricValueClass} font-semibold text-gray-900 mt-1`}>{item.value}</div>
                 <div className="text-xs text-gray-500 mt-1">{item.helper}</div>
               </div>
             ))}
           </div>
 
-          <div className="rounded-lg border bg-white p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className={`rounded-lg border bg-white ${cardPadding} flex flex-col md:flex-row md:items-center md:justify-between gap-4`}>
             <div>
               <div className="font-semibold text-gray-900">Deneme Performansı</div>
               <p className="text-sm text-gray-500">
@@ -229,7 +274,7 @@ export default function LiveStatsSection({
               </p>
               {trialStatsStatus === 'ready' && trialStats?.netSeries?.length ? (
                 <div className="mt-3">
-                  <MiniLineChart values={trialStats.netSeries} />
+                  <MiniLineChart values={trialStats.netSeries} compact={isCompact} />
                 </div>
               ) : null}
             </div>
@@ -246,26 +291,28 @@ export default function LiveStatsSection({
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`grid ${metricGridClass}`}>
             {[
               { label: 'Sistem Güvenilirliği', value: systemMetrics ? `${systemMetrics.systemReliability}%` : '--' },
               { label: 'Kullanıcı Memnuniyeti', value: systemMetrics ? `${systemMetrics.userSatisfaction}/5` : '--' },
               { label: 'Time-to-Value', value: systemMetrics ? systemMetrics.timeToValue : '--' }
             ].map((item) => (
-              <div key={item.label} className="rounded-lg border bg-white p-4">
+              <div key={item.label} className={`rounded-lg border bg-white ${cardPadding}`}>
                 <div className="text-xs text-gray-500">{item.label}</div>
-                <div className="text-lg font-semibold text-gray-900 mt-1">{item.value}</div>
+                <div className={`${isCompact ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mt-1`}>
+                  {item.value}
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="rounded-lg border bg-gradient-to-r from-blue-50 to-purple-50 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className={`rounded-lg border bg-gradient-to-r from-blue-50 to-purple-50 ${cardPadding} flex flex-col md:flex-row md:items-center md:justify-between gap-4`}>
             <div>
               <div className="font-semibold">AI Performans Grafiği</div>
               <p className="text-sm text-gray-500">Sistem metriklerinin anlık dağılımı.</p>
             </div>
             <div className="w-full md:max-w-[240px]">
-              {systemSeries.length > 0 ? <MiniBarChart values={systemSeries} /> : <div className="h-12" />}
+              {systemSeries.length > 0 ? <MiniBarChart values={systemSeries} compact={isCompact} /> : <div className="h-12" />}
             </div>
           </div>
 
