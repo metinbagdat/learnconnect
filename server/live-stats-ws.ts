@@ -55,6 +55,9 @@ export function setupLiveStatsWebsocket(server: Server, app: Express) {
       MAX_INTERVAL,
       Math.max(MIN_INTERVAL, Number(url?.searchParams.get("interval")) || DEFAULT_INTERVAL)
     );
+    const scope = (url?.searchParams.get("scope") || "all").toLowerCase();
+    const includeSystem = scope === "all" || scope === "system";
+    const includeTrials = scope === "all" || scope === "trials";
 
     const rawUserId = (req as any)?.session?.passport?.user;
     const userId = Number(rawUserId);
@@ -65,11 +68,11 @@ export function setupLiveStatsWebsocket(server: Server, app: Express) {
       inFlight = true;
 
       try {
-        const systemMetrics = await systemHealthCheck.getSuccessMetrics();
+        const systemMetrics = includeSystem ? await systemHealthCheck.getSuccessMetrics() : null;
         let trialStatus: "ready" | "unauthorized" | "error" = "unauthorized";
         let trialStats: LiveStatsPayload["data"]["trialStats"] = null;
 
-        if (Number.isFinite(userId) && userId > 0) {
+        if (includeTrials && Number.isFinite(userId) && userId > 0) {
           try {
             const trials = await storage.getTytTrialExams(userId);
             const list = Array.isArray(trials) ? trials : [];

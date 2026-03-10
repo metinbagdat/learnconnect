@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ type TrialStats = {
 type LiveStatsSectionProps = {
   context?: 'home' | 'dashboard';
   variant?: 'default' | 'compact';
+  scope?: 'system' | 'trials' | 'all';
   showRoutine?: boolean;
   routineTargetLabel?: string;
   routineProgress?: number;
@@ -33,6 +34,19 @@ type LiveStatsSectionProps = {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const getTooltipLeft = (index: number, length: number) =>
+  length > 1 ? ((index + 0.5) / length) * 100 : 50;
+
+function ChartTooltip({ label, leftPercent }: { label: string; leftPercent: number }) {
+  return (
+    <div
+      className="absolute -top-8 z-10 rounded-full bg-slate-900 px-2.5 py-1 text-xs text-white shadow-lg"
+      style={{ left: `${leftPercent}%`, transform: 'translateX(-50%)' }}
+    >
+      {label}
+    </div>
+  );
+}
 
 function MiniBarChart({
   values,
@@ -149,6 +163,7 @@ function MiniLineChart({
 export default function LiveStatsSection({
   context = 'home',
   variant = 'default',
+  scope,
   showRoutine = true,
   routineTargetLabel,
   routineProgress,
@@ -172,7 +187,7 @@ export default function LiveStatsSection({
   useEffect(() => {
     let isMounted = true;
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const wsUrl = `${protocol}://${window.location.host}/ws/live-stats?interval=${refreshMs}`;
+    const wsUrl = `${protocol}://${window.location.host}/ws/live-stats?interval=${refreshMs}&scope=${resolvedScope}`;
 
     const connect = () => {
       if (!isMounted) return;
@@ -226,7 +241,7 @@ export default function LiveStatsSection({
       if (reconnectTimerRef.current) window.clearTimeout(reconnectTimerRef.current);
       wsRef.current?.close();
     };
-  }, [refreshMs]);
+  }, [refreshMs, resolvedScope]);
 
   const systemSeries = useMemo(() => {
     if (!systemMetrics) return [];
@@ -246,7 +261,7 @@ export default function LiveStatsSection({
   const isCompact = variant === 'compact';
   const cardPadding = isCompact ? 'p-3' : 'p-4';
   const metricValueClass = isCompact ? 'text-xl' : 'text-2xl';
-  const metricGridClass = isCompact ? 'grid-cols-1 md:grid-cols-3 gap-3' : 'grid-cols-1 md:grid-cols-3 gap-4';
+  const metricGridClass = isCompact ? 'grid-cols-1 sm:grid-cols-3 gap-2' : 'grid-cols-1 md:grid-cols-3 gap-4';
   const sectionClass = isCompact ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-1 lg:grid-cols-3 gap-6';
   const systemLabels = ['AI Başarı', 'Hedef', 'Etkileşim', 'Güvenilirlik'];
   const hoveredBarLabel =
@@ -265,6 +280,15 @@ export default function LiveStatsSection({
       : connectionStatus === 'error'
       ? 'Bağlantı hatası'
       : 'Bağlanıyor';
+  const resolvedScope = scope ?? (context === 'home' ? 'system' : 'all');
+  const trialTrend = useMemo(() => {
+    if (!trialStats?.netSeries || trialStats.netSeries.length < 2) {
+      return { direction: 'flat', delta: 0 };
+    }
+    const last = trialStats.netSeries[trialStats.netSeries.length - 1];
+    const prev = trialStats.netSeries[trialStats.netSeries.length - 2];
+    return { direction: last > prev ? 'up' : last < prev ? 'down' : 'flat', delta: Math.round(last - prev) };
+  }, [trialStats]);
 
   return (
     <section className={sectionClass}>
@@ -321,13 +345,19 @@ export default function LiveStatsSection({
                   : 'Son denemelerinizin net ortalaması ve trendi.'}
               </p>
               {trialStatsStatus === 'ready' && trialStats?.netSeries?.length ? (
-                <div className="mt-3">
+                <div className="mt-3 relative">
                   <MiniLineChart
                     values={trialStats.netSeries}
                     compact={isCompact}
                     onHover={setLineHoverIndex}
                     onLeave={() => setLineHoverIndex(null)}
                   />
+                  {lineHoverIndex !== null ? (
+                    <ChartTooltip
+                      label={hoveredLineLabel}
+                      leftPercent={getTooltipLeft(lineHoverIndex, trialStats.netSeries.length)}
+                    />
+                  ) : null}
                   <div className="text-xs text-gray-500 mt-2">{hoveredLineLabel}</div>
                 </div>
               ) : null}
@@ -337,6 +367,22 @@ export default function LiveStatsSection({
                 <Badge variant="secondary">{trialStats?.count || 0} deneme</Badge>
                 <Badge variant="secondary">Ort. {trialStats?.avgNet || 0} net</Badge>
                 <Badge variant="secondary">Son {trialStats?.latestNet || 0} net</Badge>
+                <Badge
+                  variant="secondary"
+                  className={
+                    trialTrend.direction === 'up'
+                      ? 'text-emerald-700'
+                      : trialTrend.direction === 'down'
+                      ? 'text-red-600'
+                      : 'text-gray-500'
+                  }
+                >
+                  {trialTrend.direction === 'up'
+                    ? `↑ ${trialTrend.delta}`
+                    : trialTrend.direction === 'down'
+                    ? `↓ ${Math.abs(trialTrend.delta)}`
+                    : '→ 0'}
+                </Badge>
               </div>
             ) : (
               <Button variant="outline" onClick={() => setLocation(trialCtaHref)}>
@@ -365,7 +411,7 @@ export default function LiveStatsSection({
               <div className="font-semibold">AI Performans Grafiği</div>
               <p className="text-sm text-gray-500">Sistem metriklerinin anlık dağılımı.</p>
             </div>
-            <div className="w-full md:max-w-[240px]">
+            <div className="w-full md:max-w-[240px] relative">
               {systemSeries.length > 0 ? (
                 <MiniBarChart
                   values={systemSeries}
@@ -377,6 +423,12 @@ export default function LiveStatsSection({
               ) : (
                 <div className="h-12" />
               )}
+              {barHoverIndex !== null && systemSeries.length > 0 ? (
+                <ChartTooltip
+                  label={hoveredBarLabel}
+                  leftPercent={getTooltipLeft(barHoverIndex, systemSeries.length)}
+                />
+              ) : null}
               <div className="text-xs text-gray-500 mt-2">{hoveredBarLabel}</div>
             </div>
           </div>
