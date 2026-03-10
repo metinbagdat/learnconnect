@@ -56,14 +56,5 @@ jobs:
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
-          echo "🔍 Verifying Neon credentials..."
-          if [ -z "$NEON_PROJECT_ID" ]; then
-            echo "❌ ERROR: NEON_PROJECT_ID is not set!"
-            exit 1
-          fi
-          if [ -z "$NEON_API_KEY" ]; then
-            echo "❌ ERROR: NEON_API_KEY is not set!"
-            exit 1
-          fi
-          echo "✅ Neon credentials are set"
-      
+          test -n "$NEON_PROJECT_ID"
+          test -n "$NEON_API_KEY"      
