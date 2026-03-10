@@ -9,6 +9,7 @@
     "check:css": "node scripts/check-no-webkit-css.js",
     "preview": "vite preview",
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js"
+    "migrate": "echo \"No migrations configured\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.17.0",
