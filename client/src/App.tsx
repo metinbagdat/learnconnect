@@ -52,6 +52,11 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [location] = useLocation()
+
+  // Mark successful mount for SES guard
+  if (typeof window !== 'undefined') {
+    window.__egitimTodayMountOk = true
+  }
   
   // Routes that don't need authentication
   const publicRoutes = ['/login', '/register']
@@ -66,6 +71,7 @@ export default function App() {
   const isPathsRoute = location === '/paths' || location.startsWith('/paths/')
   const isCoursesRoute = location === '/courses' || location.startsWith('/courses/')
   const isCommunityRoute = location === '/community' || location.startsWith('/community/')
+  const isProfileRoute = location === '/profile' || location.startsWith('/profile/')
 
   useEffect(() => {
     if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute) {
@@ -114,7 +120,7 @@ export default function App() {
     )
   }
 
-  // Teacher Route (Protected)
+  // Teacher Route (Protected - teacher/admin only)
   if (isTeacherRoute) {
     return (
       <Suspense fallback={
@@ -125,7 +131,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <TeacherDashboard />
+        <AuthGuard allowedRoles={['teacher', 'admin']} fallbackRedirect="/dashboard">
+          <TeacherDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -159,7 +167,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <AytDashboard />
+        <AuthGuard>
+          <AytDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -175,7 +185,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <YksDashboard />
+        <AuthGuard>
+          <YksDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -191,7 +203,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Dashboard />
+        <AuthGuard>
+          <Dashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -207,7 +221,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Notebook />
+        <AuthGuard>
+          <Notebook />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -223,7 +239,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <LearningPaths />
+        <AuthGuard>
+          <LearningPaths />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -243,7 +261,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Courses />
+        <AuthGuard>
+          <Courses />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -268,7 +288,9 @@ export default function App() {
             </div>
           </div>
         }>
-          <CertificateVerify />
+          <AuthGuard>
+            <CertificateVerify />
+          </AuthGuard>
         </Suspense>
       );
     }
@@ -281,7 +303,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Certificates />
+        <AuthGuard>
+          <Certificates />
+        </AuthGuard>
       </Suspense>
     );
   }
@@ -301,7 +325,31 @@ export default function App() {
           </div>
         </div>
       }>
-        <Community />
+        <AuthGuard>
+          <Community />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Profile Route (Protected)
+  const ProfilePage = React.lazy(() =>
+    import('./pages/profile.tsx').catch(() => ({ default: () => <div>Profil yükleniyor...</div> }))
+  );
+
+  if (isProfileRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Profil Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <ProfilePage />
+        </AuthGuard>
       </Suspense>
     )
   }

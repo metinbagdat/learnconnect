@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { language } = useLanguage();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,12 +24,15 @@ export default function LoginPage() {
     password: "",
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (role-based)
   useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      setLocation("/tyt-dashboard");
+    if (!authLoading && isAuthenticated && user) {
+      const role = user.role || "student";
+      if (role === "admin") setLocation("/admin");
+      else if (role === "teacher") setLocation("/teacher");
+      else setLocation("/tyt-dashboard");
     }
-  }, [isAuthenticated, authLoading, setLocation]);
+  }, [isAuthenticated, authLoading, user, setLocation]);
 
   if (authLoading) {
     return (
@@ -74,8 +77,11 @@ export default function LoginPage() {
             : "Welcome! Redirecting...",
       });
 
-      // Refresh auth state and redirect
-      window.location.href = "/tyt-dashboard";
+      // Role-based redirect
+      const role = data.role || "student";
+      const redirectPath =
+        role === "admin" ? "/admin" : role === "teacher" ? "/teacher" : "/tyt-dashboard";
+      window.location.href = redirectPath;
     } catch (error: any) {
       toast({
         title: language === "tr" ? "Giriş Hatası" : "Login Error",

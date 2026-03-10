@@ -5,6 +5,7 @@ import {
   where,
   orderBy,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -19,6 +20,8 @@ export interface Note {
   title: string;
   content: string;
   tags: string[];
+  relatedPathId?: string;
+  relatedCourseId?: string;
   createdAt: any;
   updatedAt: any;
 }
@@ -56,21 +59,33 @@ export async function getUserNotes(userId: string, limitCount?: number): Promise
 export async function getNoteById(noteId: string): Promise<Note | null> {
   try {
     const noteRef = doc(db, 'notes', noteId);
-    const noteSnap = await getDocs(collection(db, 'notes'));
-    const found = noteSnap.docs.find(d => d.id === noteId);
-    
-    if (!found) {
+    const noteSnap = await getDoc(noteRef);
+
+    if (!noteSnap.exists()) {
       return null;
     }
 
     return {
-      id: found.id,
-      ...found.data(),
+      id: noteSnap.id,
+      ...noteSnap.data(),
     } as Note;
   } catch (error) {
     console.error('Error fetching note:', error);
     throw error;
   }
+}
+
+/** Strip leading `#`, trim whitespace, and remove empty entries from a tag list. */
+function normalizeTags(tags: string[]): string[] {
+  return tags
+    .map(t => t.trim())
+    .filter(t => t.length > 0)
+    .map(t => (t.startsWith('#') ? t.slice(1) : t));
+}
+
+/** Return a non-empty title, falling back to the first 50 chars of content. */
+function resolveTitle(title: string, content: string): string {
+  return title.trim() || content.substring(0, 50) || 'Yeni Not';
 }
 
 /**
@@ -80,24 +95,26 @@ export async function createNote(
   userId: string,
   title: string,
   content: string,
-  tags: string[]
+  tags: string[],
+  relatedPathId?: string,
+  relatedCourseId?: string
 ): Promise<string> {
   try {
-    const tagsArray = tags
-      .map(t => t.trim())
-      .filter(t => t.length > 0)
-      .map(t => t.startsWith('#') ? t.slice(1) : t);
+    const tagsArray = normalizeTags(tags);
+    const finalTitle = resolveTitle(title, content);
 
-    const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
-
-    const docRef = await addDoc(collection(db, 'notes'), {
+    const docData: Record<string, unknown> = {
       userId: String(userId),
       title: finalTitle,
       content,
       tags: tagsArray,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    });
+    };
+    if (relatedPathId) docData.relatedPathId = relatedPathId;
+    if (relatedCourseId) docData.relatedCourseId = relatedCourseId;
+
+    const docRef = await addDoc(collection(db, 'notes'), docData);
 
     return docRef.id;
   } catch (error) {
@@ -113,23 +130,25 @@ export async function updateNote(
   noteId: string,
   title: string,
   content: string,
-  tags: string[]
+  tags: string[],
+  relatedPathId?: string,
+  relatedCourseId?: string
 ): Promise<void> {
   try {
-    const tagsArray = tags
-      .map(t => t.trim())
-      .filter(t => t.length > 0)
-      .map(t => t.startsWith('#') ? t.slice(1) : t);
+    const tagsArray = normalizeTags(tags);
+    const finalTitle = resolveTitle(title, content);
 
-    const finalTitle = title.trim() || content.substring(0, 50) || 'Yeni Not';
-
-    const noteRef = doc(db, 'notes', noteId);
-    await updateDoc(noteRef, {
+    const updates: Record<string, unknown> = {
       title: finalTitle,
       content,
       tags: tagsArray,
       updatedAt: Timestamp.now(),
-    });
+    };
+    if (relatedPathId !== undefined) updates.relatedPathId = relatedPathId || null;
+    if (relatedCourseId !== undefined) updates.relatedCourseId = relatedCourseId || null;
+
+    const noteRef = doc(db, 'notes', noteId);
+    await updateDoc(noteRef, updates);
   } catch (error) {
     console.error('Error updating note:', error);
     throw error;

@@ -1,6 +1,4 @@
-// TYT/AYT/YKS AI Study Plan Generator – OpenAI kişiye özel plan
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-const MODEL = process.env.AI_AYT_MODEL || process.env.AI_INTEGRATIONS_OPENAI_MODEL || 'gpt-4o-mini';
+const DEMO_MODEL = 'demo-v1.0';
 
 export default async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -23,25 +21,30 @@ export default async function handler(req, res) {
       });
     }
 
-    let studyPlan;
-    let aiModel = 'demo-v1.0';
-
-    if (OPENAI_API_KEY) {
-      try {
-        studyPlan = await generatePlanWithOpenAI(studentProfile, curriculum, preferences);
-        aiModel = MODEL;
-      } catch (e) {
-        console.warn('[ai-plan] OpenAI failed, using demo:', e?.message);
-        studyPlan = generateStudyPlan(studentProfile, curriculum, preferences);
-      }
-    } else {
-      studyPlan = generateStudyPlan(studentProfile, curriculum, preferences);
+    if (!Array.isArray(curriculum)) {
+      return res.status(400).json({
+        error: 'Invalid curriculum format',
+        expected: 'Array'
+      });
     }
 
+    const safeStudentProfile = {
+      name: studentProfile?.name || 'Öğrenci',
+      targetExam: studentProfile?.targetExam || 'TYT',
+      dailyStudyHours: Number(studentProfile?.dailyStudyHours) || 4,
+      targetDays: Number(studentProfile?.targetDays) || 120,
+      weakSubjects: Array.isArray(studentProfile?.weakSubjects) ? studentProfile.weakSubjects : [],
+      studyStyle: studentProfile?.studyStyle,
+      currentLevel: studentProfile?.currentLevel
+    };
+
+    const normalizedCurriculum = curriculum.length > 0 ? curriculum : getDefaultCurriculum();
+    const studyPlan = generateStudyPlan(safeStudentProfile, normalizedCurriculum, preferences);
+
     console.log('Generated study plan:', {
-      student: studentProfile.name,
+      student: safeStudentProfile.name,
       planId: studyPlan.id,
-      aiModel,
+      aiModel: DEMO_MODEL,
       timestamp: new Date().toISOString()
     });
 
@@ -49,109 +52,15 @@ export default async function handler(req, res) {
       success: true,
       plan: studyPlan,
       generatedAt: new Date().toISOString(),
-      aiModel
+      aiModel: DEMO_MODEL
     });
   } catch (error) {
     console.error('Error generating study plan:', error);
     return res.status(500).json({
       error: 'Internal server error',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
-}
-
-async function generatePlanWithOpenAI(studentProfile, curriculum, preferences = {}) {
-  const OpenAI = (await import('openai')).default;
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
-  const systemPrompt = `Sen YKS (TYT/AYT) sınavına yönelik kişiselleştirilmiş haftalık çalışma planı hazırlayan bir koçsun.
-Çıktıyı yalnızca geçerli JSON olarak üret. Açıklama veya markdown ekleme.`;
-
-  const curriculumSummary = curriculum.map(s => ({
-    id: s.id,
-    title: s.title,
-    estimatedHours: s.estimatedHours,
-    totalTopics: s.totalTopics
-  }));
-
-  const userPrompt = `Öğrenci: ${studentProfile.name}
-Hedef sınav: ${studentProfile.targetExam || 'TYT'}
-Günlük çalışma saati: ${studentProfile.dailyStudyHours || 4}
-Hedef gün sayısı: ${studentProfile.targetDays || 120}
-Zayıf dersler: ${(studentProfile.weakSubjects || []).join(', ') || 'yok'}
-Öğrenme stili: ${studentProfile.studyStyle || 'mixed'}
-Seviye: ${studentProfile.currentLevel || 'intermediate'}
-
-Müfredat: ${JSON.stringify(curriculumSummary)}
-
-Tercihler: hafta sonu ${(preferences?.includeWeekends !== false) ? 'dahil' : 'hariç'}, tekrar günleri ${preferences?.revisionDays ?? 7}.
-
-Bu bilgilere göre 7 günlük (bir haftalık) kişiye özel çalışma planı üret.
-
-JSON formatı (bu yapıyı kullan):
-{
-  "id": "plan_<timestamp>",
-  "studentName": "<isim>",
-  "targetExam": "TYT",
-  "totalDays": 120,
-  "dailyHours": 4,
-  "totalHours": 480,
-  "weeklyPlan": [
-    {
-      "day": "Pazartesi",
-      "date": "YYYY-MM-DD",
-      "subjects": [
-        { "subject": "Matematik", "hours": 2, "topics": [{ "id": "...", "name": "Konu adı", "estimatedTime": 45, "difficulty": "Orta" }] }
-      ],
-      "totalHours": 2
-    }
-  ],
-  "monthlySummary": [
-    { "subject": "Matematik", "weeklyHours": 8, "completionWeeks": 15, "priority": "HIGH" }
-  ],
-  "recommendations": [
-    { "type": "FOCUS_AREA", "message": "...", "reason": "..." }
-  ]
-}
-
-Kurallar: weeklyPlan 7 gün olmalı; her günde subjects ve totalHours olmalı; günlük toplam dailyHours'u aşmasın.`;
-
-  const res = await openai.chat.completions.create({
-    model: MODEL,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt }
-    ],
-    temperature: 0.4,
-    max_tokens: 4000,
-    response_format: { type: 'json_object' }
-  });
-
-  const raw = res.choices[0]?.message?.content ?? '';
-  let parsed;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    const m = raw.match(/\{[\s\S]*\}/);
-    if (m) parsed = JSON.parse(m[0]);
-    else throw new Error('OpenAI plan response was not valid JSON');
-  }
-
-  const id = parsed.id || 'plan_' + Date.now();
-  const now = new Date().toISOString();
-  return {
-    id,
-    studentName: parsed.studentName ?? studentProfile.name,
-    targetExam: parsed.targetExam ?? studentProfile.targetExam ?? 'TYT',
-    totalDays: parsed.totalDays ?? studentProfile.targetDays ?? 120,
-    dailyHours: parsed.dailyHours ?? studentProfile.dailyStudyHours ?? 4,
-    totalHours: parsed.totalHours ?? (parsed.totalDays * parsed.dailyHours) ?? 480,
-    weeklyPlan: Array.isArray(parsed.weeklyPlan) ? parsed.weeklyPlan : [],
-    monthlySummary: Array.isArray(parsed.monthlySummary) ? parsed.monthlySummary : [],
-    recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations : [],
-    createdAt: now,
-    updatedAt: now
-  };
 }
 
 // Demo AI Plan Generator Function
@@ -159,45 +68,79 @@ function generateStudyPlan(studentProfile, curriculum, preferences = {}) {
   const totalDays = studentProfile.targetDays || 120;
   const dailyHours = studentProfile.dailyStudyHours || 4;
   const totalHours = totalDays * dailyHours;
-  
+  const includeWeekends = preferences?.includeWeekends !== false;
+  const studyDaysInWeek = includeWeekends ? 7 : 5;
+  const weeklyTargetHours = dailyHours * studyDaysInWeek;
+
   // Konuları zorluğa ve önceliğe göre sırala
-  const prioritizedSubjects = curriculum.map(subject => {
-    const studentWeakness = studentProfile.weakSubjects?.includes(subject.id) ? 2 : 1;
-    const subjectWeight = (subject.estimatedHours || 0) * studentWeakness;
-    
-    return {
-      ...subject,
-      weight: subjectWeight,
-      weeklyHours: Math.ceil((subjectWeight / totalHours) * (dailyHours * 7))
-    };
-  }).sort((a, b) => b.weight - a.weight);
-  
+  const prioritizedSubjects = curriculum
+    .map((subject) => {
+      const studentWeakness = studentProfile.weakSubjects?.includes(subject.id) ? 2 : 1;
+      const subjectWeight = Math.max(1, (subject.estimatedHours || 60) * studentWeakness);
+
+      return {
+        ...subject,
+        weight: subjectWeight
+      };
+    })
+    .sort((a, b) => b.weight - a.weight);
+
+  const totalWeight = prioritizedSubjects.reduce((sum, subject) => sum + subject.weight, 0);
+  const subjectsWithWeeklyHours = prioritizedSubjects.map((subject) => ({
+    ...subject,
+    weeklyHours: Math.max(1, Math.round((subject.weight / totalWeight) * weeklyTargetHours))
+  }));
+
+  const subjectBuckets = subjectsWithWeeklyHours.map((subject) => ({
+    ...subject,
+    remainingHours: subject.weeklyHours
+  }));
+
   // Haftalık plan oluştur
   const weeklyPlan = Array.from({ length: 7 }).map((_, dayIndex) => {
-    const daySubjects = prioritizedSubjects
-      .filter(subject => dayIndex < (subject.weeklyHours || 0) / dailyHours)
-      .map(subject => ({
+    if (!includeWeekends && dayIndex >= 5) {
+      return {
+        day: getDayName(dayIndex),
+        date: getFutureDate(dayIndex),
+        subjects: [],
+        totalHours: 0
+      };
+    }
+
+    let remaining = dailyHours;
+    const daySubjects = [];
+
+    for (const subject of subjectBuckets) {
+      if (remaining <= 0) break;
+      if (subject.remainingHours <= 0) continue;
+
+      const allocation = Math.min(2, remaining, subject.remainingHours);
+      subject.remainingHours -= allocation;
+      remaining -= allocation;
+
+      daySubjects.push({
         subject: subject.title,
-        hours: dailyHours,
+        hours: allocation,
         topics: selectTopicsForDay(subject, dayIndex)
-      }));
-    
+      });
+    }
+
     return {
       day: getDayName(dayIndex),
       date: getFutureDate(dayIndex),
       subjects: daySubjects,
-      totalHours: daySubjects.reduce((sum, subj) => sum + subj.hours, 0)
+      totalHours: dailyHours - remaining
     };
   });
-  
+
   // Aylık özet
-  const monthlySummary = prioritizedSubjects.map(subject => ({
+  const monthlySummary = subjectsWithWeeklyHours.map((subject) => ({
     subject: subject.title,
     weeklyHours: subject.weeklyHours,
-    completionWeeks: Math.ceil((subject.estimatedHours || 0) / ((subject.weeklyHours || 0) * 4)),
-    priority: subject.weight > 100 ? 'HIGH' : 'MEDIUM'
+    completionWeeks: Math.ceil((subject.estimatedHours || 60) / Math.max(1, subject.weeklyHours)),
+    priority: subject.weight > 150 ? 'HIGH' : subject.weight > 90 ? 'MEDIUM' : 'LOW'
   }));
-  
+
   return {
     id: 'plan_' + Date.now(),
     studentName: studentProfile.name,
@@ -207,7 +150,7 @@ function generateStudyPlan(studentProfile, curriculum, preferences = {}) {
     totalHours,
     weeklyPlan,
     monthlySummary,
-    recommendations: generateRecommendations(studentProfile, prioritizedSubjects),
+    recommendations: generateRecommendations(studentProfile, subjectsWithWeeklyHours, preferences),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -220,7 +163,7 @@ function selectTopicsForDay(subject, dayIndex) {
     id: `${subject.id}_topic_${dayIndex}_${i}`,
     name: `Konu ${i + 1}`,
     estimatedTime: 45,
-    difficulty: i === 0 ? 'Başlangıç' : 'Orta'
+    difficulty: i === 0 ? 'Kolay' : i === 1 ? 'Orta' : 'Zor'
   }));
 }
 
@@ -235,9 +178,9 @@ function getFutureDate(daysToAdd) {
   return date.toISOString().split('T')[0];
 }
 
-function generateRecommendations(studentProfile, subjects) {
+function generateRecommendations(studentProfile, subjects, preferences) {
   const recommendations = [];
-  
+
   if (subjects[0]?.weight > 150) {
     recommendations.push({
       type: 'FOCUS_AREA',
@@ -245,7 +188,15 @@ function generateRecommendations(studentProfile, subjects) {
       reason: 'En yüksek ağırlığa sahip'
     });
   }
-  
+
+  if (preferences?.includeWeekends === false) {
+    recommendations.push({
+      type: 'BALANCE',
+      message: 'Hafta sonlarını dinlenme ve tekrar için kullanın',
+      reason: 'Daha sürdürülebilir çalışma temposu'
+    });
+  }
+
   if (studentProfile.studyStyle === 'visual') {
     recommendations.push({
       type: 'STYLE_TIP',
@@ -253,6 +204,23 @@ function generateRecommendations(studentProfile, subjects) {
       reason: 'Öğrenme stilinize uygun'
     });
   }
-  
+
+  if (recommendations.length === 0) {
+    recommendations.push({
+      type: 'CONSISTENCY',
+      message: 'Düzenli tekrarlarla planı sürdürülebilir hale getirin',
+      reason: 'Verimli ilerleme için tutarlılık önemli'
+    });
+  }
+
   return recommendations;
+}
+
+function getDefaultCurriculum() {
+  return [
+    { id: 'mathematics', title: 'Matematik', totalTopics: 25, estimatedHours: 120 },
+    { id: 'turkish', title: 'Türkçe', totalTopics: 20, estimatedHours: 80 },
+    { id: 'science', title: 'Fen Bilimleri', totalTopics: 35, estimatedHours: 100 },
+    { id: 'social', title: 'Sosyal Bilimler', totalTopics: 30, estimatedHours: 90 }
+  ];
 }

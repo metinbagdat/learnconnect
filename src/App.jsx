@@ -3,6 +3,7 @@ import { useLocation } from 'wouter'
 import Dashboard from './components/Dashboard.jsx'
 import StudyPlan from './components/StudyPlan.jsx'
 import ProgressChart from './components/ProgressChart.jsx'
+import LoadingSpinner from './components/LoadingSpinner.jsx'
 
 // Import pages (lazy load)
 const AdminDashboard = React.lazy(() => 
@@ -53,14 +54,7 @@ export default function App() {
   // Public routes (Login/Register)
   if (isPublicRoute) {
     return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Yükleniyor...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingSpinner />}>
         {location === '/login' && <LoginPage />}
         {location === '/register' && <RegisterPage />}
       </Suspense>
@@ -70,14 +64,7 @@ export default function App() {
   // Admin Route
   if (isAdminRoute) {
     return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Admin Dashboard Yükleniyor...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingSpinner message="Admin Dashboard Yükleniyor..." />}>
         <AdminDashboard />
       </Suspense>
     )
@@ -86,14 +73,7 @@ export default function App() {
   // TYT Dashboard Route (Protected)
   if (isTytRoute) {
     return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">TYT Dashboard Yükleniyor...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingSpinner message="TYT Dashboard Yükleniyor..." />}>
         <AuthGuard>
           <TytDashboard />
         </AuthGuard>
@@ -120,14 +100,7 @@ export default function App() {
   }
 
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner />}>
       <AuthGuard>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
           {/* Header */}
