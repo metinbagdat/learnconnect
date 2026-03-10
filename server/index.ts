@@ -4,6 +4,7 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
 import sitemapRoutes from "./routes-sitemap.js";
+import { setupLiveStatsWebsocket } from "./live-stats-ws.js";
 
 const app = express();
 app.use(express.json());
@@ -66,6 +67,8 @@ server.listen(port, "0.0.0.0", () => {
   try {
     // Register all routes
     await registerRoutes(app);
+
+    setupLiveStatsWebsocket(server, app);
 
     // Setup Vite or static file serving
     if (app.get("env") === "development") {
