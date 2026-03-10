@@ -33,6 +33,9 @@ type LiveStatsSectionProps = {
   refreshMs?: number;
 };
 
+type TrendDirection = 'up' | 'down' | 'flat';
+type Trend = { direction: TrendDirection; delta: number };
+
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const getTooltipLeft = (index: number, length: number) =>
   length > 1 ? ((index + 0.5) / length) * 100 : 50;
@@ -183,6 +186,14 @@ export default function LiveStatsSection({
   const reconnectTimerRef = useRef<number | null>(null);
   const [barHoverIndex, setBarHoverIndex] = useState<number | null>(null);
   const [lineHoverIndex, setLineHoverIndex] = useState<number | null>(null);
+  const prevSystemMetricsRef = useRef<SystemSuccessMetrics | null>(null);
+  const [systemTrends, setSystemTrends] = useState<Record<string, Trend>>({
+    aiAccuracy: { direction: 'flat', delta: 0 },
+    goalCompletionRate: { direction: 'flat', delta: 0 },
+    userEngagement: { direction: 'flat', delta: 0 },
+    systemReliability: { direction: 'flat', delta: 0 },
+    userSatisfaction: { direction: 'flat', delta: 0 }
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -206,7 +217,32 @@ export default function LiveStatsSection({
         try {
           const message = JSON.parse(event.data);
           if (message?.type === 'live_stats') {
-            setSystemMetrics(message.data?.systemMetrics ?? null);
+            const nextMetrics = message.data?.systemMetrics ?? null;
+            if (nextMetrics) {
+              const prev = prevSystemMetricsRef.current;
+              if (prev) {
+                const getTrend = (prevValue?: number, nextValue?: number): Trend => {
+                  if (!Number.isFinite(prevValue) || !Number.isFinite(nextValue)) {
+                    return { direction: 'flat', delta: 0 };
+                  }
+                  const delta = Number(nextValue) - Number(prevValue);
+                  if (delta > 0) return { direction: 'up', delta: Math.round(delta * 10) / 10 };
+                  if (delta < 0) return { direction: 'down', delta: Math.round(Math.abs(delta) * 10) / 10 };
+                  return { direction: 'flat', delta: 0 };
+                };
+
+                setSystemTrends({
+                  aiAccuracy: getTrend(prev.aiAccuracy, nextMetrics.aiAccuracy),
+                  goalCompletionRate: getTrend(prev.goalCompletionRate, nextMetrics.goalCompletionRate),
+                  userEngagement: getTrend(prev.userEngagement, nextMetrics.userEngagement),
+                  systemReliability: getTrend(prev.systemReliability, nextMetrics.systemReliability),
+                  userSatisfaction: getTrend(prev.userSatisfaction, nextMetrics.userSatisfaction)
+                });
+              }
+              prevSystemMetricsRef.current = nextMetrics;
+            }
+
+            setSystemMetrics(nextMetrics);
             setSystemMetricsLoading(false);
             setSystemMetricsError(null);
             setTrialStats(message.data?.trialStats ?? null);
@@ -259,6 +295,7 @@ export default function LiveStatsSection({
   const routineProgressValue = routineProgress ?? 60;
   const routineHref = routineCtaHref ?? trialCtaHref;
   const isCompact = variant === 'compact';
+  const isMinimal = variant === 'minimal';
   const cardPadding = isCompact ? 'p-3' : 'p-4';
   const metricValueClass = isCompact ? 'text-xl' : 'text-2xl';
   const metricGridClass = isCompact ? 'grid-cols-1 sm:grid-cols-3 gap-2' : 'grid-cols-1 md:grid-cols-3 gap-4';
@@ -289,6 +326,132 @@ export default function LiveStatsSection({
     const prev = trialStats.netSeries[trialStats.netSeries.length - 2];
     return { direction: last > prev ? 'up' : last < prev ? 'down' : 'flat', delta: Math.round(last - prev) };
   }, [trialStats]);
+  const metricItems = [
+    { key: 'aiAccuracy', label: 'AI Başarı Oranı', helper: 'Model doğruluğu', value: systemMetrics ? `${systemMetrics.aiAccuracy}%` : '--' },
+    { key: 'goalCompletionRate', label: 'Hedef Tamamlama', helper: 'Plan tamamlama', value: systemMetrics ? `${systemMetrics.goalCompletionRate}%` : '--' },
+    { key: 'userEngagement', label: 'Kullanıcı Etkileşimi', helper: 'Son 30 gün', value: systemMetrics ? `${systemMetrics.userEngagement}%` : '--' }
+  ] as const;
+  const secondaryMetrics = [
+    { key: 'systemReliability', label: 'Sistem Güvenilirliği', value: systemMetrics ? `${systemMetrics.systemReliability}%` : '--' },
+    { key: 'userSatisfaction', label: 'Kullanıcı Memnuniyeti', value: systemMetrics ? `${systemMetrics.userSatisfaction}/5` : '--' },
+    { key: 'timeToValue', label: 'Time-to-Value', value: systemMetrics ? systemMetrics.timeToValue : '--' }
+  ] as const;
+  const trendBadge = (trend?: Trend) => {
+    if (!trend || trend.direction === 'flat') return 'text-gray-500';
+    return trend.direction === 'up' ? 'text-emerald-700' : 'text-red-600';
+  };
+
+  if (isMinimal) {
+    return (
+      <section className="grid grid-cols-1 gap-4">
+        <Card className="border-gray-100">
+          <CardHeader className="pb-2">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div>
+                <CardTitle className="text-base">Canlı İstatistikler</CardTitle>
+                <CardDescription className="text-xs">WebSocket ile gerçek zamanlı güncellenir.</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">Live API</Badge>
+                <Badge variant="secondary">{connectionBadge}</Badge>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="flex flex-col lg:flex-row lg:items-center gap-4">
+            <div className="flex flex-wrap gap-3 flex-1">
+              {metricItems.map((item) => (
+                <div key={item.key} className="rounded-lg border bg-white px-3 py-2 min-w-[150px]">
+                  <div className="text-[11px] text-gray-500">{item.label}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-lg font-semibold text-gray-900">{item.value}</div>
+                    <span className={`text-xs ${trendBadge(systemTrends[item.key])}`}>
+                      {systemTrends[item.key]?.direction === 'up'
+                        ? `↑ ${systemTrends[item.key]?.delta}`
+                        : systemTrends[item.key]?.direction === 'down'
+                        ? `↓ ${systemTrends[item.key]?.delta}`
+                        : '→ 0'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg border bg-white px-3 py-2 min-w-[150px]">
+                <div className="text-[11px] text-gray-500">Deneme Ort.</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-lg font-semibold text-gray-900">
+                    {trialStatsStatus === 'ready' ? `${trialStats?.avgNet || 0} net` : '--'}
+                  </div>
+                  <span className={`text-xs ${
+                    trialTrend.direction === 'up'
+                      ? 'text-emerald-700'
+                      : trialTrend.direction === 'down'
+                      ? 'text-red-600'
+                      : 'text-gray-500'
+                  }`}>
+                    {trialTrend.direction === 'up'
+                      ? `↑ ${trialTrend.delta}`
+                      : trialTrend.direction === 'down'
+                      ? `↓ ${Math.abs(trialTrend.delta)}`
+                      : '→ 0'}
+                  </span>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-white px-3 py-2 min-w-[150px]">
+                <div className="text-[11px] text-gray-500">Deneme Sayısı</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {trialStatsStatus === 'ready' ? trialStats?.count || 0 : '--'}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="rounded-lg border bg-white px-3 py-2 min-w-[160px]">
+                <div className="text-[11px] text-gray-500 mb-1">Net Trendi</div>
+                {trialStatsStatus === 'ready' && trialStats?.netSeries?.length ? (
+                  <div className="relative">
+                    <MiniLineChart
+                      values={trialStats.netSeries}
+                      compact
+                      onHover={setLineHoverIndex}
+                      onLeave={() => setLineHoverIndex(null)}
+                    />
+                    {lineHoverIndex !== null ? (
+                      <ChartTooltip
+                        label={hoveredLineLabel}
+                        leftPercent={getTooltipLeft(lineHoverIndex, trialStats.netSeries.length)}
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="h-12" />
+                )}
+              </div>
+              <div className="rounded-lg border bg-white px-3 py-2 min-w-[160px]">
+                <div className="text-[11px] text-gray-500 mb-1">AI Metrikleri</div>
+                {systemSeries.length > 0 ? (
+                  <div className="relative">
+                    <MiniBarChart
+                      values={systemSeries}
+                      labels={systemLabels}
+                      compact
+                      onHover={setBarHoverIndex}
+                      onLeave={() => setBarHoverIndex(null)}
+                    />
+                    {barHoverIndex !== null && systemSeries.length > 0 ? (
+                      <ChartTooltip
+                        label={hoveredBarLabel}
+                        leftPercent={getTooltipLeft(barHoverIndex, systemSeries.length)}
+                      />
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="h-12" />
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section className={sectionClass}>
@@ -309,26 +472,19 @@ export default function LiveStatsSection({
         </CardHeader>
         <CardContent className={isCompact ? 'space-y-4' : 'space-y-5'}>
           <div className={`grid ${metricGridClass}`}>
-            {[
-              {
-                label: 'AI Başarı Oranı',
-                value: systemMetrics ? `${systemMetrics.aiAccuracy}%` : '--',
-                helper: 'Model doğruluğu'
-              },
-              {
-                label: 'Hedef Tamamlama',
-                value: systemMetrics ? `${systemMetrics.goalCompletionRate}%` : '--',
-                helper: 'Plan tamamlama'
-              },
-              {
-                label: 'Kullanıcı Etkileşimi',
-                value: systemMetrics ? `${systemMetrics.userEngagement}%` : '--',
-                helper: 'Son 30 gün'
-              }
-            ].map((item) => (
-              <div key={item.label} className={`rounded-lg border bg-white ${cardPadding}`}>
+            {metricItems.map((item) => (
+              <div key={item.key} className={`rounded-lg border bg-white ${cardPadding}`}>
                 <div className="text-xs text-gray-500">{item.label}</div>
-                <div className={`${metricValueClass} font-semibold text-gray-900 mt-1`}>{item.value}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`${metricValueClass} font-semibold text-gray-900`}>{item.value}</div>
+                  <span className={`text-xs ${trendBadge(systemTrends[item.key])}`}>
+                    {systemTrends[item.key]?.direction === 'up'
+                      ? `↑ ${systemTrends[item.key]?.delta}`
+                      : systemTrends[item.key]?.direction === 'down'
+                      ? `↓ ${systemTrends[item.key]?.delta}`
+                      : '→ 0'}
+                  </span>
+                </div>
                 <div className="text-xs text-gray-500 mt-1">{item.helper}</div>
               </div>
             ))}
@@ -392,12 +548,8 @@ export default function LiveStatsSection({
           </div>
 
           <div className={`grid ${metricGridClass}`}>
-            {[
-              { label: 'Sistem Güvenilirliği', value: systemMetrics ? `${systemMetrics.systemReliability}%` : '--' },
-              { label: 'Kullanıcı Memnuniyeti', value: systemMetrics ? `${systemMetrics.userSatisfaction}/5` : '--' },
-              { label: 'Time-to-Value', value: systemMetrics ? systemMetrics.timeToValue : '--' }
-            ].map((item) => (
-              <div key={item.label} className={`rounded-lg border bg-white ${cardPadding}`}>
+            {secondaryMetrics.map((item) => (
+              <div key={item.key} className={`rounded-lg border bg-white ${cardPadding}`}>
                 <div className="text-xs text-gray-500">{item.label}</div>
                 <div className={`${isCompact ? 'text-base' : 'text-lg'} font-semibold text-gray-900 mt-1`}>
                   {item.value}

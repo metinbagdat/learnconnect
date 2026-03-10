@@ -579,6 +579,7 @@ export default function HomePage() {
           routineProgress={examType === 'LGS' ? 40 : 60}
           routineCtaHref="/register"
           refreshMs={30000}
+          scope="system"
         />
 
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
