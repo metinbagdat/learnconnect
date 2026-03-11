@@ -20,11 +20,28 @@ jobs:
     name: Setup
     outputs:
       branch: ${{ steps.branch_name.outputs.current_branch }}
+      # Sanitized Neon branch name: slashes and special chars replaced with hyphens
+      # to avoid invalid Neon branch names (e.g. "copilot/sub-pr-43-again" → "copilot-sub-pr-43-again")
+      neon_branch: ${{ steps.neon_branch.outputs.name }}
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
         id: branch_name
         uses: tj-actions/branch-names@v8
+
+      - name: Sanitize branch name for Neon
+        id: neon_branch
+        run: |
+          # PR branch names may contain slashes (e.g. copilot/sub-pr-43-again) which are
+          # invalid in Neon branch names. Replace all invalid characters with hyphens,
+          # lowercase, trim leading/trailing hyphens, and cap at 63 characters.
+          RAW="${{ steps.branch_name.outputs.current_branch }}"
+          SANITIZED=$(echo "$RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/^-*//' | sed 's/-*$//')
+          BRANCH_NAME="preview/pr-${{ github.event.number }}-${SANITIZED}"
+          # Truncate to 63 chars if needed, then trim any trailing hyphens introduced by truncation
+          BRANCH_NAME=$(echo "${BRANCH_NAME:0:63}" | sed 's/-*$//')
+          echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Sanitized Neon branch name: ${BRANCH_NAME}"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -180,7 +197,7 @@ jobs:
         continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch_name: ${{ needs.setup.outputs.neon_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
@@ -260,7 +277,7 @@ jobs:
         uses: neondatabase/schema-diff-action@v1
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          compare_branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          compare_branch: ${{ needs.setup.outputs.neon_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
         continue-on-error: true
 
@@ -272,8 +289,11 @@ jobs:
     steps:
       - name: Delete Neon Branch
         uses: neondatabase/delete-branch-action@v3
+        # continue-on-error prevents the workflow from failing when the Neon branch
+        # was never created or was already deleted (e.g. branch not found / 404).
+        continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch: ${{ needs.setup.outputs.neon_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
