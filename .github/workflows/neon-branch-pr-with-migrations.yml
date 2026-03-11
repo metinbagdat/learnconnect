@@ -34,12 +34,28 @@ jobs:
         run: |
           # PR branch names may contain slashes (e.g. copilot/sub-pr-43-again) which are
           # invalid in Neon branch names. Replace all invalid characters with hyphens,
-          # lowercase, trim leading/trailing hyphens, and cap at 63 characters.
+          # lowercase, collapse repeated hyphens, trim leading/trailing hyphens, and cap at 63 characters.
           RAW="${{ steps.branch_name.outputs.current_branch }}"
-          SANITIZED=$(echo "$RAW" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/^-*//' | sed 's/-*$//')
+          SANITIZED=$(echo "$RAW" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed 's/[^a-z0-9-]/-/g' \
+            | sed 's/-\{2,\}/-/g' \
+            | sed 's/^-*//' \
+            | sed 's/-*$//')
+          # Fallback slug if the sanitized branch portion is empty
+          if [ -z "$SANITIZED" ]; then
+            SANITIZED="branch"
+          fi
           BRANCH_NAME="preview/pr-${{ github.event.number }}-${SANITIZED}"
           # Truncate to 63 chars if needed
           BRANCH_NAME="${BRANCH_NAME:0:63}"
+          # Trim leading/trailing hyphens again in case truncation cut at a hyphen
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/^-*//' | sed 's/-*$//')
+          # Extremely defensive: ensure we still have a non-empty branch name
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="preview/pr-${{ github.event.number }}-branch"
+            BRANCH_NAME="${BRANCH_NAME:0:63}"
+          fi
           echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
           echo "Sanitized Neon branch name: ${BRANCH_NAME}"
 
