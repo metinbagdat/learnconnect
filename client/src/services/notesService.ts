@@ -102,8 +102,8 @@ export async function createNote(
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
-    if (relatedPathId) doc.relatedPathId = relatedPathId;
-    if (relatedCourseId) doc.relatedCourseId = relatedCourseId;
+    if (relatedPathId !== undefined) doc.relatedPathId = relatedPathId || null;
+    if (relatedCourseId !== undefined) doc.relatedCourseId = relatedCourseId || null;
 
     const docRef = await addDoc(collection(db, 'notes'), doc);
 
