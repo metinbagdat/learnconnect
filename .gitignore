@@ -12,6 +12,7 @@ build/
 
 # Misc
 .DS_Store
+learnconnect-/
 *.pem
 
 # Environment variables
@@ -41,3 +42,4 @@ service-account-key.json
 *.service-account.json
 firebase-service-account*.json
 scripts/service-account-key.json
+.env*.local

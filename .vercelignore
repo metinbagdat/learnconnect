@@ -3,3 +3,9 @@ api/errors/
 api/send-email.js
 api/ai/ayt-curriculum.js
 api/ai/learning-tree.js
+
+# Library files (not serverless endpoints)
+/api/lib/**
+/api/prompts/**
+api/ai/study-plan.js
+
