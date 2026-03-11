@@ -9,7 +9,8 @@
     "check:css": "node scripts/check-no-webkit-css.js",
     "preview": "vite preview",
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js",
-    "test:smoke:regression": "node scripts/smoke-regression-checklist.mjs"
+    "test:smoke:regression": "node scripts/smoke-regression-checklist.mjs",
+    "migrate": "echo \"No migrations to run\""
   },
   "dependencies": {
     "@tanstack/react-query": "^5.17.0",
