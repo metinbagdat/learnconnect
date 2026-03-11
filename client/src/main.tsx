@@ -1,5 +1,10 @@
-import './lib/module-init-fix'
+// CRITICAL: Import SES guard first, before any other imports
+// This ensures the guard is active before React and other modules load
+import './lib/module-init-fix';
+
 import React from 'react'
+// Expose React on window to guard against environments that expect a global React
+;(window as any).React = React;
 import ReactDOM from 'react-dom/client'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from './lib/queryClient'

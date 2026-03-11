@@ -7,63 +7,98 @@
     <title>LearnConnect - TYT & AYT Akıllı Planlayıcı</title>
   </head>
   <body>
-    <div id="root">Yükleniyor...</div>
-
+    <div id="root">Yükleniyor... Eğer bu ekran gitmiyorsa, güvenlik eklentilerinizi geçici olarak devre dışı bırakmayı deneyin.</div>
+    
+    <!-- Inline SES Guard: Run before any bundled JS to intercept SES-related errors -->
     <script>
-      // Early SES / lockdown guard: runs before Vite bundle
-      (function () {
-        try {
-          var sesKeywords = [
+      (function() {
+        'use strict';
+        
+        // Track SES errors seen during initial page load
+        window.__sesInlineGuardErrors = 0;
+        window.__egitimTodaySesGuardActive = true;
+        
+        /**
+         * Check if an error/message is SES-related
+         */
+        function isSesRelated(errorOrMessage) {
+          if (!errorOrMessage) return false;
+          
+          var str = String(errorOrMessage);
+          var message = errorOrMessage.message || str;
+          var stack = errorOrMessage.stack || '';
+          
+          // SES/lockdown patterns
+          var patterns = [
             'SES_UNCAUGHT_EXCEPTION',
             'lockdown-install.js',
             'Removing intrinsics.%',
-            '%MapPrototype%.getOrInsert',
-            '%WeakMapPrototype%.getOrInsert',
-            "can't access property \"useState\", React is undefined"
+            'lockdown',
+            'SES_'
           ];
-
-          function isSesRelatedMessage(msg) {
-            if (!msg || typeof msg !== 'string') return false;
-            return sesKeywords.some(function (k) {
-              return msg.indexOf(k) !== -1;
-            });
-          }
-
-          function handleGlobalError(event) {
-            try {
-              var msg =
-                (event && event.message) ||
-                (event && event.reason && String(event.reason)) ||
-                (event && event.error && String(event.error)) ||
-                '';
-
-              if (isSesRelatedMessage(msg)) {
-                // Downgrade SES/lockdown noise so it doesn't break the app
-                try {
-                  console.warn('[SES guard] Suppressed SES-related error:', msg);
-                } catch (_) {}
-                if (event && typeof event.preventDefault === 'function') {
-                  event.preventDefault();
-                }
-                if (event && typeof event.stopImmediatePropagation === 'function') {
-                  event.stopImmediatePropagation();
-                }
-                return false;
-              }
-            } catch (_) {
-              // Never throw from the guard itself
+          
+          for (var i = 0; i < patterns.length; i++) {
+            if (message.indexOf(patterns[i]) !== -1 || 
+                stack.indexOf(patterns[i]) !== -1 || 
+                str.indexOf(patterns[i]) !== -1) {
+              return true;
             }
           }
-
-          window.__egitimTodaySesGuardActive = true;
-          window.addEventListener('error', handleGlobalError, true);
-          window.addEventListener('unhandledrejection', handleGlobalError, true);
-        } catch (e) {
-          // Guard must never crash the page
+          
+          // React is undefined in SES context
+          var hasReactError = message.indexOf('React is undefined') !== -1 || 
+                              message.indexOf("can't access property \"useState\", React is undefined") !== -1;
+          var hasSesInStack = stack.indexOf('lockdown') !== -1 || 
+                              stack.indexOf('SES') !== -1 || 
+                              str.indexOf('SES') !== -1;
+          
+          if (hasReactError && hasSesInStack) {
+            return true;
+          }
+          
+          return false;
         }
+        
+        /**
+         * Global error handler - runs in capture phase to intercept early
+         */
+        window.addEventListener('error', function(event) {
+          var error = event.error || event.message;
+          
+          if (isSesRelated(error) || isSesRelated(event.message)) {
+            window.__sesInlineGuardErrors++;
+            console.warn('[SES Inline Guard] Intercepted SES error:', event.message);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return false;
+          }
+          
+          // Let normal errors propagate
+          return true;
+        }, true); // Capture phase
+        
+        /**
+         * Unhandled rejection handler
+         */
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event.reason;
+          
+          if (isSesRelated(reason)) {
+            window.__sesInlineGuardErrors++;
+            console.warn('[SES Inline Guard] Intercepted SES promise rejection:', reason);
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return false;
+          }
+          
+          // Let normal rejections propagate
+          return true;
+        }, true); // Capture phase
+        
+        console.info('[SES Inline Guard] Activated');
       })();
     </script>
-
+    
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
