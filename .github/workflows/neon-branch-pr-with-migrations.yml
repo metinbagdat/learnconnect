@@ -271,7 +271,7 @@ jobs:
           fi
           echo "Running database migrations..."
           echo "Using DATABASE_URL (first 30 chars): ${DATABASE_URL:0:30}..."
-          npm run db:push
+          npm run migrate
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
           NEON_SKIP_MIGRATIONS: "${{ env.NEON_SKIP_MIGRATIONS }}"
