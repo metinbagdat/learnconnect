@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 20
 
       - name: Install dependencies
         run: |
@@ -41,7 +41,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 14
+          node-version: 20
 
       - name: Build
         run: |
@@ -50,3 +50,10 @@ jobs:
       - name: Deploy
         run: |
           npm run deploy
+      - name: Check Neon Credentials
+        env:
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          test -n "$NEON_PROJECT_ID"
+          test -n "$NEON_API_KEY"      
