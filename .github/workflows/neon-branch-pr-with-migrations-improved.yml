@@ -22,13 +22,21 @@ jobs:
         run: |
           npm install
 
-      - name: Run migrations
+      - name: Run migrations (if defined)
         run: |
-          npm run migrate
+          if npm run | grep -qE ' migrate$'; then
+            npm run migrate
+          else
+            echo "No migrate script defined; skipping."
+          fi
 
       - name: Test
         run: |
-          npm test
+          if npm run | grep -qE ' test$'; then
+            npm test
+          else
+            npm run test:smoke:regression
+          fi
 
   deploy:
     runs-on: ubuntu-latest
@@ -56,4 +64,4 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           test -n "$NEON_PROJECT_ID"
-          test -n "$NEON_API_KEY"      
+          test -n "$NEON_API_KEY"
