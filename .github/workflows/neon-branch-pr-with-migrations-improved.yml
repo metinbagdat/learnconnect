@@ -79,7 +79,7 @@ jobs:
           fi
           echo "✅ Neon credentials are set"
           echo "Project ID: ${NEON_PROJECT_ID:0:10}..."
-          echo "API Key: ${NEON_API_KEY:0:10}..."
+          echo "API Key: (set)"
 
       - name: Sanitize Branch Name for Neon
         id: sanitize_branch
