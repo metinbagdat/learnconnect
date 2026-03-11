@@ -9,7 +9,7 @@
     "check:css": "node scripts/check-no-webkit-css.js",
     "preview": "vite preview",
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js",
-    "migrate": "drizzle-kit push",
+    "migrate": "node -e \"if(!process.env.DATABASE_URL){console.log('DATABASE_URL not set; skipping migrations');process.exit(0);}require('child_process').spawnSync('drizzle-kit',['push'],{stdio:'inherit'});\"",
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
