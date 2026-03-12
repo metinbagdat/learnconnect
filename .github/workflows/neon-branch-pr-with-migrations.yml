@@ -245,7 +245,13 @@ jobs:
         continue-on-error: true
 
       - name: Seed Database (Optional)
-        run: npm run seed:meb
+        run: |
+          echo "🌱 Seeding database (optional)..."
+          if npm run | grep -qE ' seed:meb\b'; then
+            npm run seed:meb
+          else
+            echo "ℹ️ seed:meb script not found in package.json; skipping seeding."
+          fi
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
         continue-on-error: true
