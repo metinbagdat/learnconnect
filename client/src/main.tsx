@@ -23,4 +23,10 @@ async function bootstrap() {
   );
 }
 
-void bootstrap();
+void bootstrap().catch((error) => {
+  console.error('Bootstrap failed:', error);
+  const root = document.getElementById('root');
+  if (root) {
+    root.textContent = 'Uygulama yüklenemedi. Lütfen sayfayı yenileyin.';
+  }
+});
