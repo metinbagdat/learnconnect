@@ -13,6 +13,7 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+// Singleton Firebase başlatıcı
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Initialize services
