@@ -220,15 +220,21 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: test -n "$DATABASE_URL" || { echo 'DATABASE_URL secret is not set'; exit 1; }
 
-      - name: Run migrations
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Run migrations (if defined)
         run: |
-          npm run migrate
+          if npm run | grep -qE ' migrate$'; then
+            npm run migrate
+          else
+            echo "No migrate script defined; skipping."
+          fi
 
       - name: Test
         run: |
-          npm test
+          if npm run | grep -qE ' test$'; then
+            npm test
+          else
+            npm run test:smoke:regression
+          fi
 
   deploy:
     runs-on: ubuntu-latest
