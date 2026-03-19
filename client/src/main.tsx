@@ -23,15 +23,10 @@ async function bootstrap() {
   );
 }
 
-bootstrap().catch((error) => {
-  console.error('Error during app bootstrap:', error);
-  const rootElement = document.getElementById('root');
-  if (rootElement) {
-    rootElement.innerHTML = `
-      <div style="padding:16px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-        <h1>Something went wrong while starting the app.</h1>
-        <p>Please try refreshing the page. If the problem persists, contact support.</p>
-      </div>
-    `;
+void bootstrap().catch((error) => {
+  console.error('Bootstrap failed:', error);
+  const root = document.getElementById('root');
+  if (root) {
+    root.textContent = 'Uygulama yüklenemedi. Lütfen sayfayı yenileyin.';
   }
 });
