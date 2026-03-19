@@ -191,13 +191,21 @@ jobs:
           NEON_PROJECT_ID: "${{ vars.NEON_PROJECT_ID }}"
           NEON_API_KEY: "${{ secrets.NEON_API_KEY }}"
 
+      - name: Sanitize branch name
+        id: sanitize_branch
+        run: |
+          BRANCH_NAME="${{ needs.setup.outputs.branch }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g')
+          echo "SANITIZED_BRANCH=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Sanitized branch name: ${SANITIZED_BRANCH}"
+
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
         continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch_name: ${{ needs.setup.outputs.neon_branch }}
+          branch_name: preview/pr-${{ github.event.number }}-${{ steps.sanitize_branch.outputs.SANITIZED_BRANCH }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
@@ -277,7 +285,7 @@ jobs:
         uses: neondatabase/schema-diff-action@v1
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          compare_branch: ${{ needs.setup.outputs.neon_branch }}
+          compare_branch: preview/pr-${{ github.event.number }}-${{ steps.sanitize_branch.outputs.SANITIZED_BRANCH }}
           api_key: ${{ secrets.NEON_API_KEY }}
         continue-on-error: true
 
@@ -287,6 +295,13 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
+      - name: Sanitize branch name
+        id: sanitize_branch
+        run: |
+          BRANCH_NAME="${{ needs.setup.outputs.branch }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g')
+          echo "SANITIZED_BRANCH=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
       - name: Delete Neon Branch
         uses: neondatabase/delete-branch-action@v3
         # continue-on-error prevents the workflow from failing when the Neon branch
@@ -294,6 +309,6 @@ jobs:
         continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch: ${{ needs.setup.outputs.neon_branch }}
+          branch: preview/pr-${{ github.event.number }}-${{ steps.sanitize_branch.outputs.SANITIZED_BRANCH }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
