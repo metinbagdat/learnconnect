@@ -7,7 +7,8 @@ build:
 	npm run build
 
 test:
-	npm test
+	@echo "Error: 'npm test' is not configured to run any checks. Failing CI." >&2
+	@exit 1
 
 ci:
 	@echo "CI checks passed"
