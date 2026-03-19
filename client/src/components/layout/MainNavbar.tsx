@@ -1,7 +1,8 @@
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { Search, Menu, X, Home, BookOpen, GraduationCap, NotebookPen, Users, User } from 'lucide-react';
+import { Search, Menu, X, Home, BookOpen, GraduationCap, NotebookPen, Users, User, Award, Crown } from 'lucide-react';
 import { useState } from 'react';
+import GamificationBar from '@/components/gamification/GamificationBar';
 
 export default function MainNavbar() {
   const [location, setLocation] = useLocation();
@@ -12,10 +13,12 @@ export default function MainNavbar() {
   // Plan: egitim.today | Dashboard | Öğrenme Yolları | Kurslar | Defterim | Topluluk | [Ara] [Profil]
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
+    { path: '/basarilar', label: 'Başarılar', icon: Award },
     { path: '/paths', label: 'Öğrenme Yolları', icon: BookOpen },
     { path: '/courses', label: 'Kurslar', icon: GraduationCap },
     { path: '/notebook', label: 'Defterim', icon: NotebookPen },
     { path: '/community', label: 'Topluluk', icon: Users },
+    { path: '/abonelik', label: 'Abonelik', icon: Crown },
   ];
 
   // Add teacher link if user is teacher or admin
@@ -31,6 +34,7 @@ export default function MainNavbar() {
 
   return (
     <>
+      <GamificationBar />
       {/* Desktop Navbar */}
       <nav className="hidden md:flex bg-white border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">

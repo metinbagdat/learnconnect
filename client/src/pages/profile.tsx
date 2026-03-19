@@ -1,12 +1,55 @@
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { BookOpen, NotebookPen, Award, LogOut } from 'lucide-react';
+import { BookOpen, NotebookPen, Award, LogOut, Lock } from 'lucide-react';
 import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Profile() {
   const { user, logout } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast({ title: 'Hata', description: 'Şifreler eşleşmiyor', variant: 'destructive' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: 'Hata', description: 'Yeni şifre en az 6 karakter olmalı', variant: 'destructive' });
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed');
+      toast({ title: 'Başarılı', description: data.message });
+      setShowPasswordForm(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast({ title: 'Hata', description: err.message, variant: 'destructive' });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
 
   return (
     <AuthGuard>
@@ -51,7 +94,63 @@ export default function Profile() {
                 <Award className="h-5 w-5 text-amber-600" />
                 <span className="font-medium text-gray-900">Sertifikalarım</span>
               </button>
+              <button
+                onClick={() => setShowPasswordForm(!showPasswordForm)}
+                className="w-full flex items-center space-x-3 px-4 py-3 bg-gray-50 hover:bg-slate-50 rounded-lg transition-colors"
+              >
+                <Lock className="h-5 w-5 text-slate-600" />
+                <span className="font-medium text-gray-900">Şifre Değiştir</span>
+              </button>
             </div>
+
+            {showPasswordForm && (
+              <form onSubmit={handlePasswordChange} className="mt-6 pt-6 border-t border-gray-100 space-y-4">
+                <h3 className="font-semibold text-gray-900">Şifre Değiştir</h3>
+                <div>
+                  <Label htmlFor="currentPassword">Mevcut Şifre</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="newPassword">Yeni Şifre</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="confirmPassword">Yeni Şifre Tekrar</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="mt-1"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={passwordLoading}>
+                    {passwordLoading ? 'Kaydediliyor...' : 'Şifreyi Güncelle'}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowPasswordForm(false)}>
+                    İptal
+                  </Button>
+                </div>
+              </form>
+            )}
           </div>
 
           <button

@@ -16,6 +16,14 @@ const RegisterPage = React.lazy(() =>
   import('./pages/register.tsx').catch(() => ({ default: () => <div>Register sayfası yükleniyor...</div> }))
 );
 
+const ForgotPasswordPage = React.lazy(() => 
+  import('./pages/forgot-password.tsx').catch(() => ({ default: () => <div>Yükleniyor...</div> }))
+);
+
+const ResetPasswordPage = React.lazy(() => 
+  import('./pages/reset-password.tsx').catch(() => ({ default: () => <div>Yükleniyor...</div> }))
+);
+
 const TytDashboard = React.lazy(() => 
   import('./pages/tyt-dashboard.tsx').catch(() => ({ default: () => <div>TYT Dashboard yükleniyor...</div> }))
 );
@@ -26,6 +34,18 @@ const AytDashboard = React.lazy(() =>
 
 const YksDashboard = React.lazy(() => 
   import('./pages/yks-dashboard.tsx').catch(() => ({ default: () => <div>YKS Dashboard yükleniyor...</div> }))
+);
+
+const DenemeSinaviPage = React.lazy(() => 
+  import('./pages/deneme-sinavi.tsx').catch(() => ({ default: () => <div>Deneme yükleniyor...</div> }))
+);
+
+const BasarilarPage = React.lazy(() => 
+  import('./pages/basarilar.tsx').catch(() => ({ default: () => <div>Başarılar yükleniyor...</div> }))
+);
+
+const AbonelikPage = React.lazy(() => 
+  import('./pages/abonelik.tsx').catch(() => ({ default: () => <div>Abonelik yükleniyor...</div> }))
 );
 
 const TeacherDashboard = React.lazy(() => 
@@ -59,7 +79,7 @@ export default function App() {
   }
   
   // Routes that don't need authentication
-  const publicRoutes = ['/login', '/register']
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
   const isPublicRoute = publicRoutes.includes(location)
   const isAdminRoute = location.startsWith('/admin')
   const isTeacherRoute = location.startsWith('/teacher')
@@ -72,9 +92,12 @@ export default function App() {
   const isCoursesRoute = location === '/courses' || location.startsWith('/courses/')
   const isCommunityRoute = location === '/community' || location.startsWith('/community/')
   const isProfileRoute = location === '/profile' || location.startsWith('/profile/')
+  const isDenemeRoute = location === '/deneme-sinavi' || location.startsWith('/deneme-sinavi')
+  const isBasarilarRoute = location === '/basarilar' || location.startsWith('/basarilar')
+  const isAbonelikRoute = location === '/abonelik' || location.startsWith('/abonelik')
 
   useEffect(() => {
-    if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute) {
+    if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute && !isDenemeRoute && !isBasarilarRoute) {
       fetch('/api/user')
         .then(res => res.json())
         .then(data => {
@@ -100,6 +123,8 @@ export default function App() {
       }>
         {location === '/login' && <LoginPage />}
         {location === '/register' && <RegisterPage />}
+        {location === '/forgot-password' && <ForgotPasswordPage />}
+        {location === '/reset-password' && <ResetPasswordPage />}
       </Suspense>
     )
   }
@@ -187,6 +212,60 @@ export default function App() {
       }>
         <AuthGuard>
           <YksDashboard />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Abonelik Route (Protected)
+  if (isAbonelikRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Abonelik Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <AbonelikPage />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Basarilar Route (Protected)
+  if (isBasarilarRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Başarılar Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <BasarilarPage />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Deneme Sinavi Route (Protected)
+  if (isDenemeRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Deneme Sınavı Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <DenemeSinaviPage />
         </AuthGuard>
       </Suspense>
     )

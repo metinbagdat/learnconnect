@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "description": "A project that implements login and registration functionality using Google and Apple authentication.",
   "main": "src/app.ts",
-  "scripts": {
+ "scripts": {
     "start": "ts-node src/app.ts",
     "build": "tsc",
-  "dev": "ts-node-dev src/app.ts",
-  "test": "echo \"No tests specified\" && exit 0"
-  },
+    "dev": "ts-node-dev src/app.ts",
+    "test": "echo \"No tests specified\" && exit 0"
+},
   "dependencies": {
     "express": "^4.17.1",
     "dotenv": "^10.0.0",

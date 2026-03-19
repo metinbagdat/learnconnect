@@ -201,7 +201,15 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="mt-6 text-center text-sm">
+              <div className="mt-4 text-center">
+                <Link
+                  href="/forgot-password"
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  <BilingualText text="Şifremi Unuttum – Forgot Password?" />
+                </Link>
+              </div>
+              <div className="mt-4 text-center text-sm">
                 <p className="text-gray-600 dark:text-gray-400">
                   <BilingualText text="Hesabınız yok mu? – Don't have an account?" />{" "}
                   <Link

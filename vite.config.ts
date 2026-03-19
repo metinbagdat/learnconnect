@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [
   react({
-    jsxRuntime: 'automatic', // Use React 17+ automatic JSX transform
+    jsxRuntime: 'automatic',
   }),
 ],
   resolve: {
@@ -18,10 +18,9 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: __dirname,
   optimizeDeps: {
-    include: ["firebase", "firebase/auth", "firebase/firestore"],
-    exclude: ["@anthropic-ai/sdk", "ws", "bufferutil"],
+    exclude: ["firebase", "firebase/auth", "firebase/firestore", "firebase/app", "firebase/analytics", "@anthropic-ai/sdk", "ws", "bufferutil"],
   },
   build: {
     outDir: path.resolve(__dirname, "dist"),
@@ -57,6 +56,12 @@ export default defineConfig({
     },
   },
   server: {
-    hmr: { overlay: true },
+    host: "0.0.0.0",
+    port: 5173,
+    hmr: { 
+      host: "localhost",
+      port: 5173,
+      protocol: "ws"
+    },
   },
 });

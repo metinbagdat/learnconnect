@@ -98,6 +98,10 @@ export default function TytDashboard() {
   const [taskDateCustomStart, setTaskDateCustomStart] = useState(getLocalDateString());
   const [taskDateCustomEnd, setTaskDateCustomEnd] = useState(getLocalDateString());
   
+  // Deneme (trial) form state
+  const [showTrialForm, setShowTrialForm] = useState(false);
+  const [trialForm, setTrialForm] = useState({ examDate: getLocalDateString(), matNet: 0, trNet: 0, fenNet: 0, sosNet: 0 });
+  
   const getTasksDateParams = (): { date?: string; startDate?: string; endDate?: string } => {
     const today = getLocalDateString();
     if (taskDateFilter === 'today') return { date: today };
@@ -181,6 +185,41 @@ export default function TytDashboard() {
       return response.json();
     },
     enabled: !!tytProfile
+  });
+
+  // Add trial mutation
+  const addTrialMutation = useMutation({
+    mutationFn: async (data: { examDate: string; matNet?: number; trNet?: number; fenNet?: number; sosNet?: number; netScore?: number }) => {
+      const mat = data.matNet ?? 0;
+      const tr = data.trNet ?? 0;
+      const fen = data.fenNet ?? 0;
+      const sos = data.sosNet ?? 0;
+      const totalNet = data.netScore ?? (mat + tr + fen + sos);
+      const totalQuestions = 120;
+      const correct = Math.round(totalNet * 1.2);
+      const wrong = Math.max(0, totalQuestions - correct - 5);
+      const empty = totalQuestions - correct - wrong;
+      const res = await fetch('/api/tyt/trials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          examDate: data.examDate,
+          netScore: totalNet,
+          correctAnswers: correct,
+          wrongAnswers: wrong,
+          emptyAnswers: empty,
+          subjectScores: { Matematik: mat, Türkçe: tr, Fen: fen, Sosyal: sos },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/trials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/stats'] });
+      toast({ title: language === 'tr' ? 'Deneme eklendi' : 'Trial added' });
+    },
   });
 
   // Complete task mutation
@@ -836,19 +875,88 @@ export default function TytDashboard() {
                     <h2 className="text-2xl font-bold">
                       <BilingualText text="Deneme Sınavları – Trial Exams" />
                     </h2>
-                    <div className="space-x-2">
-                      <Button variant="outline" onClick={() => setLocation('/tyt/trials')}>
-                        <BilingualText text="Tümünü Gör – View All" />
-                      </Button>
-                      <Button onClick={() => setLocation('/tyt/trials/new')}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        <BilingualText text="Yeni Deneme – New Trial" />
-                      </Button>
-                    </div>
+                    <Button onClick={() => setShowTrialForm(!showTrialForm)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      <BilingualText text="Yeni Deneme – New Trial" />
+                    </Button>
                   </div>
 
+                  {/* Deneme Ekleme Formu - Net girişi per subject */}
+                  {showTrialForm && (
+                    <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+                      <CardHeader>
+                        <CardTitle className="text-lg">
+                          <BilingualText text="Deneme Ekle – Add Trial" />
+                        </CardTitle>
+                        <CardDescription>
+                          <BilingualText text="Tarih ve ders bazında net girin – Enter date and net per subject" />
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            addTrialMutation.mutate({
+                              examDate: trialForm.examDate,
+                              matNet: Number(trialForm.matNet) || 0,
+                              trNet: Number(trialForm.trNet) || 0,
+                              fenNet: Number(trialForm.fenNet) || 0,
+                              sosNet: Number(trialForm.sosNet) || 0,
+                            });
+                            setShowTrialForm(false);
+                            setTrialForm({ examDate: getLocalDateString(), matNet: 0, trNet: 0, fenNet: 0, sosNet: 0 });
+                          }}
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4"
+                        >
+                          <div>
+                            <label className="text-sm font-medium mb-1 block">
+                              <BilingualText text="Tarih – Date" />
+                            </label>
+                            <input
+                              type="date"
+                              value={trialForm.examDate}
+                              onChange={(e) => setTrialForm({ ...trialForm, examDate: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-md text-sm"
+                              required
+                            />
+                          </div>
+                          {['matNet', 'trNet', 'fenNet', 'sosNet'].map((key, i) => (
+                            <div key={key}>
+                              <label className="text-sm font-medium mb-1 block">
+                                {['Matematik', 'Türkçe', 'Fen', 'Sosyal'][i]}
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={40}
+                                value={trialForm[key as keyof typeof trialForm]}
+                                onChange={(e) => setTrialForm({ ...trialForm, [key]: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-md text-sm"
+                              />
+                            </div>
+                          ))}
+                          <div className="flex items-end gap-2">
+                            <Button type="submit" disabled={addTrialMutation.isPending}>
+                              {addTrialMutation.isPending ? '...' : (language === 'tr' ? 'Ekle' : 'Add')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setShowTrialForm(false)}>
+                              {language === 'tr' ? 'İptal' : 'Cancel'}
+                            </Button>
+                          </div>
+                        </form>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Toplam Net: {(Number(trialForm.matNet) || 0) + (Number(trialForm.trNet) || 0) + (Number(trialForm.fenNet) || 0) + (Number(trialForm.sosNet) || 0)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {recentTrials.slice(0, 4).map((trial, index) => (
+                    {recentTrials.slice(0, 4).map((trial, index) => {
+                      const targetNet = tytProfile?.targetTytScore ?? 80;
+                      const net = trial.netScore ?? 0;
+                      const netColor = net >= targetNet ? 'bg-green-100 text-green-800 border-green-300' : net >= targetNet * 0.8 ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-red-100 text-red-800 border-red-300';
+                      return (
                       <motion.div
                         key={trial.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -864,7 +972,7 @@ export default function TytDashboard() {
                                   {new Date(trial.examDate).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
                                 </CardDescription>
                               </div>
-                              <Badge variant="outline" className="text-lg font-semibold">
+                              <Badge variant="outline" className={`text-lg font-semibold ${netColor}`}>
                                 {trial.netScore} net
                               </Badge>
                             </div>
@@ -893,7 +1001,7 @@ export default function TytDashboard() {
                           </CardContent>
                         </Card>
                       </motion.div>
-                    ))}
+                    );})}
                   </div>
 
                   {recentTrials.length === 0 && (
@@ -908,7 +1016,7 @@ export default function TytDashboard() {
                             text="İlk deneme sınavınızı ekleyerek ilerlemenizi takip etmeye başlayın – Add your first trial exam to start tracking your progress" 
                           />
                         </p>
-                        <Button onClick={() => setLocation('/tyt/trials/new')}>
+                        <Button onClick={() => setShowTrialForm(true)}>
                           <Plus className="h-4 w-4 mr-2" />
                           <BilingualText text="İlk Denemeni Ekle – Add Your First Trial" />
                         </Button>
