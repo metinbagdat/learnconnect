@@ -66,8 +66,11 @@ service cloud.firestore {
     match /notes/{noteId} {
       allow create: if request.auth != null
                     && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if request.auth != null
-                                  && resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+                 && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+                            && resource.data.userId == request.auth.uid
+                            && request.resource.data.userId == request.auth.uid;
     }
 
     // Study stats - user can read/write own stats
