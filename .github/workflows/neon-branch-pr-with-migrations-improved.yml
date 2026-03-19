@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -20,7 +20,205 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
+          echo "node: $(node -v)"
+          echo "npm: $(npm -v)"
+          if [ -f "package-lock.json" ]; then
+            echo "Running npm ci (clean install)..."
+            if grep -q '"workspaces"' package.json 2>/dev/null || grep -q '"workspaces"' package.json; then
+              echo "Detected npm workspaces — running npm ci --workspaces --include-workspace-root"
+              if npm ci --workspaces --include-workspace-root; then
+                echo "✅ npm ci (workspaces) completed successfully"
+              else
+                echo "❌ npm ci (workspaces) failed — falling back to npm install"
+                npm install
+              fi
+            else
+              if npm ci; then
+                echo "✅ npm ci completed successfully"
+              else
+                echo "❌ npm ci failed — falling back to npm install"
+                npm install
+              fi
+            fi
+          else
+            echo "package-lock.json not found, running npm install..."
+            npm install
+          fi
+
+      - name: Get branch expiration date (2 weeks from now)
+        id: get_expiration_date
+        run: |
+          EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')
+          echo "expires_at=${EXPIRES_AT}" >> "$GITHUB_OUTPUT"
+          echo "Branch will expire at: ${EXPIRES_AT}"
+
+      - name: Check Neon Credentials
+        run: |
+          echo "🔍 Verifying Neon credentials..."
+          if [ -z "$NEON_PROJECT_ID" ]; then
+            echo "❌ ERROR: NEON_PROJECT_ID is not set!"
+            echo ""
+            echo "📋 How to fix:"
+            echo "1. Go to: https://github.com/${{ github.repository }}/settings/variables/actions"
+            echo "2. Click 'New repository variable'"
+            echo "3. Name: NEON_PROJECT_ID"
+            echo "4. Value: Your Neon Project ID (from https://console.neon.tech/)"
+            echo "5. Click 'Add variable'"
+            exit 1
+          fi
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "❌ ERROR: NEON_API_KEY is not set!"
+            echo ""
+            echo "📋 How to fix:"
+            echo "1. Go to: https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "2. Click 'New repository secret'"
+            echo "3. Name: NEON_API_KEY"
+            echo "4. Value: Your Neon API key (from https://console.neon.tech/account/api-keys)"
+            echo "5. Click 'Add secret'"
+            exit 1
+          fi
+          echo "✅ Neon credentials are set"
+          echo "Project ID: ${NEON_PROJECT_ID:0:10}..."
+          echo "API Key: (set)"
+
+      - name: Sanitize Branch Name for Neon
+        id: sanitize_branch
+        run: |
+          # Get the original branch name
+          ORIGINAL_BRANCH="${{ needs.setup.outputs.branch }}"
+          echo "Original branch name: ${ORIGINAL_BRANCH}"
+          
+          # Sanitize: Replace forward slashes and other invalid characters with hyphens
+          SANITIZED_BRANCH=$(echo "${ORIGINAL_BRANCH}" | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9_-]/-/g' | tr '[:upper:]' '[:lower:]')
+          
+          # Ensure it doesn't start or end with a hyphen
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^--\+//' | sed 's/-\+$//')
+          
+          # Ensure it's not empty and has valid length (max 63 chars for Neon branch names)
+          if [ -z "$SANITIZED_BRANCH" ] || [ "$SANITIZED_BRANCH" = "" ]; then
+            echo "⚠️ WARNING: Sanitized branch name is empty, using fallback"
+            SANITIZED_BRANCH="branch"
+          fi
+          
+          # Limit length to prevent issues
+          if [ ${#SANITIZED_BRANCH} -gt 50 ]; then
+            SANITIZED_BRANCH="${SANITIZED_BRANCH:0:50}"
+          fi
+          
+          # Final sanitization: remove any remaining invalid characters
+          SANITIZED_BRANCH=$(echo "${SANITIZED_BRANCH}" | sed 's/^-*//' | sed 's/-*$//')
+          
+          # Ensure it's still not empty after final sanitization
+          if [ -z "$SANITIZED_BRANCH" ] || [ "$SANITIZED_BRANCH" = "" ]; then
+            SANITIZED_BRANCH="pr-${{ github.event.number }}"
+          fi
+          
+          echo "Sanitized branch name: ${SANITIZED_BRANCH}"
+          
+          # Build the Neon branch name with length check
+          NEON_BRANCH="preview/pr-${{ github.event.number }}-${SANITIZED_BRANCH}"
+          if [ ${#NEON_BRANCH} -gt 63 ]; then
+            # Truncate if too long, keeping prefix
+            TRUNCATED_SANITIZED="${SANITIZED_BRANCH:0:$((63 - ${#NEON_BRANCH} + ${#SANITIZED_BRANCH}))}"
+            NEON_BRANCH="preview/pr-${{ github.event.number }}-${TRUNCATED_SANITIZED}"
+          fi
+          
+          echo "Neon branch name: ${NEON_BRANCH}"
+          echo "sanitized_branch=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "neon_branch_name=${NEON_BRANCH}" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Git ref for Neon preview branch exists (create or update)
+        id: ensure_ref
+        run: |
+          set -euo pipefail
+          BRANCH="${{ steps.sanitize_branch.outputs.neon_branch_name }}"
+          REPO="${GITHUB_REPOSITORY}"
+          SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # Validate inputs
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "" ]; then
+            echo "❌ ERROR: Branch name is empty after sanitization!"
+            exit 1
+          fi
+          if [ -z "$SHA" ] || [ "$SHA" = "" ]; then
+            echo "❌ ERROR: SHA is empty!"
+            exit 1
+          fi
+          
+          echo "Checking repo: $REPO, branch: $BRANCH, target sha: $SHA"
+          API="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
+          
+          # Check if ref exists
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GITHUB_TOKEN" "$API")
+          
+          if [ "$http_code" = "200" ]; then
+            echo "Branch exists, updating ref (force) to ${SHA}"
+            update_api="https://api.github.com/repos/${REPO}/git/refs/heads/${BRANCH}"
+            response=$(curl -s -w "\n%{http_code}" -X PATCH -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
+              -d "{\"sha\":\"${SHA}\",\"force\":true}" "$update_api")
+            resp_code=$(echo "$response" | tail -n1)
+            resp_body=$(echo "$response" | sed '$d')
+            
+            if [ "$resp_code" = "200" ] || [ "$resp_code" = "422" ]; then
+              # 422 might mean ref is already at this SHA, which is fine
+              if [ "$resp_code" = "422" ]; then
+                echo "⚠️ Got 422 response (might be already at this SHA), checking response..."
+                if echo "$resp_body" | grep -q "already exists\|current branch\|reference already"; then
+                  echo "✅ Ref is already at the correct SHA, continuing..."
+                else
+                  echo "Response body: $resp_body"
+                  echo "❌ Failed to update ref. HTTP status: $resp_code"
+                  exit 1
+                fi
+              else
+                echo "✅ Updated existing ref."
+              fi
+            else
+              echo "Response body: $resp_body"
+              echo "❌ Failed to update existing ref. HTTP status: $resp_code"
+              exit 1
+            fi
+          elif [ "$http_code" = "404" ]; then
+            echo "Branch does not exist, creating ref..."
+            create_api="https://api.github.com/repos/${REPO}/git/refs"
+            response=$(curl -s -w "\n%{http_code}" -X POST -H "Authorization: Bearer $GITHUB_TOKEN" -H "Content-Type: application/json" \
+              -d "{\"ref\":\"refs/heads/${BRANCH}\",\"sha\":\"${SHA}\"}" "$create_api")
+            resp_code=$(echo "$response" | tail -n1)
+            resp_body=$(echo "$response" | sed '$d')
+            
+            if [ "$resp_code" = "201" ]; then
+              echo "✅ Created ref ${BRANCH}."
+            elif [ "$resp_code" = "422" ]; then
+              # 422 might mean ref already exists (race condition) or invalid input
+              echo "⚠️ Got 422 response when creating ref, checking response..."
+              if echo "$resp_body" | grep -q "already exists\|Reference already"; then
+                echo "✅ Ref already exists (likely created by another run), continuing..."
+              elif echo "$resp_body" | grep -q "invalid\|Invalid"; then
+                echo "Response body: $resp_body"
+                echo "❌ Invalid ref name or SHA. HTTP status: $resp_code"
+                exit 1
+              else
+                echo "Response body: $resp_body"
+                echo "❌ Failed to create ref. HTTP status: $resp_code"
+                exit 1
+              fi
+            else
+              echo "Response body: $resp_body"
+              echo "❌ Failed to create ref. HTTP status: $resp_code"
+              exit 1
+            fi
+          else
+            echo "❌ Unexpected GET ref response: $http_code"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Check DB connection env
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: test -n "$DATABASE_URL" || { echo 'DATABASE_URL secret is not set'; exit 1; }
 
       - name: Run migrations (if defined)
         run: |
@@ -44,7 +242,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -58,6 +256,7 @@ jobs:
       - name: Deploy
         run: |
           npm run deploy
+      
       - name: Check Neon Credentials
         env:
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
