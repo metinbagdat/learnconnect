@@ -24,7 +24,7 @@ type TrialStats = {
 
 type LiveStatsSectionProps = {
   context?: 'home' | 'dashboard';
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'minimal';
   scope?: 'system' | 'trials' | 'all';
   showRoutine?: boolean;
   routineTargetLabel?: string;
