@@ -18,7 +18,8 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: path.resolve(__dirname, "client"),
+  root: __dirname,
+  envDir: __dirname,
   optimizeDeps: {
     include: ["firebase", "firebase/auth", "firebase/firestore"],
     exclude: ["@anthropic-ai/sdk", "ws", "bufferutil"],
