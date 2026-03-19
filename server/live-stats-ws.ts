@@ -8,6 +8,37 @@ const MIN_INTERVAL = 10000;
 const MAX_INTERVAL = 60000;
 const DEFAULT_INTERVAL = 20000;
 
+const SYSTEM_METRICS_TTL_MS = 15000;
+
+let cachedSystemMetrics: unknown | null = null;
+let cachedSystemMetricsAt = 0;
+let inFlightSystemMetricsPromise: Promise<unknown> | null = null;
+
+async function getCachedSystemMetrics() {
+  const now = Date.now();
+
+  if (cachedSystemMetrics !== null && now - cachedSystemMetricsAt < SYSTEM_METRICS_TTL_MS) {
+    return cachedSystemMetrics;
+  }
+
+  if (inFlightSystemMetricsPromise) {
+    return inFlightSystemMetricsPromise;
+  }
+
+  const promise = systemHealthCheck.getSuccessMetrics();
+  inFlightSystemMetricsPromise = promise
+    .then((metrics) => {
+      cachedSystemMetrics = metrics;
+      cachedSystemMetricsAt = Date.now();
+      return metrics;
+    })
+    .finally(() => {
+      inFlightSystemMetricsPromise = null;
+    });
+
+  return inFlightSystemMetricsPromise;
+}
+
 type LiveStatsPayload = {
   type: "live_stats";
   data: {
@@ -68,7 +99,7 @@ export function setupLiveStatsWebsocket(server: Server, app: Express) {
       inFlight = true;
 
       try {
-        const systemMetrics = includeSystem ? await systemHealthCheck.getSuccessMetrics() : null;
+        const systemMetrics = includeSystem ? await getCachedSystemMetrics() : null;
         let trialStatus: "ready" | "unauthorized" | "error" = "unauthorized";
         let trialStats: LiveStatsPayload["data"]["trialStats"] = null;
 
