@@ -25,8 +25,19 @@ const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
 
 try {
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount as admin.ServiceAccount) });
-} catch {
-  // Already initialized (e.g. from another script)
+} catch (error: unknown) {
+  // Allow the specific "already initialized" case; fail fast on everything else
+  if (
+    error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error as { code?: string }).code === 'app/duplicate-app'
+  ) {
+    // Already initialized (e.g. from another script)
+  } else {
+    console.error('❌ Failed to initialize Firebase Admin SDK:', error);
+    process.exit(1);
+  }
 }
 
 const db = admin.firestore();
