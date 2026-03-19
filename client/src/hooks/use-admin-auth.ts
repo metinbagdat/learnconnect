@@ -9,11 +9,7 @@ export function useAdminAuth() {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    if (!isFirebaseConfigured || !auth) {
-      setLoading(false);
-      return;
-    }
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
       if (currentUser) {
