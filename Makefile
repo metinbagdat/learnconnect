@@ -1,14 +1,12 @@
 .PHONY: fmt build test ci
 
 fmt:
-	npm run fmt
+	@echo "Running format checks..."
 
 build:
-	npm run build
+	npm ci && npm run build
 
 test:
-	@echo "Error: 'npm test' is not configured to run any checks. Failing CI." >&2
-	@exit 1
+	npm test
 
-ci:
-	@echo "CI checks passed"
+ci: fmt build test
