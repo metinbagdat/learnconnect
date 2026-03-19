@@ -26,12 +26,17 @@ export interface Certificate {
   metadata?: Record<string, unknown>;
 }
 
-/** Generate a short verification code (8 chars) */
+/** Generate a verification code (16 chars) using a cryptographically secure RNG */
 function generateVerificationCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  // chars.length MUST be 32 (a power of 2) so the bitwise mask below produces an unbiased index
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 32 chars
+  const length = 16;
+  const randomBytes = new Uint8Array(length);
+  crypto.getRandomValues(randomBytes);
   let code = '';
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < length; i++) {
+    // 32 === 0b100000, so mask with 0x1f (31) gives an unbiased index into chars
+    code += chars.charAt(randomBytes[i] & 0x1f);
   }
   return code;
 }
