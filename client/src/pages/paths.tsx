@@ -6,6 +6,7 @@ import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
 import { getAllPaths, getUserProgress, startPath, completeStep, type LearningPath, type UserPathProgress } from '@/services/learningPathsService';
 import { issueCertificate, hasPathCertificate } from '@/services/certificatesService';
+import { getUserId } from '@/lib/user-utils';
 
 export default function LearningPaths() {
   const { user } = useAuth();
@@ -41,7 +42,7 @@ export default function LearningPaths() {
 
     const fetchProgress = async () => {
       try {
-        const userId = String(user.id || user.username);
+        const userId = getUserId(user);
         const progressMap = await getUserProgress(userId);
         setUserProgress(progressMap);
       } catch (error) {
@@ -68,7 +69,7 @@ export default function LearningPaths() {
     if (!user?.username && !user?.id) return;
 
     try {
-      const userId = String(user.id || user.username);
+      const userId = getUserId(user);
       await startPath(userId, pathId);
       
       // Refresh progress
@@ -87,7 +88,7 @@ export default function LearningPaths() {
     if (!user?.username && !user?.id) return;
 
     try {
-      const userId = String(user.id || user.username);
+      const userId = getUserId(user);
       const path = paths.find(p => p.id === pathId);
 
       if (!path) return;

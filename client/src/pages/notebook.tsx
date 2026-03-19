@@ -13,6 +13,7 @@ import {
   type Note,
 } from '@/services/notesService';
 import { getAllPaths, type LearningPath } from '@/services/learningPathsService';
+import { getUserId } from '@/lib/user-utils';
 
 export default function Notebook() {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ export default function Notebook() {
 
     const fetchNotes = async () => {
       try {
-        const userId = String(user.id || user.username);
+        const userId = getUserId(user);
         const [fetchedNotes, tags] = await Promise.all([
           getUserNotes(userId),
           getUserTags(userId),
@@ -111,7 +112,7 @@ export default function Notebook() {
     if ((!user?.username && !user?.id) || (!noteTitle.trim() && !noteContent.trim())) return;
 
     try {
-      const userId = String(user.id || user.username);
+      const userId = getUserId(user);
       const tags = noteTags
         .split(',')
         .map(t => t.trim())
@@ -129,7 +130,6 @@ export default function Notebook() {
         await createNote(userId, title, noteContent, tags);
       }
 
-      // Refresh notes
       const [updatedNotes, updatedTags] = await Promise.all([
         getUserNotes(userId),
         getUserTags(userId),
@@ -156,7 +156,7 @@ export default function Notebook() {
       await deleteNote(selectedNote.id);
       
       // Refresh notes and tags
-      const userId = String(user?.id || user?.username);
+      const userId = getUserId(user);
       const [updatedNotes, updatedTags] = await Promise.all([
         getUserNotes(userId),
         getUserTags(userId),

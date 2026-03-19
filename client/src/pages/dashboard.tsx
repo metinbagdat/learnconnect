@@ -1,17 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { Clock, Flame, Target, BookOpen, Plus, TrendingUp, CheckCircle2, Award } from 'lucide-react';
+import { Clock, Flame, Target, BookOpen, Plus, TrendingUp, Award } from 'lucide-react';
 import MainNavbar from '@/components/layout/MainNavbar';
 import AuthGuard from '@/components/auth/AuthGuard';
+import { StatCard } from '@/components/dashboard/stat-card';
+import { getUserId } from '@/lib/user-utils';
 import type { Note } from '@/services/notesService';
-
-interface StudyStat {
-  id: string;
-  date: string;
-  minutes: number;
-  streakCount: number;
-}
+import type { StudyStat } from '@/services/studyStatsService';
 
 interface LearningPath {
   id: string;
@@ -37,7 +33,7 @@ export default function Dashboard() {
 
     const fetchNotes = async () => {
       try {
-        const userId = String(user.id || user.username);
+        const userId = getUserId(user);
         const { getUserNotes } = await import('@/services/notesService');
         const notes = await getUserNotes(userId, 5);
         setRecentNotes(notes);
@@ -55,7 +51,7 @@ export default function Dashboard() {
 
     const fetchStats = async () => {
       try {
-        const userId = String(user.id);
+        const userId = getUserId(user);
         const { getTodayStats } = await import('@/services/studyStatsService');
         const stat = await getTodayStats(userId);
         setStudyStats(stat);
@@ -74,7 +70,7 @@ export default function Dashboard() {
 
     const fetchPaths = async () => {
       try {
-        const userId = String(user.id || user.username);
+        const userId = getUserId(user);
         const { getAllPaths, getUserProgress } = await import('@/services/learningPathsService');
         
         const [paths, progress] = await Promise.all([
@@ -115,7 +111,7 @@ export default function Dashboard() {
     if (!quickNoteText.trim() || (!user?.username && !user?.id)) return;
 
     try {
-      const userId = String(user.id || user.username);
+      const userId = getUserId(user);
       const { createNote, getUserNotes } = await import('@/services/notesService');
       
       const tags = (quickNoteTags || '').split(',').map(t => t.trim()).filter(t => t.length > 0);
@@ -164,47 +160,25 @@ export default function Dashboard() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Today's Study Time */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-semibold text-gray-900">Bugün Çalışılan</h3>
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">{todayMinutes} dk</div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-              <p className="text-sm text-gray-500 mt-2">Hedef: {todayGoal} dk</p>
-            </div>
-
-            {/* Streak */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <Flame className="h-5 w-5 text-orange-500" />
-                  <h3 className="font-semibold text-gray-900">Seri</h3>
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">🔥 {streak}</div>
-              <p className="text-sm text-gray-500">gün üst üste çalıştın</p>
-            </div>
-
-            {/* Active Paths Count */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <Target className="h-5 w-5 text-purple-600" />
-                  <h3 className="font-semibold text-gray-900">Aktif Yollar</h3>
-                </div>
-              </div>
-              <div className="text-3xl font-bold text-gray-900 mb-2">{activePaths.length}</div>
-              <p className="text-sm text-gray-500">öğrenme yolunda ilerliyorsun</p>
-            </div>
+            <StatCard
+              title="Bugün Çalışılan"
+              value={`${todayMinutes} dk`}
+              description={`Hedef: ${todayGoal} dk`}
+              icon={Clock}
+              progress={progressPct}
+            />
+            <StatCard
+              title="Seri"
+              value={`🔥 ${streak}`}
+              description="gün üst üste çalıştın"
+              icon={Flame}
+            />
+            <StatCard
+              title="Aktif Yollar"
+              value={activePaths.length}
+              description="öğrenme yolunda ilerliyorsun"
+              icon={Target}
+            />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
