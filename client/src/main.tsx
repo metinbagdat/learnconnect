@@ -23,4 +23,15 @@ async function bootstrap() {
   );
 }
 
-void bootstrap();
+bootstrap().catch((error) => {
+  console.error('Error during app bootstrap:', error);
+  const rootElement = document.getElementById('root');
+  if (rootElement) {
+    rootElement.innerHTML = `
+      <div style="padding:16px;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+        <h1>Something went wrong while starting the app.</h1>
+        <p>Please try refreshing the page. If the problem persists, contact support.</p>
+      </div>
+    `;
+  }
+});
