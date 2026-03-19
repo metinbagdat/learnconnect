@@ -102,11 +102,27 @@ service cloud.firestore {
 
     // Community posts (public read, controlled write by document userId)
     match /communityPosts/{postId} {
-      allow read, create: if request.auth != null;
-      allow update, delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
+      allow read: if request.auth != null;
+      // Only allow creating a post for oneself (or by admin)
+      allow create: if request.auth != null
+                    && (isAdmin() || request.resource.data.userId == request.auth.uid);
+      // Only the owner (by userId) or an admin can update/delete,
+      // and ownership (userId) must not change on update
+      allow update, delete: if request.auth != null
+                            && (isAdmin()
+                                || (resource.data.userId == request.auth.uid
+                                    && request.resource.data.userId == request.auth.uid));
       match /comments/{commentId} {
-        allow read, create: if request.auth != null;
-        allow update, delete: if request.auth != null && (resource.data.authorId == request.auth.uid || isAdmin());
+        allow read: if request.auth != null;
+        // Only allow creating a comment for oneself (or by admin)
+        allow create: if request.auth != null
+                      && (isAdmin() || request.resource.data.userId == request.auth.uid);
+        // Only the comment owner (by userId) or an admin can update/delete,
+        // and ownership (userId) must not change on update
+        allow update, delete: if request.auth != null
+                              && (isAdmin()
+                                  || (resource.data.userId == request.auth.uid
+                                      && request.resource.data.userId == request.auth.uid));
       }
     }
 
