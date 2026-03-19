@@ -1,12 +1,12 @@
 .PHONY: fmt build test ci
 
 fmt:
-	@echo "Running format checks..."
+	gofmt -s -w .
 
 build:
-	npm ci && npm run build
+	go build ./...
 
 test:
-	npm test
+	go test ./...
 
 ci: fmt build test
