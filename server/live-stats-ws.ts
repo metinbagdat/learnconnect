@@ -59,10 +59,31 @@ export function setupLiveStatsWebsocket(server: Server, app: Express) {
     | ((req: any, res: any, next: (err?: any) => void) => void)
     | undefined;
 
+  const allowedOrigins =
+    (process.env.LIVE_STATS_WS_ALLOWED_ORIGINS &&
+      process.env.LIVE_STATS_WS_ALLOWED_ORIGINS.split(",").map((o) => o.trim()).filter(Boolean)) ||
+    ["http://localhost:3000"];
+
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
     if (!req.url || !req.url.startsWith("/ws/live-stats")) {
+      return;
+    }
+
+    const origin = req.headers.origin;
+    if (!origin || !allowedOrigins.includes(origin)) {
+      try {
+        socket.write(
+          "HTTP/1.1 403 Forbidden\r\n" +
+            "Connection: close\r\n" +
+            "\r\n"
+        );
+      } catch {
+        // ignore write errors
+      } finally {
+        socket.destroy();
+      }
       return;
     }
 
