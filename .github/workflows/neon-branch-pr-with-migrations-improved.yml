@@ -262,5 +262,35 @@ jobs:
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
-          test -n "$NEON_PROJECT_ID"
-          test -n "$NEON_API_KEY"
+          echo "🔍 Verifying Neon credentials..."
+          if [ -z "$NEON_PROJECT_ID" ]; then
+            echo "❌ ERROR: NEON_PROJECT_ID is not set!"
+            exit 1
+          fi
+          if [ -z "$NEON_API_KEY" ]; then
+            echo "❌ ERROR: NEON_API_KEY is not set!"
+            exit 1
+          fi
+          echo "🌐 Making authenticated API call to verify credentials..."
+          HTTP_STATUS=$(curl --silent --output /dev/null --write-out "%{http_code}" \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID") || {
+            echo "❌ ERROR: curl failed to reach the Neon API (network or DNS error)."
+            exit 1
+          }
+          if ! echo "$HTTP_STATUS" | grep -qE '^[0-9]+$'; then
+            echo "❌ ERROR: Unexpected response from curl: '$HTTP_STATUS'"
+            exit 1
+          fi
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            case "$HTTP_STATUS" in
+              401) echo "❌ ERROR: Neon API returned HTTP 401 Unauthorized. The NEON_API_KEY is invalid or expired." ;;
+              403) echo "❌ ERROR: Neon API returned HTTP 403 Forbidden. The NEON_API_KEY does not have access to the specified project." ;;
+              404) echo "❌ ERROR: Neon API returned HTTP 404 Not Found. The NEON_PROJECT_ID does not exist or is inaccessible." ;;
+              *)   echo "❌ ERROR: Neon API returned HTTP $HTTP_STATUS. Credentials may be invalid or project not found." ;;
+            esac
+            exit 1
+          fi
+          echo "✅ Neon credentials verified successfully (HTTP $HTTP_STATUS)"
+      
