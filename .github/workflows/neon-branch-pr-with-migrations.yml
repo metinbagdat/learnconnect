@@ -20,11 +20,44 @@ jobs:
     name: Setup
     outputs:
       branch: ${{ steps.branch_name.outputs.current_branch }}
+      # Sanitized Neon branch name: slashes and special chars replaced with hyphens
+      # to avoid invalid Neon branch names (e.g. "copilot/sub-pr-43-again" → "copilot-sub-pr-43-again")
+      neon_branch: ${{ steps.neon_branch.outputs.name }}
     runs-on: ubuntu-latest
     steps:
       - name: Get branch name
         id: branch_name
         uses: tj-actions/branch-names@v8
+
+      - name: Sanitize branch name for Neon
+        id: neon_branch
+        run: |
+          # PR branch names may contain slashes (e.g. copilot/sub-pr-43-again) which are
+          # invalid in Neon branch names. Replace all invalid characters with hyphens,
+          # lowercase, collapse repeated hyphens, trim leading/trailing hyphens, and cap at 63 characters.
+          RAW="${{ steps.branch_name.outputs.current_branch }}"
+          SANITIZED=$(echo "$RAW" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed 's/[^a-z0-9-]/-/g' \
+            | sed 's/-\{2,\}/-/g' \
+            | sed 's/^-*//' \
+            | sed 's/-*$//')
+          # Fallback slug if the sanitized branch portion is empty
+          if [ -z "$SANITIZED" ]; then
+            SANITIZED="branch"
+          fi
+          BRANCH_NAME="preview/pr-${{ github.event.number }}-${SANITIZED}"
+          # Truncate to 63 chars if needed
+          BRANCH_NAME="${BRANCH_NAME:0:63}"
+          # Trim leading/trailing hyphens again in case truncation cut at a hyphen
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/^-*//' | sed 's/-*$//')
+          # Extremely defensive: ensure we still have a non-empty branch name
+          if [ -z "$BRANCH_NAME" ]; then
+            BRANCH_NAME="preview/pr-${{ github.event.number }}-branch"
+            BRANCH_NAME="${BRANCH_NAME:0:63}"
+          fi
+          echo "name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+          echo "Sanitized Neon branch name: ${BRANCH_NAME}"
 
       - name: Checkout code
         uses: actions/checkout@v4
@@ -174,13 +207,21 @@ jobs:
           NEON_PROJECT_ID: "${{ vars.NEON_PROJECT_ID }}"
           NEON_API_KEY: "${{ secrets.NEON_API_KEY }}"
 
+      - name: Sanitize branch name
+        id: sanitize_branch
+        run: |
+          BRANCH_NAME="${{ needs.setup.outputs.branch }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g')
+          echo "SANITIZED_BRANCH=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "Sanitized branch name: ${SANITIZED_BRANCH}"
+
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v6
         continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch_name: ${{ needs.setup.outputs.neon_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
           expires_at: ${{ env.EXPIRES_AT }}
 
@@ -238,14 +279,20 @@ jobs:
           fi
           echo "Running database migrations..."
           echo "Using DATABASE_URL (first 30 chars): ${DATABASE_URL:0:30}..."
-          npm run db:push
+          npm run migrate
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
           NEON_SKIP_MIGRATIONS: "${{ env.NEON_SKIP_MIGRATIONS }}"
         continue-on-error: true
 
       - name: Seed Database (Optional)
-        run: npm run seed:meb
+        run: |
+          echo "🌱 Seeding database (optional)..."
+          if npm run | grep -qE ' seed:meb\b'; then
+            npm run seed:meb
+          else
+            echo "ℹ️ seed:meb script not found in package.json; skipping seeding."
+          fi
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
         continue-on-error: true
@@ -254,7 +301,7 @@ jobs:
         uses: neondatabase/schema-diff-action@v1
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          compare_branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          compare_branch: ${{ needs.setup.outputs.neon_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
         continue-on-error: true
 
@@ -264,10 +311,20 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
+      - name: Sanitize branch name
+        id: sanitize_branch
+        run: |
+          BRANCH_NAME="${{ needs.setup.outputs.branch }}"
+          SANITIZED_BRANCH=$(echo "$BRANCH_NAME" | sed 's/[^a-zA-Z0-9-]/-/g' | sed 's/--*/-/g')
+          echo "SANITIZED_BRANCH=${SANITIZED_BRANCH}" >> "$GITHUB_OUTPUT"
+
       - name: Delete Neon Branch
         uses: neondatabase/delete-branch-action@v3
+        # continue-on-error prevents the workflow from failing when the Neon branch
+        # was never created or was already deleted (e.g. branch not found / 404).
+        continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch: ${{ needs.setup.outputs.neon_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
