@@ -34,22 +34,12 @@ export default defineConfig({
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
-        // ✅ ES modules format - better TDZ handling
-        format: 'es',
-        // ✅ Simplified output - no aggressive code generation that causes TDZ issues
-        interop: 'auto',
-        // ✅ Ensure proper module boundaries to prevent TDZ errors
-        // This prevents circular dependencies and ensures proper initialization order
-        preserveModules: false,
-        
-        // Keep all third-party deps in one vendor chunk.
-        // This avoids React initialization order issues seen with SES/lockdown environments
-        // (e.g. "React is undefined" from use-sync-external-store shim).
+        format: "es",
         manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            return 'vendor';
+          if (id.includes("node_modules")) {
+            return "vendor";
           }
-          return null;
+          return undefined;
         },
         chunkFileNames: "js/[name]-[hash:8].js",
         entryFileNames: "js/[name]-[hash:8].js",
