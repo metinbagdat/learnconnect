@@ -75,6 +75,12 @@ server.listen(port, "0.0.0.0", () => {
     } else {
       log("Skipping live stats WebSocket setup in Vercel/serverless environment");
     }
+    // Vercel's serverless environment does not support WebSocket upgrades on `/*`.
+    if (!process.env.VERCEL) {
+      setupLiveStatsWebsocket(server, app);
+    } else {
+      log("Skipping live stats WebSocket setup in Vercel/serverless environment");
+    }
 
     // Setup Vite or static file serving
     if (app.get("env") === "development") {
