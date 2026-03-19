@@ -107,11 +107,27 @@ service cloud.firestore {
       }
     }
 
-    // Certificates - created by admin/backend; public read for verification
+    // Certificates - issued when paths are completed; public read for verification
     match /certificates/{certId} {
+      // Allow direct document lookups for verification by ID
       allow get: if true;
-      allow list: if false;
-      allow create: if request.auth != null && isAdmin();
+
+      // Allow:
+      // - Authenticated users to list only their own certificates via userId filter
+      // - Public verification via a single-document query filtered by verificationCode
+      allow list: if
+        // Owner listing: e.g., getDocs(where('userId', '==', request.auth.uid))
+        (isAuthenticated() && request.query.userId == request.auth.uid)
+        ||
+        // Public verification: e.g., getDocs(where('verificationCode', '==', code)).limit(1)
+        (!isAuthenticated()
+          && request.query.verificationCode is string
+          && request.query.limit == 1);
+
+      // Allow authenticated users to create certificates only for themselves
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+
+      // Disallow any modification of existing certificates
       allow update, delete: if false;
     }
     
