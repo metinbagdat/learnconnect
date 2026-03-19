@@ -4,23 +4,87 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LearnConnect - TYT & AYT Akıllı Planlayıcı</title>
-    <meta name="description" content="Akıllı TYT ve AYT hazırlık planlayıcısı. Kişiselleştirilmiş çalışma programı ile hedeflerine ulaş." />
-    <!-- Open Graph / Facebook -->
+    <meta
+      name="description"
+      content="LearnConnect, TYT & AYT sınavları için akıllı çalışma planlayıcısıdır. Hedeflerinize uygun kişiselleştirilmiş programlar, ilerleme takibi ve verimli çalışma önerileri sunar."
+    />
+    <meta property="og:title" content="LearnConnect - TYT & AYT Akıllı Planlayıcı" />
+    <meta
+      property="og:description"
+      content="TYT ve AYT hazırlığınızı LearnConnect ile planlayın. Akıllı planlama, ilerleme takibi ve verimli çalışma stratejileri tek bir yerde."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://learnconnect.net/" />
-    <meta property="og:title" content="LearnConnect - TYT &amp; AYT Akıllı Planlayıcı" />
-    <meta property="og:description" content="Akıllı TYT ve AYT hazırlık planlayıcısı. Kişiselleştirilmiş çalışma programı ile hedeflerine ulaş." />
-    <meta property="og:image" content="https://learnconnect.net/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="LearnConnect" />
-    <meta property="og:locale" content="tr_TR" />
-    <!-- Twitter Card -->
+    <meta property="og:url" content="https://learnconnect.example.com/" />
+    <meta property="og:image" content="https://learnconnect.example.com/social-preview.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="LearnConnect - TYT &amp; AYT Akıllı Planlayıcı" />
-    <meta name="twitter:description" content="Akıllı TYT ve AYT hazırlık planlayıcısı. Kişiselleştirilmiş çalışma programı ile hedeflerine ulaş." />
-    <meta name="twitter:image" content="https://learnconnect.net/og-image.png" />
+    <meta name="twitter:title" content="LearnConnect - TYT & AYT Akıllı Planlayıcı" />
+    <meta
+      name="twitter:description"
+      content="TYT & AYT için akıllı çalışma planları ve ilerleme takibi sağlayan LearnConnect ile sınav hazırlığınızı optimize edin."
+    />
+    <meta name="twitter:image" content="https://learnconnect.example.com/social-preview.png" />
+    <title>LearnConnect - TYT & AYT Akıllı Planlayıcı</title>
+    <!-- Inline SES noise filter: run as early as possible -->
+    <script>
+      (function() {
+        'use strict';
+
+        window.__sesConsoleNoiseSuppressed = 0;
+
+        function stringOf(value) {
+          try {
+            if (typeof value === 'string') return value;
+            if (value && typeof value.message === 'string') return value.message;
+            return String(value);
+          } catch (_) {
+            return '';
+          }
+        }
+
+        function isSesNoise(args) {
+          var patterns = [
+            'SES Removing unpermitted intrinsics',
+            'Removing intrinsics.%',
+            'lockdown-install.js',
+            '%MapPrototype%.getOrInsert',
+            '%MapPrototype%.getOrInsertComputed',
+            '%WeakMapPrototype%.getOrInsert',
+            '%WeakMapPrototype%.getOrInsertComputed',
+            '%DatePrototype%.toTemporalInstant'
+          ];
+
+          for (var i = 0; i < args.length; i++) {
+            var raw = args[i];
+            var text = stringOf(raw);
+            for (var j = 0; j < patterns.length; j++) {
+              if (text.indexOf(patterns[j]) !== -1) {
+                return true;
+              }
+            }
+          }
+          return false;
+        }
+
+        function wrapConsoleMethod(methodName) {
+          var original = console[methodName];
+          if (typeof original !== 'function') return;
+          console[methodName] = function() {
+            var args = Array.prototype.slice.call(arguments);
+            if (isSesNoise(args)) {
+              window.__sesConsoleNoiseSuppressed++;
+              return;
+            }
+            return original.apply(console, args);
+          };
+        }
+
+        wrapConsoleMethod('error');
+        wrapConsoleMethod('warn');
+        wrapConsoleMethod('info');
+        wrapConsoleMethod('log');
+        wrapConsoleMethod('debug');
+      })();
+    </script>
   </head>
   <body>
     <div id="root">Yükleniyor... Eğer bu ekran gitmiyorsa, güvenlik eklentilerinizi geçici olarak devre dışı bırakmayı deneyin.</div>
@@ -83,7 +147,7 @@
           
           if (isSesRelated(error) || isSesRelated(event.message)) {
             window.__sesInlineGuardErrors++;
-            console.warn('[SES Inline Guard] Intercepted SES error:', event.message);
+            window.__sesInlineGuardLastError = String(event.message || error || '');
             event.preventDefault();
             event.stopImmediatePropagation();
             return false;
@@ -101,7 +165,7 @@
           
           if (isSesRelated(reason)) {
             window.__sesInlineGuardErrors++;
-            console.warn('[SES Inline Guard] Intercepted SES promise rejection:', reason);
+            window.__sesInlineGuardLastRejection = String(reason || '');
             event.preventDefault();
             event.stopImmediatePropagation();
             return false;
@@ -111,7 +175,7 @@
           return true;
         }, true); // Capture phase
         
-        console.info('[SES Inline Guard] Activated');
+        window.__sesInlineGuardActive = true;
       })();
     </script>
     
