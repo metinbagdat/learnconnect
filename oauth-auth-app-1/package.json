@@ -6,8 +6,8 @@
   "scripts": {
     "start": "ts-node src/app.ts",
     "build": "tsc",
-    "dev": "ts-node-dev src/app.ts",
-    "test": "echo \"No tests specified\" && exit 0"
+  "dev": "ts-node-dev src/app.ts",
+  "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "express": "^4.17.1",
