@@ -81,7 +81,7 @@ export async function getAllPaths(): Promise<LearningPath[]> {
     return paths.length > 0 ? paths : [getDefaultPath()];
   } catch (error) {
     console.error('Error fetching paths:', error);
-    return [getDefaultPath()];
+    throw error;
   }
 }
 
