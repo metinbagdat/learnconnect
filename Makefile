@@ -1,10 +1,10 @@
 .PHONY: fmt build test ci
 
 fmt:
-	@echo "Running formatter..."
+	npm run fmt
 
 build:
-	@echo "Building project..."
+	npm run build
 
 test:
 	npm test
