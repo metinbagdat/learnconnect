@@ -5,7 +5,17 @@ import path from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
 
-const BASE_URL = (process.env.BASE_URL || "https://www.egitim.today").replace(/\/$/, "");
+const PROD_URL = "https://www.egitim.today";
+const BASE_URL = (process.env.BASE_URL || PROD_URL).replace(/\/$/, "");
+
+if (BASE_URL === PROD_URL && process.env.ALLOW_PROD !== "1") {
+  console.error(
+    "ERROR: BASE_URL points to the production site. Re-run with ALLOW_PROD=1 to proceed, " +
+      "or set BASE_URL to a staging/local environment."
+  );
+  process.exit(1);
+}
+
 const CHECK_TIMEOUT_MS = Number(process.env.SMOKE_TIMEOUT_MS || 45000);
 const NAV_INTERACTION_THRESHOLD_MS = 3000;
 const PERFORMANCE_THRESHOLD_MS = 3000;
