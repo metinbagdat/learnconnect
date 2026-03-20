@@ -18,7 +18,8 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: __dirname,
+  // Use client/ as Vite root so client/index.html loads React (root index.html is legacy static page)
+  root: path.resolve(__dirname, "client"),
   optimizeDeps: {
     exclude: ["firebase", "firebase/auth", "firebase/firestore", "firebase/app", "firebase/analytics", "@anthropic-ai/sdk", "ws", "bufferutil"],
   },
