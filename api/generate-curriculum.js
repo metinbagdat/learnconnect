@@ -1,5 +1,7 @@
 // TYT/AYT/YKS AI Curriculum Generator
+// Supports OpenAI (primary) and Groq (free fallback)
 import { CURRICULUM_PROMPTS, getPromptByExamType } from './prompts/curriculum-prompts.js';
+import { groqChat, hasGroq } from './lib/groq-client.js';
 
 export default async function handler(req, res) {
   // CORS headers
@@ -50,12 +52,34 @@ export default async function handler(req, res) {
       userPrompt = prompt;
     }
 
-    // Check if OpenAI API key is available
     const openaiApiKey = process.env.OPENAI_API_KEY;
-    
+
+    // Try Groq first if no OpenAI key (free tier)
+    if (!openaiApiKey && hasGroq()) {
+      const groqResult = await groqChat({
+        system: systemPrompt,
+        prompt: userPrompt,
+        maxTokens: 4000,
+        temperature: 0.3,
+        jsonMode: true,
+      });
+      if (groqResult?.content) {
+        try {
+          let parsedData = JSON.parse(groqResult.content);
+          if (parsedData.subjects && Array.isArray(parsedData.subjects)) {
+            return res.status(200).json(parsedData);
+          }
+          if (parsedData.curriculum && Array.isArray(parsedData.curriculum)) {
+            return res.status(200).json({ subjects: parsedData.curriculum });
+          }
+        } catch (e) {
+          console.warn('Groq JSON parse failed:', e);
+        }
+      }
+    }
+
     if (!openaiApiKey) {
-      // Return mock data if OpenAI is not configured
-      console.warn('OpenAI API key not configured, returning mock data');
+      console.warn('No AI API key configured, returning mock data');
       return res.status(200).json({
         subjects: [
           {

@@ -7,10 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [
-  react({
-    jsxRuntime: 'automatic', // Use React 17+ automatic JSX transform
-  }),
-],
+    react({
+      jsxRuntime: "automatic", // Use React 17+ automatic JSX transform
+    }),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
@@ -18,7 +18,8 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
-  root: __dirname,
+  // React app entry is client/index.html (root index.html is legacy static page)
+  root: path.resolve(__dirname, "client"),
   envDir: __dirname,
   optimizeDeps: {
     include: ["firebase", "firebase/auth", "firebase/firestore"],
@@ -46,8 +47,10 @@ export default defineConfig({
         entryFileNames: "js/[name]-[hash:8].js",
         assetFileNames: (assetInfo) => {
           const ext = assetInfo.name?.split(".").pop() || "";
-          if (/png|jpe?g|svg|gif|webp|ico/i.test(ext)) return "images/[name]-[hash:8][extname]";
-          if (/woff2?|eot|ttf|otf/i.test(ext)) return "fonts/[name]-[hash:8][extname]";
+          if (/png|jpe?g|svg|gif|webp|ico/i.test(ext))
+            return "images/[name]-[hash:8][extname]";
+          if (/woff2?|eot|ttf|otf/i.test(ext))
+            return "fonts/[name]-[hash:8][extname]";
           return "assets/[name]-[hash:8][extname]";
         },
       },
@@ -58,6 +61,13 @@ export default defineConfig({
     },
   },
   server: {
-    hmr: { overlay: true },
+    host: "0.0.0.0",
+    port: 5173,
+    hmr: {
+      overlay: true,
+      host: "localhost",
+      port: 5173,
+      protocol: "ws",
+    },
   },
 });

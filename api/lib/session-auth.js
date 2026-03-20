@@ -147,6 +147,29 @@ export function guestUser() {
   };
 }
 
+export function createPasswordResetToken(email, userId) {
+  const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60; // 1 hour
+  const payload = { email: String(email), userId: Number(userId) || 0, exp: expiresAt };
+  const encodedPayload = toBase64Url(JSON.stringify(payload));
+  const signature = signPayload(encodedPayload);
+  return `${encodedPayload}.${signature}`;
+}
+
+export function verifyPasswordResetToken(token) {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const [encodedPayload, signature] = token.split('.');
+  if (!encodedPayload || !signature) return null;
+  const expected = signPayload(encodedPayload);
+  if (!safeCompare(signature, expected)) return null;
+  try {
+    const payload = JSON.parse(fromBase64Url(encodedPayload));
+    if (Number(payload.exp) <= Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 // Vercel treats every file under /api as a serverless route.
 // Expose a default handler so helper modules don't break deployment.
 export default function handler(_req, res) {

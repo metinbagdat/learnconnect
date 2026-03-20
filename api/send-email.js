@@ -65,31 +65,20 @@ Detayları görmek için admin paneline giriş yapın.
       return res.status(400).json({ error: 'Invalid email type' });
     }
 
-    // Here you would integrate with your email service
-    // Examples: SendGrid, Mailgun, AWS SES, Resend, etc.
-    
-    // For now, we'll log it (in production, replace with actual email service)
-    console.log('📧 Email sent:', {
-      to: recipient,
-      subject: template.subject,
-      type,
-      timestamp: new Date().toISOString()
-    });
-
-    // Simulate email sending
-    // In production:
-    /*
-    const sgMail = require('@sendgrid/mail');
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    
-    await sgMail.send({
-      to: recipient,
-      from: 'noreply@learnconnect.com',
-      subject: template.subject,
-      text: template.body,
-      html: template.body.replace(/\n/g, '<br>')
-    });
-    */
+    // Use Resend when RESEND_API_KEY is configured
+    if (process.env.RESEND_API_KEY) {
+      const { Resend } = await import('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const from = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+      await resend.emails.send({
+        from,
+        to: recipient,
+        subject: template.subject,
+        html: template.body.replace(/\n/g, '<br>'),
+      });
+    } else {
+      console.log('📧 Email (simulated):', { to: recipient, subject: template.subject, type });
+    }
 
     return res.status(200).json({
       success: true,
