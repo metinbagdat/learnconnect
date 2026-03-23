@@ -16,7 +16,7 @@ VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
 
-Örnekler için kök [`.env.example`](../.env.example) dosyasına bakın.
+Örnekler için kök [`.env.example`](../.env.example) dosyasına bakın. `.env`’i GitHub’a göndermemek için: [ENV_AND_GITHUB.md](./ENV_AND_GITHUB.md).
 
 ## 2. Veritabanı migration
 
