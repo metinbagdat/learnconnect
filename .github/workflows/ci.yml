@@ -1,10 +1,13 @@
+# Önceki sürüm: Makefile + Go — repoda .go dosyası yoktu, sürekli kırmızıydı.
+# Şimdi: Node 20 + Vite build + smoke test (frontend-build ile uyumlu).
+
 name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -15,24 +18,26 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
+          cache: npm
 
-      - name: Run fmt
-        run: make fmt
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
 
-      - name: Build project
-        run: make build
+      - name: Build (Vite)
+        run: npm run build
 
-      - name: Run tests
-        run: make test
-
-      - name: Run CI
-        run: make ci
+      - name: Smoke regression checklist
+        run: npm run test:smoke:regression
