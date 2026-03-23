@@ -1,5 +1,7 @@
 # GitHub workflow merge çakışması — nasıl çözülür?
 
+**Adım adım PR çözümü:** [RESOLVE_PR_WORKFLOW_CONFLICTS.md](./RESOLVE_PR_WORKFLOW_CONFLICTS.md) · Script: [`scripts/resolve-workflow-merge-conflicts.ps1`](../scripts/resolve-workflow-merge-conflicts.ps1) / [`.sh`](../scripts/resolve-workflow-merge-conflicts.sh)
+
 > **Durum:** `build-and-test.yml` ve `neon-branch-pr-with-migrations-improved.yml` bu repoda **kaldırıldı**. Uzak dalda hâlâ varsa merge’te **`git rm`** ile silin.
 
 `main` ile feature dalını birleştirirken şu dosyalar çakışmış olabilir:

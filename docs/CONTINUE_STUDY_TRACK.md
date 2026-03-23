@@ -2,6 +2,8 @@
 
 Yerelde `npm` / SSL sorunu varsa bu listeyi **GitHub Codespaces** veya başka bir ortamda tamamlayın.
 
+Terminalde `npm error ...` satırlarını **komut sanmayın**; `pm` yerine **`npm`** yazın — bkz. [WINDOWS_NPM_TERMINAL.md](./WINDOWS_NPM_TERMINAL.md).
+
 ## 1. `package-lock.json` senkronu (önerilen)
 
 Kök dizinde:
