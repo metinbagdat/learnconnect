@@ -1,4 +1,4 @@
-# Verifies Vite build on Ubuntu when package.json changes outpace package-lock (e.g. local npm SSL issues).
+# Vite build — lock uyumsuzluğunda npm install fallback
 name: Frontend build
 
 on:
@@ -6,13 +6,18 @@ on:
     branches:
       - main
       - develop
-      - 'study-track-*'
+      - "study-track-*"
   pull_request:
     branches:
       - main
+      - develop
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -20,13 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
 
       - name: Build (Vite)
         run: npm run build

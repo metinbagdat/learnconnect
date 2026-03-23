@@ -2,8 +2,11 @@ name: Build & Deploy to Vercel
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build-and-deploy:
@@ -19,13 +22,18 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
 
       - name: Build frontend (capture logs)
         run: |
@@ -57,7 +65,7 @@ jobs:
           set -o pipefail
           if [ -f build-server.js ]; then
             node build-server.js 2>&1 | tee build-server.log
-          elif npm run 2>/dev/null | rg -q "build:server"; then
+          elif npm run 2>/dev/null | grep -q "build:server"; then
             npm run build:server 2>&1 | tee build-server.log
           else
             echo "No server build required" > build-server.log
@@ -91,7 +99,7 @@ jobs:
           vercel-token: ${{ env.VERCEL_TOKEN }}
           vercel-org-id: ${{ env.VERCEL_ORG_ID }}
           vercel-project-id: ${{ env.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
+          vercel-args: "--prod"
 
       - name: "Optional: Run Neon migrations"
         if: ${{ env.NEON_DATABASE_URL != '' }}

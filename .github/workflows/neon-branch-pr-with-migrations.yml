@@ -15,6 +15,11 @@ permissions:
   contents: read
   pull-requests: write
 
+# NEON_PROJECT_ID (repo variable) yoksa Neon işleri atlanır — kırmızı PR’lar önlenir.
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   setup:
     name: Setup
@@ -63,10 +68,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
 
       - name: Verify project structure
         run: |
@@ -121,6 +126,7 @@ jobs:
       db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
     needs: setup
     if: |
+      vars.NEON_PROJECT_ID != '' &&
       github.event_name == 'pull_request' && (
       github.event.action == 'synchronize'
       || github.event.action == 'opened'
@@ -131,10 +137,10 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
 
       - name: Verify project structure
         run: |
@@ -308,7 +314,7 @@ jobs:
   delete_neon_branch:
     name: Delete Neon Branch
     needs: setup
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: vars.NEON_PROJECT_ID != '' && github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize branch name
