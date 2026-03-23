@@ -16,6 +16,8 @@
     "supabase:db:push": "supabase db push",
     "supabase:secrets:list": "supabase secrets list",
     "supabase:deploy:functions": "supabase functions deploy generate-daily-tasks && supabase functions deploy generate-report",
+    "supabase:deploy:generate-daily-tasks": "supabase functions deploy generate-daily-tasks",
+    "supabase:deploy:generate-report": "supabase functions deploy generate-report",
     "supabase:deploy:all": "supabase db push && supabase functions deploy generate-daily-tasks && supabase functions deploy generate-report"
   },
   "dependencies": {

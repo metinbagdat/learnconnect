@@ -30,11 +30,11 @@ npm run supabase:login
 
 ### 2) Projeyi uzaktaki Supabase projesine bağlayın (bir kez / repo klonundan sonra)
 
-**Reference ID:** Dashboard → **Project Settings** → **General** → **Reference ID** (ör. `sgmeogazkwzvspyptcvc`).
+**Reference ID:** Dashboard → **Project Settings** → **General** → **Reference ID**. Bu repodaki LearnConnect Supabase projesi: **`sgmeogazkwzvspyptcvc`**.
 
 ```bash
-npm run supabase:link -- --project-ref YOUR_PROJECT_REF
-# veya: npx supabase link --project-ref YOUR_PROJECT_REF
+npm run supabase:link -- --project-ref sgmeogazkwzvspyptcvc
+# veya: npx supabase link --project-ref sgmeogazkwzvspyptcvc
 ```
 
 Bu adım, CLI’nın `db push` ve `functions deploy` için hangi projeyi kullanacağını kaydeder.
@@ -66,6 +66,14 @@ npm run supabase:secrets:list
 ```bash
 npm run supabase:deploy:functions
 ```
+
+Tek fonksiyon:
+
+```bash
+npx supabase functions deploy generate-daily-tasks --project-ref sgmeogazkwzvspyptcvc
+```
+
+Yerelde **npm/SSL çalışmıyorsa** deploy’u **GitHub Actions** ile yapın: [CONTINUE_STUDY_TRACK.md](./CONTINUE_STUDY_TRACK.md) bölüm 7, workflow [`.github/workflows/supabase-edge-functions-deploy.yml`](../.github/workflows/supabase-edge-functions-deploy.yml).
 
 Tek komutta (migration + iki fonksiyon — bağlı proje ve yetkiler hazırsa):
 
@@ -136,7 +144,7 @@ Bu script:
 ```bash
 cd /path/to/learnconnect
 npm install
-npm run supabase:link -- --project-ref YOUR_PROJECT_REF
+npm run supabase:link -- --project-ref sgmeogazkwzvspyptcvc
 npm run supabase:deploy:functions
 ```
 
