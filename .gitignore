@@ -15,13 +15,13 @@ build/
 learnconnect-/
 *.pem
 
-# Environment variables — never commit secrets (Vite, Node, Supabase, etc.)
+# Supabase CLI (linked project / local temp)
+supabase/.temp/
+
+# Environment variables
 .env
-.env.*
-!.env.example
-!**/.env.example
-# Legacy explicit names (also covered by .env.*)
 .env.local
+supabase/.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -46,3 +46,4 @@ service-account-key.json
 *.service-account.json
 firebase-service-account*.json
 scripts/service-account-key.json
+.env*.local
