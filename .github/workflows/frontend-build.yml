@@ -1,16 +1,8 @@
-# Vite build — lock uyumsuzluğunda npm install fallback
-name: Frontend build
+# Aynı Vite build artık [ci.yml](ci.yml) içinde otomatik çalışıyor.
+# Bu workflow sadece manuel tetikleme içindir — PR/push’ta çift kırmızı / çift süre oluşmasın diye otomasyon kapatıldı.
+name: Frontend build (manual)
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-      - "study-track-*"
-  pull_request:
-    branches:
-      - main
-      - develop
   workflow_dispatch:
 
 permissions:
