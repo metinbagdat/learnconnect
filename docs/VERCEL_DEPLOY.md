@@ -1,5 +1,7 @@
 # Deploy LearnConnect to Vercel
 
+Yerelde `npm` çalışmıyorsa: build **Vercel sunucularında** yapılır; akış için bkz. [REMOTE_WORKFLOW_GITHUB_VERCEL.md](./REMOTE_WORKFLOW_GITHUB_VERCEL.md).
+
 ## Prerequisites
 
 - A [Vercel](https://vercel.com) account (GitHub login is fine).

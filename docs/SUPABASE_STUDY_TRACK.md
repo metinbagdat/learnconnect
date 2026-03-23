@@ -2,10 +2,97 @@
 
 Bu modül **LearnConnect** içinde `/calisma-takip` altında çalışır; **Supabase Auth** kullanır (ana uygulamanın Firebase oturumundan bağımsızdır).
 
+Yerelde `npm` çalışmıyorsa: kod **GitHub**’a push edilir, **Vercel** build alır — bkz. [REMOTE_WORKFLOW_GITHUB_VERCEL.md](./REMOTE_WORKFLOW_GITHUB_VERCEL.md).
+
 ## Gereksinimler
 
 - [Supabase](https://supabase.com) projesi
-- Supabase CLI (opsiyonel, yerel geliştirme ve deploy için): `npm i -g supabase`
+- Supabase CLI — aşağıdaki **CLI ile tekrarlanabilir kurulum** bölümüne bakın
+
+## Supabase CLI — tekrarlanabilir kurulum (önerilen)
+
+Aynı veritabanı ve Edge Function’ları her ortamda (siz, ekip, CI) yeniden üretmek için migration + CLI kullanın.
+
+### 0) CLI’yı projeye ekleyin (global gerekmez)
+
+```bash
+npm install
+```
+
+Bu repoda Supabase CLI `devDependency` olarak tanımlıdır (`supabase`). Komutlar `npx supabase` veya aşağıdaki `npm run` script’leri ile çalışır.
+
+### 1) Oturum açın (bir kez / makine başına)
+
+```bash
+npm run supabase:login
+# veya: npx supabase login
+```
+
+### 2) Projeyi uzaktaki Supabase projesine bağlayın (bir kez / repo klonundan sonra)
+
+**Reference ID:** Dashboard → **Project Settings** → **General** → **Reference ID** (ör. `sgmeogazkwzvspyptcvc`).
+
+```bash
+npm run supabase:link -- --project-ref YOUR_PROJECT_REF
+# veya: npx supabase link --project-ref YOUR_PROJECT_REF
+```
+
+Bu adım, CLI’nın `db push` ve `functions deploy` için hangi projeyi kullanacağını kaydeder.
+
+### 3) Veritabanı migration’larını uygulayın
+
+```bash
+npm run supabase:db:push
+# veya: npx supabase db push
+```
+
+Kaynak: [supabase/migrations/20250320120000_study_track.sql](../supabase/migrations/20250320120000_study_track.sql)
+
+> Dashboard SQL Editor ile dosyayı elle çalıştırdıysanız ve şema zaten uyumluysa `db push` genelde “no changes” der; yine de ekip için CLI tercih edilir.
+
+### 4) Edge Function secret: DeepSeek
+
+Dashboard → **Project Settings** → **Edge Functions** → **Secrets** → `DEEPSEEK_API_KEY`
+
+veya CLI:
+
+```bash
+npx supabase secrets set DEEPSEEK_API_KEY=sk-xxxxxxxx
+npm run supabase:secrets:list
+```
+
+### 5) Edge Function deploy (çalışma takip)
+
+```bash
+npm run supabase:deploy:functions
+```
+
+Tek komutta (migration + iki fonksiyon — bağlı proje ve yetkiler hazırsa):
+
+```bash
+npm run supabase:deploy:all
+```
+
+### npm script özeti
+
+| Script | Açıklama |
+|--------|----------|
+| `npm run supabase:login` | `supabase login` |
+| `npm run supabase:link -- --project-ref <ref>` | Projeyi bağla |
+| `npm run supabase:db:push` | Migration’ları uygula |
+| `npm run supabase:secrets:list` | Secret isimlerini listele |
+| `npm run supabase:deploy:functions` | `generate-daily-tasks` + `generate-report` |
+| `npm run supabase:deploy:all` | `db push` + her iki fonksiyon |
+
+### Yerelde fonksiyon denemek (isteğe bağlı)
+
+```bash
+npx supabase functions serve generate-daily-tasks --env-file supabase/.env.local
+```
+
+`supabase/.env.local` içinde `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `DEEPSEEK_API_KEY` tanımlayın (bu dosyayı **commit etmeyin**).
+
+---
 
 ## 1. Ortam değişkenleri (Vite)
 
@@ -16,18 +103,13 @@ VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
 
-Örnekler için kök [`.env.example`](../.env.example) dosyasına bakın. `.env`’i GitHub’a göndermemek için: [ENV_AND_GITHUB.md](./ENV_AND_GITHUB.md).
+Örnekler için kök [`.env.example`](../.env.example) dosyasına bakın.
 
 ## 2. Veritabanı migration
 
-1. Supabase Dashboard → **SQL Editor**
-2. [supabase/migrations/20250320120000_study_track.sql](../supabase/migrations/20250320120000_study_track.sql) dosyasının içeriğini yapıştırıp çalıştırın.
+**Önerilen:** Yukarıdaki **Supabase CLI — tekrarlanabilir kurulum** bölümünde `npm run supabase:db:push`.
 
-Veya CLI ile (proje bağlıysa):
-
-```bash
-supabase db push
-```
+Alternatif (tek seferlik): Dashboard → **SQL Editor** → [20250320120000_study_track.sql](../supabase/migrations/20250320120000_study_track.sql) içeriğini yapıştırıp çalıştırın.
 
 Bu script:
 
@@ -53,9 +135,9 @@ Bu script:
 
 ```bash
 cd /path/to/learnconnect
-supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy generate-daily-tasks
-supabase functions deploy generate-report
+npm install
+npm run supabase:link -- --project-ref YOUR_PROJECT_REF
+npm run supabase:deploy:functions
 ```
 
 ### Fonksiyonlar
