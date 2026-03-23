@@ -1,4 +1,4 @@
-# Verifies Vite build on Ubuntu when package.json changes outpace package-lock (e.g. local npm SSL issues).
+# Vite build — lock uyumsuzluğunda npm install fallback
 name: Frontend build
 
 on:
@@ -6,7 +6,7 @@ on:
     branches:
       - main
       - develop
-      - 'study-track-*'
+      - "study-track-*"
   pull_request:
     branches:
       - main

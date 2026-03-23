@@ -1,6 +1,4 @@
-# Önceki sürüm: Makefile + Go — repoda .go dosyası yoktu, sürekli kırmızıydı.
-# Şimdi: Node 20 + Vite build + smoke test (frontend-build ile uyumlu).
-
+# Node 20 + Vite build + smoke test (Makefile/Go yok)
 name: CI
 
 on:
