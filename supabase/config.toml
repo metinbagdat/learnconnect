@@ -1,0 +1,11 @@
+# Supabase local config (optional). See https://supabase.com/docs/guides/cli/config
+project_id = "learnconnect-local"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[functions]
+verify_jwt = true
