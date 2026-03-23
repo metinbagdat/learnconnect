@@ -68,6 +68,12 @@ const AuthGuard = React.lazy(() =>
   import('./components/auth/AuthGuard.tsx').catch(() => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 );
 
+const StudyTrackApp = React.lazy(() =>
+  import('./pages/study-track/StudyTrackApp.tsx').catch(() => ({
+    default: () => <div>Çalışma takip yükleniyor...</div>,
+  })),
+);
+
 export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -95,8 +101,13 @@ export default function App() {
   const isDenemeRoute = location === '/deneme-sinavi' || location.startsWith('/deneme-sinavi')
   const isBasarilarRoute = location === '/basarilar' || location.startsWith('/basarilar')
   const isAbonelikRoute = location === '/abonelik' || location.startsWith('/abonelik')
+  const isStudyTrackRoute = location.startsWith('/calisma-takip')
 
   useEffect(() => {
+    if (isStudyTrackRoute) {
+      setLoading(false)
+      return
+    }
     if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute && !isDenemeRoute && !isBasarilarRoute) {
       fetch('/api/user')
         .then(res => res.json())
@@ -108,7 +119,23 @@ export default function App() {
     } else {
       setLoading(false)
     }
-  }, [isPublicRoute, isAdminRoute, isTeacherRoute, isTytRoute, isAytRoute, isYksRoute])
+  }, [isPublicRoute, isAdminRoute, isTeacherRoute, isTytRoute, isAytRoute, isYksRoute, isStudyTrackRoute])
+
+  // Supabase study-track module (separate auth)
+  if (isStudyTrackRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+          <div className="text-center text-slate-400">
+            <div className="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm">Çalışma takip yükleniyor…</p>
+          </div>
+        </div>
+      }>
+        <StudyTrackApp />
+      </Suspense>
+    )
+  }
 
   // Public routes (Login/Register)
   if (isPublicRoute) {
