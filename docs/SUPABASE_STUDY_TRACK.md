@@ -2,7 +2,7 @@
 
 Bu modül **LearnConnect** içinde `/calisma-takip` altında çalışır; **Supabase Auth** kullanır (ana uygulamanın Firebase oturumundan bağımsızdır).
 
-Yerelde `npm` çalışmıyorsa: kod **GitHub**’a push edilir, **Vercel** build alır — bkz. [REMOTE_WORKFLOW_GITHUB_VERCEL.md](./REMOTE_WORKFLOW_GITHUB_VERCEL.md).
+Yerelde `npm` çalışmıyorsa: kod **GitHub**’a push edilir, **Vercel** build alır — bkz. [REMOTE_WORKFLOW_GITHUB_VERCEL.md](./REMOTE_WORKFLOW_GITHUB_VERCEL.md). Kalan adımlar: [CONTINUE_STUDY_TRACK.md](./CONTINUE_STUDY_TRACK.md).
 
 ## Gereksinimler
 

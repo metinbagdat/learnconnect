@@ -2,6 +2,8 @@
 
 Yerelde `npm` çalışmıyorsa: build **Vercel sunucularında** yapılır; akış için bkz. [REMOTE_WORKFLOW_GITHUB_VERCEL.md](./REMOTE_WORKFLOW_GITHUB_VERCEL.md).
 
+**Kurulum komutu:** [`vercel.json`](../vercel.json) şu an `installCommand: npm install` (lock dosyası gecikmiş ortamlarda `npm ci` hatasını önlemek için). Lock senkron olduktan sonra isterseniz `npm ci`ye dönebilirsiniz — bkz. [CONTINUE_STUDY_TRACK.md](./CONTINUE_STUDY_TRACK.md).
+
 ## Prerequisites
 
 - A [Vercel](https://vercel.com) account (GitHub login is fine).

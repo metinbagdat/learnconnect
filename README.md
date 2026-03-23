@@ -54,6 +54,7 @@ Vite, `http://localhost:5173` adresinde çalışacaktır.
 - [Vercel / env adımları](docs/VERCEL_DEPLOY.md)  
 - [GitHub → Vercel uzak akış (npm olmadan)](docs/REMOTE_WORKFLOW_GITHUB_VERCEL.md)  
 - [Çalışma takip modülü (Supabase)](docs/SUPABASE_STUDY_TRACK.md)
+- [Study track: kalan adımlar / lock / merge](docs/CONTINUE_STUDY_TRACK.md)
 
 ## 📁 Proje Yapısı
 

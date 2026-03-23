@@ -56,3 +56,5 @@ Lock dosyası güncellenmeden `npm ci` bazen takılabilir. Seçenekler:
 | Yerel `.env` | Sadece local dev için; zorunlu değil |
 
 **Sonuç:** “Her şey GitHub, oradan Vercel” sistemi = **Git bağlantısı + Vercel Git entegrasyonu**. Yerelde SSL hatası olsa bile **push → Vercel build** akışı çalışır; geliştirmeyi tamamen uzakta yapmak için **Codespaces** kullanın.
+
+Study track / lock / branch birleştirme için ek checklist: [CONTINUE_STUDY_TRACK.md](./CONTINUE_STUDY_TRACK.md).
