@@ -21,8 +21,20 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  neon-not-configured:
+    name: Neon (devre dışı)
+    if: vars.NEON_PROJECT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip
+        run: |
+          echo "NEON_PROJECT_ID tanımlı değil — Neon preview/migration adımları atlandı."
+          echo "Neon kullanacaksanız: Repo Settings → Variables → NEON_PROJECT_ID"
+
   setup:
     name: Setup
+    # NEON yoksa tüm Neon işleri atlanır (boş PR’larda gereksiz npm + kırmızı run yok)
+    if: vars.NEON_PROJECT_ID != ''
     outputs:
       branch: ${{ steps.branch_name.outputs.current_branch }}
       # Sanitized Neon branch name: slashes and special chars replaced with hyphens
