@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { extractJsonObject } from "../_shared/parse_ai_json.ts";
 
 type TaskRow = {
   title: string;
@@ -13,6 +14,15 @@ const DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  let body: { dayStartIso?: string; dayEndIso?: string } = {};
+  if (req.method === "POST") {
+    try {
+      body = await req.json();
+    } catch {
+      /* boş gövde veya geçersiz JSON */
+    }
   }
 
   try {
@@ -51,13 +61,22 @@ Deno.serve(async (req) => {
     const dailyMinutes = student?.daily_minutes ?? 60;
     const currentNet = student?.current_net ?? 0;
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const utcMidnight = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const dayStart =
+      body.dayStartIso ?? utcMidnight.toISOString();
+    const dayEnd =
+      body.dayEndIso ??
+      new Date(utcMidnight.getTime() + 86400000).toISOString();
+
     const { data: todaysTasks } = await supabase
       .from("tasks")
       .select("id")
       .eq("student_id", uid)
-      .gte("created_at", startOfDay.toISOString());
+      .gte("created_at", dayStart)
+      .lt("created_at", dayEnd);
 
     if (todaysTasks && todaysTasks.length >= 3) {
       return jsonResponse({
@@ -133,7 +152,10 @@ Deno.serve(async (req) => {
     const raw = aiJson?.choices?.[0]?.message?.content ?? "{}";
     let parsed: { tasks?: TaskRow[] };
     try {
-      parsed = JSON.parse(raw);
+      const jsonStr = extractJsonObject(
+        typeof raw === "string" ? raw : JSON.stringify(raw),
+      );
+      parsed = JSON.parse(jsonStr);
     } catch {
       return jsonResponse({ error: "AI yanıtı JSON değil", raw }, 502);
     }

@@ -14,7 +14,7 @@ export default function Header({ streakDays, onSettingsClick }: Props) {
     >
       <p className="text-[15px] font-semibold tracking-tight text-slate-100">
         <span className="mr-1" aria-hidden>
-          🔥
+          ⚙️
         </span>
         Streak:{" "}
         <span className="text-amber-400">{streakDays}</span> gün

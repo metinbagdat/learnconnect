@@ -3,11 +3,19 @@ import { useLocation } from "wouter";
 import { getSupabase } from "@/lib/supabaseClient";
 import { trackStudyEvent } from "@/lib/studyTrackAnalytics";
 import {
+  ensureStudentRow,
+  fetchStudyLogs,
+  fetchTodayTasks,
+  getLocalDayBoundsIso,
+  updateStudentCurrentNet,
+} from "@/lib/studyTrackApi";
+import {
   last7DailyNet,
   streakDaysFromLogs,
   topicsNotStudiedInDays,
 } from "@/lib/studyTrackUtils";
 import StudyTrackShell from "./StudyTrackShell";
+import DashboardSkeleton from "./DashboardSkeleton";
 import Header from "./Header";
 import TodayPlanCard, { type PlanTask } from "./TodayPlanCard";
 import ProgressBar from "./ProgressBar";
@@ -15,12 +23,6 @@ import WarningCard from "./WarningCard";
 import NetChart from "./NetChart";
 import TargetCard from "./TargetCard";
 import ReportShareModal from "./ReportShareModal";
-
-function startOfTodayIso(): string {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-}
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -43,54 +45,27 @@ export default function Dashboard() {
     } = await sb.auth.getUser();
     if (!user) return;
 
-    let { data: student } = await sb
-      .from("students")
-      .select("goal_net, current_net")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (!student) {
-      await sb.from("students").insert({
-        id: user.id,
-        goal_net: 40,
-        daily_minutes: 60,
-        current_net: 0,
-      });
-      const again = await sb
-        .from("students")
-        .select("goal_net, current_net")
-        .eq("id", user.id)
-        .maybeSingle();
-      student = again.data;
-    }
-
+    const student = await ensureStudentRow(user.id);
     if (student) {
       setGoalNet(student.goal_net ?? 40);
       setCurrentNet(student.current_net ?? 0);
     }
 
-    const since = new Date();
-    since.setDate(since.getDate() - 60);
+    const logRows = await fetchStudyLogs(user.id, 60);
+    setLogs(
+      logRows.map((l) => ({
+        topic_id: l.topic_id,
+        duration: l.duration,
+        net: l.net,
+        created_at: l.created_at,
+      })),
+    );
 
-    const { data: logRows } = await sb
-      .from("study_logs")
-      .select("topic_id, duration, net, created_at")
-      .eq("student_id", user.id)
-      .gte("created_at", since.toISOString())
-      .order("created_at", { ascending: false });
-
-    setLogs(logRows ?? []);
-
-    const start = startOfTodayIso();
-    const { data: taskRows } = await sb
-      .from("tasks")
-      .select("id, title, duration, type, completed, created_at")
-      .eq("student_id", user.id)
-      .gte("created_at", start)
-      .order("created_at", { ascending: true });
+    const { dayStartIso, dayEndIso } = getLocalDayBoundsIso();
+    const taskRows = await fetchTodayTasks(user.id, dayStartIso, dayEndIso);
 
     setTasks(
-      (taskRows ?? []).map((t) => ({
+      taskRows.map((t) => ({
         id: t.id,
         title: t.title,
         duration: t.duration,
@@ -108,7 +83,10 @@ export default function Dashboard() {
       await trackStudyEvent("app_opened", { path: "/calisma-takip/panel" });
       try {
         const sb = getSupabase();
-        await sb.functions.invoke("generate-daily-tasks", { body: {} });
+        const { dayStartIso, dayEndIso } = getLocalDayBoundsIso();
+        await sb.functions.invoke("generate-daily-tasks", {
+          body: { dayStartIso, dayEndIso },
+        });
       } catch (e) {
         console.warn("generate-daily-tasks", e);
       }
@@ -153,12 +131,13 @@ export default function Dashboard() {
       data: { user },
     } = await sb.auth.getUser();
     if (!user) return;
-    const start = startOfTodayIso();
+    const { dayStartIso, dayEndIso } = getLocalDayBoundsIso();
     await sb
       .from("tasks")
       .update({ completed: true })
       .eq("student_id", user.id)
-      .gte("created_at", start);
+      .gte("created_at", dayStartIso)
+      .lt("created_at", dayEndIso);
     await trackStudyEvent("task_completed", { bulk: true });
     await load();
   };
@@ -209,13 +188,7 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <StudyTrackShell>
-        <div className="flex-1 flex items-center justify-center text-slate-400">
-          Yükleniyor…
-        </div>
-      </StudyTrackShell>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (

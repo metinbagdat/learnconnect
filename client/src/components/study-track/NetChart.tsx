@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import {
-  Area,
-  AreaChart,
   CartesianGrid,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -30,13 +30,7 @@ export default function NetChart({ data }: Props) {
       </div>
       <div className={styles.chartWrap}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-            <defs>
-              <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34d399" stopOpacity={0.5} />
-                <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
-              </linearGradient>
-            </defs>
+          <LineChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
             <XAxis
               dataKey="label"
@@ -60,17 +54,15 @@ export default function NetChart({ data }: Props) {
               }}
               labelStyle={{ color: "#e2e8f0" }}
             />
-            <Area
+            <Line
               type="monotone"
               dataKey="value"
               stroke="#34d399"
               strokeWidth={2.5}
-              fillOpacity={1}
-              fill="url(#netGradient)"
               dot={{ r: 3, fill: "#22d3ee", stroke: "#0f172a", strokeWidth: 2 }}
               activeDot={{ r: 5 }}
             />
-          </AreaChart>
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
