@@ -15,9 +15,26 @@ permissions:
   contents: read
   pull-requests: write
 
+# NEON_PROJECT_ID (repo variable) yoksa Neon işleri atlanır — kırmızı PR’lar önlenir.
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
+  neon-not-configured:
+    name: Neon (devre dışı)
+    if: vars.NEON_PROJECT_ID == ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip
+        run: |
+          echo "NEON_PROJECT_ID tanımlı değil — Neon preview/migration adımları atlandı."
+          echo "Neon kullanacaksanız: Repo Settings → Variables → NEON_PROJECT_ID"
+
   setup:
     name: Setup
+    # NEON yoksa tüm Neon işleri atlanır (boş PR’larda gereksiz npm + kırmızı run yok)
+    if: vars.NEON_PROJECT_ID != ''
     outputs:
       branch: ${{ steps.branch_name.outputs.current_branch }}
       # Sanitized Neon branch name: slashes and special chars replaced with hyphens
@@ -60,13 +77,13 @@ jobs:
           echo "Sanitized Neon branch name: ${BRANCH_NAME}"
 
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
 
       - name: Verify project structure
         run: |
@@ -121,6 +138,7 @@ jobs:
       db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
     needs: setup
     if: |
+      vars.NEON_PROJECT_ID != '' &&
       github.event_name == 'pull_request' && (
       github.event.action == 'synchronize'
       || github.event.action == 'opened'
@@ -128,13 +146,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: npm
 
       - name: Verify project structure
         run: |
@@ -308,7 +326,7 @@ jobs:
   delete_neon_branch:
     name: Delete Neon Branch
     needs: setup
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: vars.NEON_PROJECT_ID != '' && github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Sanitize branch name

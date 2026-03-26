@@ -1,0 +1,15 @@
+# Supabase CLI — https://supabase.com/docs/guides/functions/function-configuration
+# NOT: [functions] altında doğrudan verify_jwt = true/false kullanmayın (CLI parse hatası).
+project_id = "learnconnect-local"
+
+[api]
+enabled = true
+
+[db]
+major_version = 15
+
+[functions.generate-daily-tasks]
+verify_jwt = true
+
+[functions.generate-report]
+verify_jwt = true

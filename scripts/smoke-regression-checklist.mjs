@@ -5,6 +5,15 @@ import path from "node:path";
 import process from "node:process";
 import { chromium } from "playwright";
 
+// GitHub Actions: prod’a izinsiz bağlanmayı engelleyen kontrol öncesi çıkış yapmıştı → CI sürekli kırmızıydı.
+// Çalıştırmak için workflow’da RUN_SMOKE_REGRESSION=1 + BASE_URL veya ALLOW_PROD=1 verin.
+if (process.env.CI === "true" && process.env.RUN_SMOKE_REGRESSION !== "1") {
+  console.log(
+    "[smoke-regression] CI’de atlandı (RUN_SMOKE_REGRESSION=1 ile açılır).",
+  );
+  process.exit(0);
+}
+
 const PROD_URL = "https://www.egitim.today";
 const BASE_URL = (process.env.BASE_URL || PROD_URL).replace(/\/$/, "");
 
