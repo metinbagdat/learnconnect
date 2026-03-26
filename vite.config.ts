@@ -56,6 +56,7 @@ export default defineConfig({
       },
       onwarn(warning, warn) {
         if (warning.code === "CIRCULAR_DEPENDENCY") return;
+        if (warning.code === "UNRESOLVED_IMPORT") return;
         warn(warning);
       },
     },
