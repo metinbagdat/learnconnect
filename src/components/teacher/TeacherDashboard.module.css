@@ -1,0 +1,590 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 20px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Header ──────────────────────────────────────── */
+.header {
+  margin-bottom: 28px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  color: #6b7280;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* ── Tab Bar ──────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 28px;
+}
+
+.tab {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 6px 6px 0 0;
+  transition: all 0.15s ease;
+}
+
+.tab:hover {
+  color: #667eea;
+  background: #f5f3ff;
+}
+
+.tabActive {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  font-weight: 600;
+}
+
+/* ── Stat Cards ──────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-top: 4px solid #667eea;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s;
+}
+
+.statCard:hover {
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.12);
+}
+
+.statIcon {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+}
+
+.statValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Search ──────────────────────────────────────── */
+.searchInput {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  margin-bottom: 16px;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ── Table ──────────────────────────────────────── */
+.tableWrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.table thead {
+  background: #f9fafb;
+}
+
+.table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tableRow {
+  transition: background 0.1s;
+}
+
+.tableRow:hover {
+  background: #f5f3ff;
+}
+
+.table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  vertical-align: middle;
+}
+
+.tableRow:last-child td {
+  border-bottom: none;
+}
+
+.emptyRow {
+  text-align: center;
+  color: #9ca3af;
+  padding: 32px !important;
+}
+
+/* ── Score Badge ─────────────────────────────────── */
+.scoreBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.gradePill {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  line-height: 26px;
+  text-align: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* ── Progress Bar ─────────────────────────────────── */
+.progressBar {
+  width: 80px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.progressText {
+  font-size: 0.8rem;
+  color: #6b7280;
+  vertical-align: middle;
+}
+
+/* ── Student ID column ───────────────────────────── */
+.userId {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.userIdText {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.dimText {
+  color: #9ca3af;
+}
+
+.detailBtn {
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.detailBtn:hover {
+  opacity: 0.85;
+}
+
+/* ── Detail Panel ─────────────────────────────────── */
+.detailPanel {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 24px;
+}
+
+.backBtn {
+  background: none;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: #374151;
+  margin-bottom: 16px;
+  transition: border-color 0.15s;
+}
+
+.backBtn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.detailTitle {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px;
+}
+
+.detailTitle code {
+  font-size: 0.95rem;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #667eea;
+}
+
+.miniStats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.miniStats strong {
+  color: #111827;
+}
+
+/* ── Sub Tabs ──────────────────────────────────────── */
+.subTabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.subTab {
+  padding: 8px 18px;
+  border: 1.5px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: #6b7280;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.subTab:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.subTabActive {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+  color: #fff !important;
+}
+
+/* ── Curriculum Grid ──────────────────────────────── */
+.curriculumGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.topicCard {
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.topicCard:hover {
+  border-color: #a78bfa;
+}
+
+.topicDone {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.topicName {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.topicMeta {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  margin-bottom: 8px;
+}
+
+.topicStatus {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.statusDone {
+  color: #16a34a;
+}
+
+/* ── Misc ──────────────────────────────────────────── */
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+
+.hint {
+  font-size: 0.83rem;
+  color: #9ca3af;
+  margin: 0 0 12px;
+}
+
+.content {
+  min-height: 300px;
+}
+
+.liveControls {
+  margin-bottom: 16px;
+}
+
+.liveControlRow {
+  display: grid;
+  grid-template-columns: 1.2fr 1.2fr 0.7fr 0.7fr auto auto;
+  gap: 8px;
+}
+
+.liveControlRowAssignments {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.9fr 1fr auto auto;
+  gap: 8px;
+}
+
+.studentPickerBox {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.studentPickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.studentPickerActions {
+  display: flex;
+  gap: 6px;
+}
+
+.studentPickerList {
+  max-height: 140px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.studentOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.liveGrid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.actionCell {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.startBtn {
+  padding: 5px 12px;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.endBtn {
+  padding: 5px 12px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.assignmentFeedback {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+}
+
+.assignmentFeedback p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.assignmentFeedbackMeta {
+  margin-top: 6px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.skippedIdList {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.skippedIdChip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.assignmentFeedbackSuccess {
+  background: #ecfdf5;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.assignmentFeedbackWarn {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.assignmentFeedbackError {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+/* ── Responsive ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .statsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .miniStats {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tabBar {
+    overflow-x: auto;
+  }
+
+  .tab {
+    white-space: nowrap;
+  }
+
+  .liveGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .liveControlRow {
+    grid-template-columns: 1fr;
+  }
+
+  .liveControlRowAssignments {
+    grid-template-columns: 1fr;
+  }
+}

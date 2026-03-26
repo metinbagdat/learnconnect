@@ -1,6 +1,6 @@
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { Search, Menu, X, Home, BookOpen, GraduationCap, NotebookPen, Users, User, Award, Crown } from 'lucide-react';
+import { Search, Menu, X, Home, BookOpen, GraduationCap, NotebookPen, Users, User, Award, Crown, LayoutGrid } from 'lucide-react';
 import { useState } from 'react';
 import GamificationBar from '@/components/gamification/GamificationBar';
 
@@ -13,6 +13,7 @@ export default function MainNavbar() {
   // Plan: egitim.today | Dashboard | Öğrenme Yolları | Kurslar | Defterim | Topluluk | [Ara] [Profil]
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
+    { path: '/panel/ogrenci', label: 'Öğrenci paneli', icon: LayoutGrid },
     { path: '/basarilar', label: 'Başarılar', icon: Award },
     { path: '/paths', label: 'Öğrenme Yolları', icon: BookOpen },
     { path: '/courses', label: 'Kurslar', icon: GraduationCap },
