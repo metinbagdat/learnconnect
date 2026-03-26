@@ -99,10 +99,17 @@
 
 ### Phase 2 — Retention (2–4 hafta)
 
-- Bildirimler & duyurular  
-- Görev sistemi (öğretmen atar → öğrenci task tracker’da görür)  
-- İlerleme senkronu (ders tamamlama %)  
-- Streak ve günlük hatırlatma (push/email sonra)
+**Repo durumu (uygulandı):**
+
+- **Duyurular:** Neon `lms_announcements` + `GET /api/user/announcements` — öğrenci `/panel/ogrenci` üst bölümünde.  
+- **Görev sistemi:** Neon `lms_learner_tasks` + `GET/PATCH/POST /api/user/learner-tasks` (öğrenci), `POST /api/teacher/learner-tasks` (öğretmen/admin). Öğretmen formu: `/teacher` altında “LMS — Öğrenciye görev ata”.  
+- Migration: `migrations/lms_phase2_neon.sql` — `DATABASE_URL` (Neon) gerekir.
+
+**Sonraki (backlog):**
+
+- Push / e-posta hatırlatma  
+- İlerleme senkronu (ders tamamlama % ile görev bağlama)  
+- Bildirim merkezi (in-app)
 
 ### Phase 3 — Ölçek & eğitmen
 

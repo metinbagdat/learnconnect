@@ -56,6 +56,10 @@ const Dashboard = React.lazy(() =>
   import('./pages/dashboard.tsx').catch(() => ({ default: () => <div>Dashboard yükleniyor...</div> }))
 );
 
+const LearnerLmsDashboard = React.lazy(() =>
+  import('./pages/learner-lms-dashboard.tsx').catch(() => ({ default: () => <div>Öğrenci paneli yükleniyor...</div> }))
+);
+
 const Notebook = React.lazy(() => 
   import('./pages/notebook.tsx').catch(() => ({ default: () => <div>Defterim yükleniyor...</div> }))
 );
@@ -93,6 +97,7 @@ export default function App() {
   const isAytRoute = location.startsWith('/ayt-dashboard')
   const isYksRoute = location.startsWith('/yks-dashboard')
   const isDashboardRoute = location === '/dashboard' || location.startsWith('/dashboard/')
+  const isLearnerLmsRoute = location === '/panel/ogrenci' || location.startsWith('/panel/ogrenci/')
   const isNotebookRoute = location === '/notebook' || location.startsWith('/notebook')
   const isPathsRoute = location === '/paths' || location.startsWith('/paths/')
   const isCoursesRoute = location === '/courses' || location.startsWith('/courses/')
@@ -311,6 +316,24 @@ export default function App() {
       }>
         <AuthGuard>
           <Dashboard />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // LMS Phase 1 — Öğrenci paneli (Protected)
+  if (isLearnerLmsRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Öğrenci paneli yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <LearnerLmsDashboard />
         </AuthGuard>
       </Suspense>
     )

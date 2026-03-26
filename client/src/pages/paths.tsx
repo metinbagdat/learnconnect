@@ -59,6 +59,11 @@ export default function LearningPaths() {
       const path = paths.find(p => p.id === pathId);
       if (path) {
         setSelectedPath(path);
+        try {
+          localStorage.setItem('lastLearningPathId', pathId);
+        } catch {
+          /* ignore */
+        }
       }
     } else {
       setSelectedPath(null);

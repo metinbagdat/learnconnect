@@ -57,6 +57,25 @@ ${data?.subject} dersi müfredatında güncellemeler yapıldı.
 
 Detayları görmek için admin paneline giriş yapın.
         `
+      },
+      quiz_completed: {
+  subject: 'Quiz Sonucun Hazır 🎯',
+  body: `
+Merhaba ${data?.name || 'Öğrenci'},
+
+${data?.topicName || 'Quiz'} oturumun tamamlandı.
+
+Sonuç Özeti:
+- Skor: %${data?.score ?? '-'}
+- Doğru Sayısı: ${data?.correctCount ?? '-'} / ${data?.totalQuestions ?? '-'}
+- Harf Notu: ${data?.gradeLetter || '-'}
+- Süre: ${data?.durationText || '-'}
+
+Detayları panelinden inceleyebilirsin.
+
+İyi çalışmalar,
+LearnConnect Ekibi
+  `
       }
     };
 
