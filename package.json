@@ -9,10 +9,14 @@
     "check:css": "node scripts/check-no-webkit-css.js",
     "preview": "vite preview",
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js",
-    "test:smoke:regression": "node scripts/smoke-regression-checklist.mjs"
+    "test:smoke:regression": "node scripts/smoke-regression-checklist.mjs",
+    "generate:curriculum": "node scripts/generate-tyt-ayt-curriculum.js",
+    "import:curriculum": "node scripts/import-curriculum-to-supabase.js",
+    "load:curriculum": "node scripts/load-curriculum.cjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
+    "@supabase/supabase-js": "^2.39.0",
     "@tanstack/react-query": "^5.17.0",
     "groq-sdk": "^0.5.0",
     "resend": "^4.0.0",
@@ -22,7 +26,8 @@
     "openai": "^6.21.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "wouter": "^2.12.1"
+    "wouter": "^2.12.1",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/estree": "^1.0.0",
