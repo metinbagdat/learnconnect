@@ -5,21 +5,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,90 +19,23 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci || npm install
-          else
-            npm install
-          fi
+        run: npm install
 
-      - name: Build frontend (capture logs)
-        run: |
-          set -o pipefail
-          npm run build 2>&1 | tee build-frontend.log
-
-      - name: Prepare frontend artifacts
-        if: always()
-        run: |
-          if [ -d dist ]; then
-            tar -czf dist-frontend.tar.gz dist || true
-          else
-            echo "no-dist" > no-dist-frontend.txt
-          fi
-
-      - name: Upload frontend artifacts
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: frontend-build-artifacts
-          path: |
-            build-frontend.log
-            dist-frontend.tar.gz
-            no-dist-frontend.txt
-
-      - name: Build server (if present, capture logs)
-        if: always()
-        run: |
-          set -o pipefail
-          if [ -f build-server.js ]; then
-            node build-server.js 2>&1 | tee build-server.log
-          elif npm run 2>/dev/null | grep -q "build:server"; then
-            npm run build:server 2>&1 | tee build-server.log
-          else
-            echo "No server build required" > build-server.log
-          fi
-        continue-on-error: true
-
-      - name: Prepare server artifacts
-        if: always()
-        run: |
-          DIST_PATH=$(pwd)/dist
-          if [ -d "$DIST_PATH" ]; then
-            tar -czf dist-server.tar.gz -C $(dirname "$DIST_PATH") dist || true
-          else
-            echo "no-dist" > no-dist-server.txt
-          fi
-
-      - name: Upload server artifacts
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: server-build-artifacts
-          path: |
-            build-server.log
-            dist-server.tar.gz
-            no-dist-server.txt
+      - name: Build
+        run: npm run build
 
       - name: Deploy to Vercel
-        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' }}
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ env.VERCEL_TOKEN }}
-          vercel-org-id: ${{ env.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ env.VERCEL_PROJECT_ID }}
-          vercel-args: "--prod"
-
-      - name: "Optional: Run Neon migrations"
-        if: ${{ env.NEON_DATABASE_URL != '' }}
+        if: ${{ env.VERCEL_TOKEN != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          echo "NEON_DATABASE_URL present — run your migration commands here"
+          npm install -g vercel
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+          vercel build --prod --token=$VERCEL_TOKEN
+          vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
 
-      - name: "Optional: Firestore / Firebase steps"
-        if: ${{ env.FIREBASE_SERVICE_ACCOUNT != '' }}
-        run: |
-          echo "FIREBASE_SERVICE_ACCOUNT present — add deployment/migration commands here"
-
-      - name: Deployment secrets missing
-        if: ${{ env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == '' }}
-        run: |
-          echo "⚠️ Vercel deploy skipped: missing one or more required secrets."
+      - name: Deploy skipped
+        if: ${{ env.VERCEL_TOKEN == '' }}
+        run: echo "VERCEL_TOKEN secret not set – skipping deploy step."
