@@ -5,12 +5,24 @@
   "installCommand": "npm install",
   "framework": "vite",
   "functions": {
-    "api/**/*.js": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "api/[...path].js": {
       "memory": 1024,
       "maxDuration": 30
     }
   },
   "rewrites": [
+    {
+      "source": "/api",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/[...path].js"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
