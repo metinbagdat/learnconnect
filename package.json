@@ -9,6 +9,7 @@
     "check:css": "node scripts/check-no-webkit-css.js",
     "preview": "vite preview",
     "build:vercel": "vite build --config vite.config.ts && node scripts/check-no-webkit-css.js",
+    "show:deploy": "powershell -ExecutionPolicy Bypass -File scripts/show-latest-deploy.ps1",
     "test:smoke:regression": "node scripts/smoke-regression-checklist.mjs",
     "generate:curriculum": "node scripts/generate-tyt-ayt-curriculum.js",
     "import:curriculum": "node scripts/import-curriculum-to-supabase.js",
