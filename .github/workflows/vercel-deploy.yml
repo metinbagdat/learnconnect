@@ -1,6 +1,6 @@
 name: Build & Deploy to Vercel
 
-on:
+"on":
   push:
     branches: [main]
   workflow_dispatch:
@@ -9,9 +9,9 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || '' }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || '' }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,6 +39,6 @@ jobs:
       - name: Deploy skipped (no VERCEL_TOKEN secret)
         if: ${{ env.VERCEL_TOKEN == '' }}
         run: |
-          echo "⚠️  VERCEL_TOKEN secret is not set in GitHub repository secrets."
+          echo "VERCEL_TOKEN secret is not set in GitHub repository secrets."
           echo "Add VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID at:"
           echo "https://github.com/metinbagdat/learnconnect/settings/secrets/actions"
