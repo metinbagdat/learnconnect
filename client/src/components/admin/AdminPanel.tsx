@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BilingualText } from '@/components/ui/bilingual-text';
 import ModernNavigation from '@/components/layout/modern-navigation';
 import CurriculumManager from './CurriculumManager';
+import CurriculumControlCenter from './curriculum-control/CurriculumControlCenter';
 import AICurriculumGenerator from './AICurriculumGenerator';
 import UserManager from './UserManager';
 import AnalyticsDashboard from './AnalyticsDashboard';
@@ -10,7 +12,12 @@ import AIStudyPlanTester from './AIStudyPlanTester';
 import { BookOpen, Users, BarChart3, Brain } from 'lucide-react';
 
 export default function AdminPanel() {
+  const [location] = useLocation();
   const [activeTab, setActiveTab] = useState('curriculum');
+
+  if (location === '/admin/curriculum') {
+    return <CurriculumControlCenter />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
