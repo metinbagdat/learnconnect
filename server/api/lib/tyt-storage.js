@@ -59,6 +59,7 @@ export async function createTytTrialExam(userId, data) {
       correctAnswers: correct,
       wrongAnswers: wrong,
       emptyAnswers: empty,
+      subjectScores: data.subjectScores || data.subject_scores || {},
     };
   }
   try {
@@ -66,7 +67,7 @@ export async function createTytTrialExam(userId, data) {
     const rows = await sql`
       INSERT INTO tyt_trial_exams (user_id, exam_name, exam_date, duration_minutes, total_questions, correct_answers, wrong_answers, empty_answers, net_score, subject_scores)
       VALUES (${userId}, ${data.examName || 'TYT Deneme'}, ${examDate}, ${data.durationMinutes || 135}, ${total}, ${correct}, ${wrong}, ${empty}, ${netScore}, ${JSON.stringify(data.subjectScores || data.subject_scores || {})})
-      RETURNING id, user_id as "userId", exam_date as "examDate", net_score as "netScore", correct_answers as "correctAnswers", wrong_answers as "wrongAnswers", empty_answers as "emptyAnswers"
+      RETURNING id, user_id as "userId", exam_date as "examDate", net_score as "netScore", correct_answers as "correctAnswers", wrong_answers as "wrongAnswers", empty_answers as "emptyAnswers", subject_scores as "subjectScores"
     `;
     const r = rows?.[0];
     return r ? { ...r, examType: 'TYT' } : null;
@@ -83,7 +84,8 @@ export async function getTytTrialExams(userId) {
     const rows = await sql`
       SELECT id, user_id as "userId", net_score as "netScore",
         correct_answers as "correctAnswers", wrong_answers as "wrongAnswers",
-        empty_answers as "emptyAnswers", exam_date as "examDate"
+        empty_answers as "emptyAnswers", exam_date as "examDate",
+        subject_scores as "subjectScores"
       FROM tyt_trial_exams WHERE user_id = ${userId}
       ORDER BY exam_date DESC
     `;
@@ -98,6 +100,33 @@ export async function getTytTrialExams(userId) {
   } catch (err) {
     console.error('[tyt-storage] getTytTrialExams:', err);
     return [];
+  }
+}
+
+export async function getDailyTaskById(taskId, userId) {
+  if (!hasDb()) {
+    return {
+      id: taskId,
+      userId,
+      title: '',
+      description: null,
+      dueDate: null,
+      completed: false,
+      completedAt: null,
+    };
+  }
+  try {
+    const sql = getSql();
+    const rows = await sql`
+      SELECT id, user_id as "userId", title, description, due_date as "dueDate",
+        completed, completed_at as "completedAt"
+      FROM daily_tasks WHERE id = ${taskId} AND user_id = ${userId}
+      LIMIT 1
+    `;
+    return rows?.[0] || null;
+  } catch (err) {
+    console.error('[tyt-storage] getDailyTaskById:', err);
+    return null;
   }
 }
 
@@ -166,17 +195,45 @@ export async function getTytStudyStats(userId) {
 
 export async function completeDailyStudyTask(taskId, userId, actualDuration) {
   if (!hasDb()) {
-    return { id: taskId, userId, isCompleted: true, completed: true, completedAt: new Date().toISOString(), actualDuration };
+    return {
+      id: taskId,
+      userId,
+      title: '',
+      description: null,
+      isCompleted: true,
+      completed: true,
+      completedAt: new Date().toISOString(),
+      actualDuration,
+    };
   }
   try {
     const sql = getSql();
-    await sql`UPDATE daily_tasks SET completed = true, completed_at = NOW() WHERE id = ${taskId} AND user_id = ${userId}`;
-    const rows = await sql`SELECT id, user_id as "userId", title, completed, completed_at as "completedAt" FROM daily_tasks WHERE id = ${taskId}`;
+    const rows = await sql`
+      UPDATE daily_tasks SET completed = true, completed_at = NOW()
+      WHERE id = ${taskId} AND user_id = ${userId} AND COALESCE(completed, false) = false
+      RETURNING id, user_id as "userId", title, description, due_date as "dueDate", completed, completed_at as "completedAt"
+    `;
     const r = rows?.[0];
-    return r ? { ...r, isCompleted: true, completed: true } : null;
+    return r ? { ...r, isCompleted: true, completed: true, actualDuration } : null;
   } catch (err) {
     console.error('[tyt-storage] completeDailyStudyTask:', err);
     return null;
+  }
+}
+
+/**
+ * Removes all daily_tasks rows for a user on a given calendar day (YYYY-MM-DD).
+ * Used by Learning Orchestrator before regenerating the same day's plan.
+ */
+export async function deleteDailyStudyTasksForDate(userId, dateStr) {
+  if (!hasDb()) return { deleted: 0 };
+  try {
+    const sql = getSql();
+    await sql`DELETE FROM daily_tasks WHERE user_id = ${userId} AND due_date = ${dateStr}`;
+    return { deleted: true };
+  } catch (err) {
+    console.error('[tyt-storage] deleteDailyStudyTasksForDate:', err);
+    return { deleted: false, error: String(err?.message || err) };
   }
 }
 

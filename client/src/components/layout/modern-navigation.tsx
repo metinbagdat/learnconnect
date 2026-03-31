@@ -21,6 +21,9 @@ export default function ModernNavigation({
           <Link href="/deneme-sinavi">Deneme</Link>
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/admin">Admin</Link>
+          <Link href="/admin/curriculum" className="text-indigo-600 font-medium">
+            Curriculum
+          </Link>
         </div>
       </div>
     </nav>
