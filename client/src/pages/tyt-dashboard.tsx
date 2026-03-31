@@ -241,6 +241,45 @@ export default function TytDashboard() {
     completeTaskMutation.mutate({ taskId });
   };
 
+  /** Rule-based daily task pack (Learning Orchestrator — no LLM). */
+  const generateOrchestratorMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/tasks/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: getLocalDateString(),
+          replaceExisting: true,
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      return res.json() as Promise<{ created?: unknown[]; meta?: { orchestratorVersion?: string } }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/stats'] });
+      const n = Array.isArray(data?.created) ? data.created.length : 0;
+      toast({
+        title: language === 'tr' ? 'Günlük görevler oluşturuldu' : 'Daily tasks generated',
+        description:
+          language === 'tr'
+            ? `${n} görev (kural tabanlı, v${data?.meta?.orchestratorVersion ?? '?'})`
+            : `${n} task(s) (rule-based, v${data?.meta?.orchestratorVersion ?? '?'})`,
+      });
+    },
+    onError: (e: Error) => {
+      toast({
+        title: language === 'tr' ? 'Görev üretilemedi' : 'Could not generate tasks',
+        description: e.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
   // If no profile exists, show setup prompt
   if (!profileLoading && !tytProfile) {
     return (
@@ -1031,10 +1070,21 @@ export default function TytDashboard() {
                     <h2 className="text-2xl font-bold">
                       <BilingualText text="Günlük Görevler – Daily Tasks" />
                     </h2>
-                    <Button onClick={() => setLocation('/tyt/tasks/new')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      <BilingualText text="Görev Ekle – Add Task" />
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={generateOrchestratorMutation.isPending}
+                        onClick={() => generateOrchestratorMutation.mutate()}
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        <BilingualText text="Orchestrator (bugünü üret) – Generate today" />
+                      </Button>
+                      <Button onClick={() => setLocation('/tyt/tasks/new')}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        <BilingualText text="Görev Ekle – Add Task" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Date range filter */}
