@@ -51,6 +51,9 @@ Vite, `http://localhost:5173` adresinde çalışacaktır.
 2. Vercel'de repoyu bağlayın (Git entegrasyonu)  
 3. Her push'ta build **Vercel sunucularında** çalışır; yerelde `npm` hatası olsa bile deploy üretilebilir.
 
+- **Env var setup rehberi**: Firebase, DB, session secret nasıl alınır?  
+  → [docs/DEPLOYMENT_ENV_VARS.md](docs/DEPLOYMENT_ENV_VARS.md)
+
 - [Vercel / env adımları](docs/VERCEL_DEPLOY.md)  
 - [GitHub → Vercel uzak akış (npm olmadan)](docs/REMOTE_WORKFLOW_GITHUB_VERCEL.md)  
 - [Çalışma takip modülü (Supabase)](docs/SUPABASE_STUDY_TRACK.md)

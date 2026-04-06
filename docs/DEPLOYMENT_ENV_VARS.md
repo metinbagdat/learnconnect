@@ -18,6 +18,18 @@ These variables must be prefixed with `VITE_` to be accessible in the browser.
 | `VITE_FIREBASE_APP_ID` | Firebase app ID | `1:123456789012:web:abcdef` | Firebase Console > Project Settings > General |
 | `VITE_FIREBASE_MEASUREMENT_ID` | Google Analytics ID (optional) | `G-XXXXXXXXXX` | Firebase Console > Project Settings > General |
 
+#### ✅ Firebase değerleri nasıl alınır?
+1. [Firebase Console](https://console.firebase.google.com) → Projeni seç.
+2. **Project Settings** → **General** → **Your apps** bölümünde Web app'i seç (yoksa oluştur).
+3. **SDK setup and configuration** kutusundaki değerleri kopyala:
+   - apiKey → `VITE_FIREBASE_API_KEY`
+   - authDomain → `VITE_FIREBASE_AUTH_DOMAIN`
+   - projectId → `VITE_FIREBASE_PROJECT_ID`
+   - storageBucket → `VITE_FIREBASE_STORAGE_BUCKET`
+   - messagingSenderId → `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - appId → `VITE_FIREBASE_APP_ID`
+   - measurementId → `VITE_FIREBASE_MEASUREMENT_ID` (opsiyonel)
+
 ### Backend (Server)
 
 | Variable | Description | Example | Where to Get |
@@ -27,6 +39,22 @@ These variables must be prefixed with `VITE_` to be accessible in the browser.
 | `ANTHROPIC_API_KEY` | Anthropic Claude API key | `sk-ant-...` | https://console.anthropic.com/settings/keys |
 | `ANTHROPIC_MODEL` | Anthropic model name | `claude-3-5-sonnet-20241022` | Anthropic documentation |
 | `NODE_ENV` | Node environment | `production` or `development` | Set based on environment |
+
+#### ✅ DATABASE_URL nasıl alınır? (Neon)
+1. [Neon Console](https://console.neon.tech) → Projeni seç.
+2. **Connection Details** bölümünden **connection string** kopyala.
+3. `DATABASE_URL` olarak yapıştır.
+
+#### ✅ SESSION_SECRET nasıl üretilir?
+Her ortam için farklı, güçlü bir secret önerilir.
+- **Linux/macOS:**
+  ```bash
+  openssl rand -base64 32
+  ```
+- **Windows (PowerShell):**
+  ```powershell
+  [Convert]::ToBase64String((1..32 | ForEach-Object {Get-Random -Maximum 256}))
+  ```
 
 ## Optional Variables
 
