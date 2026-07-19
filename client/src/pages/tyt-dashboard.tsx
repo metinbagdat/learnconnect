@@ -21,7 +21,8 @@ import {
   Flame,
   Users,
   PlayCircle,
-  PlusCircle
+  PlusCircle,
+  RefreshCw,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -274,6 +275,64 @@ export default function TytDashboard() {
     onError: (e: Error) => {
       toast({
         title: language === 'tr' ? 'Görev üretilemedi' : 'Could not generate tasks',
+        description: e.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  /** Coach kuyruğunu tüket: plan_generate → günlük görev, coach_context_refresh → stub log. */
+  const coachSyncMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/coach/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: getLocalDateString(),
+          replaceExisting: true,
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      return res.json() as Promise<{
+        ran?: boolean;
+        reason?: string;
+        planResult?: { created?: unknown[] };
+        pendingJobSummary?: { planGenerate?: number; coachContextRefresh?: number };
+      }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/stats'] });
+      if (!data?.ran && data?.reason === 'no_pending') {
+        toast({
+          title: language === 'tr' ? 'Bekleyen kuyruk yok' : 'No pending queue',
+          description:
+            language === 'tr'
+              ? 'Önce görev tamamlayın veya deneme ekleyin.'
+              : 'Complete a task or add a trial first.',
+        });
+        return;
+      }
+      const n = Array.isArray(data?.planResult?.created) ? data.planResult.created.length : 0;
+      toast({
+        title: language === 'tr' ? 'Coach senkron tamamlandı' : 'Coach sync done',
+        description:
+          language === 'tr'
+            ? data?.ran
+              ? `Plan: ${n} görev · kuyruk: +${data?.pendingJobSummary?.planGenerate ?? 0} plan / +${data?.pendingJobSummary?.coachContextRefresh ?? 0} context`
+              : 'İşlem yapılmadı'
+            : data?.ran
+              ? `Plan: ${n} tasks · queue: ${data?.pendingJobSummary?.planGenerate ?? 0} plan / ${data?.pendingJobSummary?.coachContextRefresh ?? 0} context`
+              : 'No action',
+      });
+    },
+    onError: (e: Error) => {
+      toast({
+        title: language === 'tr' ? 'Senkron başarısız' : 'Sync failed',
         description: e.message,
         variant: 'destructive',
       });
@@ -1079,6 +1138,20 @@ export default function TytDashboard() {
                       >
                         <Brain className="h-4 w-4 mr-2" />
                         <BilingualText text="Orchestrator (bugünü üret) – Generate today" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={coachSyncMutation.isPending || generateOrchestratorMutation.isPending}
+                        onClick={() => coachSyncMutation.mutate()}
+                        title={
+                          language === 'tr'
+                            ? 'Kuyruktaki plan_generate ve coach işlerini uygula'
+                            : 'Apply queued plan_generate and coach jobs'
+                        }
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        <BilingualText text="Coach kuyruk senkron – Sync coach queue" />
                       </Button>
                       <Button onClick={() => setLocation('/tyt/tasks/new')}>
                         <Plus className="h-4 w-4 mr-2" />
