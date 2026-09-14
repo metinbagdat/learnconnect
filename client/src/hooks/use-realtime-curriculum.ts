@@ -1,95 +1,141 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Subject } from '@/types/curriculum';
+import type { CurriculumTree, Subject, Subtopic, Topic } from '@/types/curriculum';
+
+type ExamType = 'tyt' | 'ayt' | 'yks';
+
+function normalizeSubject(id: string, data: Record<string, unknown>): Subject {
+  const title = String(data.title || data.name || id);
+  return {
+    id,
+    title,
+    description: data.description as string | undefined,
+    order: Number(data.order || 0),
+    totalTopics: data.totalTopics as number | undefined,
+    estimatedHours: data.estimatedHours as number | undefined,
+    color: data.color as string | undefined,
+    icon: data.icon as string | undefined
+  };
+}
+
+async function loadTopics(examType: ExamType, subjectId: string): Promise<Topic[]> {
+  const topicsRef = collection(db, `curriculum/${examType}/subjects/${subjectId}/topics`);
+
+  let topicsSnapshot;
+  try {
+    topicsSnapshot = await getDocs(query(topicsRef, orderBy('order', 'asc')));
+  } catch {
+    topicsSnapshot = await getDocs(topicsRef);
+  }
+
+  const topics = await Promise.all(
+    topicsSnapshot.docs.map(async (topicDoc) => {
+      const topicData = topicDoc.data();
+      const subtopicsRef = collection(
+        db,
+        `curriculum/${examType}/subjects/${subjectId}/topics/${topicDoc.id}/subtopics`
+      );
+
+      let subtopicsSnapshot;
+      try {
+        subtopicsSnapshot = await getDocs(query(subtopicsRef, orderBy('order', 'asc')));
+      } catch {
+        subtopicsSnapshot = await getDocs(subtopicsRef);
+      }
+
+      const subtopics: Subtopic[] = subtopicsSnapshot.docs.map((subDoc) => {
+        const data = subDoc.data();
+        return {
+          id: subDoc.id,
+          name: String(data.name || data.title || subDoc.id),
+          title: data.title as string | undefined,
+          order: Number(data.order || 0),
+          estimatedTime: data.estimatedTime as number | undefined,
+          completed: Boolean(data.completed)
+        };
+      });
+
+      return {
+        id: topicDoc.id,
+        name: String(topicData.name || topicData.title || topicDoc.id),
+        title: topicData.title as string | undefined,
+        order: Number(topicData.order || 0),
+        estimatedTime: topicData.estimatedTime as number | undefined,
+        difficulty: topicData.difficulty as Topic['difficulty'],
+        subjectId,
+        subtopics: subtopics.sort((a, b) => (a.order || 0) - (b.order || 0))
+      } as Topic;
+    })
+  );
+
+  return topics.sort((a, b) => (a.order || 0) - (b.order || 0));
+}
 
 /**
- * Custom hook for real-time curriculum updates
- * Uses Firestore onSnapshot for live data synchronization
+ * Real-time TYT/AYT/YKS curriculum listener.
+ * Subjects stream via onSnapshot; nested topics/subtopics load with getDocs.
  */
-export function useRealtimeCurriculum(examType: 'tyt' | 'ayt' | 'yks') {
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+export function useRealtimeCurriculum(examType: ExamType = 'tyt') {
+  const [subjects, setSubjects] = useState<CurriculumTree[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
 
     const subjectsRef = collection(db, `curriculum/${examType}/subjects`);
-    const q = query(subjectsRef, orderBy('order', 'asc'));
+    let q;
+    try {
+      q = query(subjectsRef, orderBy('order', 'asc'));
+    } catch {
+      q = subjectsRef;
+    }
 
-    // Set up real-time listener
     const unsubscribe = onSnapshot(
-      q,
+      q as ReturnType<typeof query>,
       async (snapshot) => {
         try {
-          const subjectsData: Subject[] = [];
+          const tree = await Promise.all(
+            snapshot.docs.map(async (subjectDoc) => {
+              const subject = normalizeSubject(subjectDoc.id, subjectDoc.data());
+              const topics = await loadTopics(examType, subjectDoc.id);
+              return {
+                ...subject,
+                topics,
+                totalTopics: subject.totalTopics || topics.length
+              } as CurriculumTree;
+            })
+          );
 
-          for (const subjectDoc of snapshot.docs) {
-            const subjectData = subjectDoc.data();
-
-            // Load topics subcollection
-            const topicsRef = collection(
-              db,
-              `curriculum/${examType}/subjects/${subjectDoc.id}/topics`
-            );
-            const topicsQuery = query(topicsRef, orderBy('order', 'asc'));
-
-            // Also listen to topics in real-time
-            const topicsSnapshot = await new Promise<any>((resolve) => {
-              onSnapshot(topicsQuery, resolve, { includeMetadataChanges: false });
-            });
-
-            const topics = await Promise.all(
-              topicsSnapshot.docs.map(async (topicDoc: any) => {
-                const topicData = topicDoc.data();
-
-                // Load subtopics
-                const subtopicsRef = collection(
-                  db,
-                  `curriculum/${examType}/subjects/${subjectDoc.id}/topics/${topicDoc.id}/subtopics`
-                );
-                const subtopicsQuery = query(subtopicsRef, orderBy('order', 'asc'));
-                const subtopicsSnapshot = await new Promise<any>((resolve) => {
-                  onSnapshot(subtopicsQuery, resolve);
-                });
-
-                return {
-                  id: topicDoc.id,
-                  ...topicData,
-                  subtopics: subtopicsSnapshot.docs.map((subDoc: any) => ({
-                    id: subDoc.id,
-                    ...subDoc.data()
-                  }))
-                };
-              })
-            );
-
-            subjectsData.push({
-              id: subjectDoc.id,
-              ...subjectData,
-              topics
-            } as Subject);
+          if (!cancelled) {
+            setSubjects(tree.sort((a, b) => (a.order || 0) - (b.order || 0)));
+            setLoading(false);
+            setError(null);
           }
-
-          setSubjects(subjectsData);
-          setLoading(false);
         } catch (err) {
           console.error('Error loading real-time curriculum:', err);
-          setError(err instanceof Error ? err.message : 'Unknown error');
-          setLoading(false);
+          if (!cancelled) {
+            setError(err instanceof Error ? err.message : 'Unknown error');
+            setLoading(false);
+          }
         }
       },
       (err) => {
         console.error('Snapshot error:', err);
-        setError(err.message);
-        setLoading(false);
+        if (!cancelled) {
+          setError(err.message);
+          setLoading(false);
+        }
       }
     );
 
-    // Cleanup listener on unmount
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, [examType]);
 
   return { subjects, loading, error };

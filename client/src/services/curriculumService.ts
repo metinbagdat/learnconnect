@@ -2,6 +2,33 @@ import { db, collections } from '../lib/firebase';
 import { collection, getDocs, doc, query, orderBy } from 'firebase/firestore';
 import type { Subject, Topic, Subtopic, CurriculumTree } from '@/types/curriculum';
 
+function normalizeSubject(id: string, data: Record<string, unknown>): Subject {
+  const title = String(data.title || data.name || id);
+  return {
+    id,
+    title,
+    description: data.description as string | undefined,
+    order: Number(data.order || 0),
+    totalTopics: data.totalTopics as number | undefined,
+    estimatedHours: data.estimatedHours as number | undefined,
+    color: data.color as string | undefined,
+    icon: data.icon as string | undefined
+  };
+}
+
+function normalizeTopic(id: string, data: Record<string, unknown>, subjectId?: string): Topic {
+  return {
+    id,
+    name: String(data.name || data.title || id),
+    title: (data.title as string | undefined) || String(data.name || id),
+    order: Number(data.order || 0),
+    estimatedTime: data.estimatedTime as number | undefined,
+    difficulty: data.difficulty as Topic['difficulty'],
+    subjectId,
+    subtopics: []
+  };
+}
+
 // TYT Müfredatını getir (alias for compatibility)
 export async function getTYTCurriculum(): Promise<Subject[]> {
   return getTYTSubjects();
@@ -20,10 +47,9 @@ export async function getTYTSubjects(): Promise<Subject[]> {
       snapshot = await getDocs(subjectsRef);
     }
     
-    const subjects = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Subject[];
+    const subjects = snapshot.docs.map((docSnap) =>
+      normalizeSubject(docSnap.id, docSnap.data() as Record<string, unknown>)
+    );
 
     if (subjects.length === 0) {
       return getMockSubjects();
@@ -49,8 +75,12 @@ export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
     }
     
     const topics = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const topicData = { id: doc.id, ...doc.data() } as Topic;
+      snapshot.docs.map(async (topicDoc) => {
+        const topicData = normalizeTopic(
+          topicDoc.id,
+          topicDoc.data() as Record<string, unknown>,
+          subjectId
+        );
         
         // Get subtopics
         try {
@@ -59,7 +89,7 @@ export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
             collections.tytSubjects, 
             subjectId, 
             'topics', 
-            doc.id, 
+            topicDoc.id, 
             'subtopics'
           );
           let subtopicsSnapshot;
@@ -70,10 +100,19 @@ export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
             subtopicsSnapshot = await getDocs(subtopicsRef);
           }
           
-          topicData.subtopics = subtopicsSnapshot.docs.map(subDoc => ({
-            id: subDoc.id,
-            ...subDoc.data()
-          } as Subtopic));
+          topicData.subtopics = subtopicsSnapshot.docs
+            .map((subDoc) => {
+              const data = subDoc.data() as Record<string, unknown>;
+              return {
+                id: subDoc.id,
+                name: String(data.name || data.title || subDoc.id),
+                title: data.title as string | undefined,
+                order: Number(data.order || 0),
+                estimatedTime: data.estimatedTime as number | undefined,
+                completed: Boolean(data.completed)
+              } as Subtopic;
+            })
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
         } catch (error) {
           topicData.subtopics = [];
         }
