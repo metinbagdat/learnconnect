@@ -7,6 +7,19 @@ import React from 'react'
 ;(window as any).React = React;
 import './index.css'
 
+function isReactUndefinedRuntimeError(error: unknown): boolean {
+  const message =
+    typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as any).message || '')
+      : String(error || '');
+
+  return (
+    message.includes('React is undefined') ||
+    message.includes('useState", React is undefined') ||
+    message.includes("useState', React is undefined")
+  );
+}
+
 async function bootstrap() {
   // Load app modules only after global React is set.
   const ReactDOM = await import('react-dom/client');
@@ -24,9 +37,23 @@ async function bootstrap() {
 }
 
 void bootstrap().catch((error) => {
+  if (isReactUndefinedRuntimeError(error)) {
+    try {
+      const url = new URL(window.location.href);
+      const alreadyRetried = url.searchParams.get('lc_react_retry') === '1';
+      if (!alreadyRetried) {
+        url.searchParams.set('lc_react_retry', '1');
+        window.location.replace(url.toString());
+        return;
+      }
+    } catch {
+      // Ignore URL parse failures and continue to fallback UI.
+    }
+  }
+
   console.error('Bootstrap failed:', error);
   const root = document.getElementById('root');
   if (root) {
-    root.textContent = 'Uygulama yüklenemedi. Lütfen sayfayı yenileyin.';
+    root.textContent = 'Uygulama yüklenemedi. Lütfen sayfayı yenileyin veya güvenlik eklentisini kontrol edin.';
   }
 });

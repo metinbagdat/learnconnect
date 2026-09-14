@@ -11,6 +11,7 @@
 // Flag to track if we've seen any SES-related errors
 let sesErrorsSeen = 0;
 let reactMounted = false;
+let reactUndefinedSeen = false;
 
 // Track when the module loads
 const moduleLoadTime = Date.now();
@@ -47,9 +48,11 @@ function isSesError(err: unknown): boolean {
   // Check for "React is undefined" when it appears in SES context
   const isReactUndefinedError = message.includes('React is undefined') || 
                                  message.includes("can't access property \"useState\", React is undefined");
-  const hasSesContext = stack.includes('lockdown') || stack.includes('SES') || errorStr.includes('SES');
-  
-  if (isReactUndefinedError && hasSesContext) {
+  // In this app, React being undefined at runtime is treated as a lockdown/interop failure.
+  // It should never happen in normal operation with automatic JSX runtime.
+  if (isReactUndefinedError) {
+    reactUndefinedSeen = true;
+    (window as any).__reactUndefinedSeen = true;
     return true;
   }
   
@@ -136,7 +139,7 @@ setTimeout(() => {
   const hasContent = root.children.length > 0 || 
                      (root.textContent && root.textContent.length > MIN_CONTENT_LENGTH);
   
-  if (!hasContent && sesErrorsSeen > 0) {
+  if (!hasContent && (sesErrorsSeen > 0 || reactUndefinedSeen)) {
     (window as any).__sesGuardFallbackTriggered = true;
     
     // Show a helpful message in Turkish
