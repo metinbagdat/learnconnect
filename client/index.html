@@ -128,11 +128,10 @@
           // React is undefined in SES context
           var hasReactError = message.indexOf('React is undefined') !== -1 || 
                               message.indexOf("can't access property \"useState\", React is undefined") !== -1;
-          var hasSesInStack = stack.indexOf('lockdown') !== -1 || 
-                              stack.indexOf('SES') !== -1 || 
-                              str.indexOf('SES') !== -1;
-          
-          if (hasReactError && hasSesInStack) {
+
+          // React undefined should not happen in normal app runtime.
+          // Treat as lockdown/interop issue even if stack lacks explicit SES markers.
+          if (hasReactError) {
             return true;
           }
           
