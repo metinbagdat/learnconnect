@@ -10,6 +10,7 @@ import {
   Timestamp,
   limit,
 } from 'firebase/firestore';
+import { getLocalDateString } from '@/lib/date-utils';
 
 export interface StudyStat {
   id: string;
@@ -21,7 +22,7 @@ export interface StudyStat {
 
 export async function getTodayStats(userId: string): Promise<StudyStat | null> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const statsRef = collection(db, 'studyStats');
     const q = query(
       statsRef,
@@ -47,7 +48,7 @@ export async function getTodayStats(userId: string): Promise<StudyStat | null> {
 
 export async function addStudyTime(userId: string, minutes: number): Promise<void> {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const existing = await getTodayStats(userId);
 
     if (existing) {

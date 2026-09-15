@@ -12,11 +12,16 @@ build/
 
 # Misc
 .DS_Store
+learnconnect-/
 *.pem
+
+# Supabase CLI (linked project / local temp)
+supabase/.temp/
 
 # Environment variables
 .env
 .env.local
+supabase/.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -41,3 +46,4 @@ service-account-key.json
 *.service-account.json
 firebase-service-account*.json
 scripts/service-account-key.json
+.env*.local

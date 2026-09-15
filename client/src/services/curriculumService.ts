@@ -1,4 +1,4 @@
-import { db, collections } from '../lib/firebase';
+import { db, collections, isFirebaseConfigured } from '../lib/firebase';
 import { collection, getDocs, doc, query, orderBy } from 'firebase/firestore';
 import type { Subject, Topic, Subtopic, CurriculumTree } from '@/types/curriculum';
 
@@ -37,6 +37,9 @@ export async function getTYTCurriculum(): Promise<Subject[]> {
 // TYT Subjects getir
 export async function getTYTSubjects(): Promise<Subject[]> {
   try {
+    if (!isFirebaseConfigured || !db) {
+      return getMockSubjects();
+    }
     const subjectsRef = collection(db, collections.tytSubjects);
     let snapshot;
     try {
@@ -65,6 +68,9 @@ export async function getTYTSubjects(): Promise<Subject[]> {
 // Belirli bir dersin konularını getir
 export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
   try {
+    if (!isFirebaseConfigured || !db) {
+      return getMockSubjectTopics(subjectId);
+    }
     const topicsRef = collection(db, collections.tytSubjects, subjectId, 'topics');
     let snapshot;
     try {
@@ -306,6 +312,9 @@ export async function saveUserProgress(
   progress: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!isFirebaseConfigured || !db) {
+      return { success: false, error: 'Firebase not configured' };
+    }
     const { setDoc } = await import('firebase/firestore');
     const progressRef = doc(db, collections.userProgress, `${userId}_${subjectId}_${topicId}`);
     

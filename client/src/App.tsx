@@ -16,6 +16,18 @@ const RegisterPage = React.lazy(() =>
   import('./pages/register.tsx').catch(() => ({ default: () => <div>Register sayfası yükleniyor...</div> }))
 );
 
+const ForgotPasswordPage = React.lazy(() =>
+  import('./pages/forgot-password.tsx').catch(() => ({ default: () => <div>Yükleniyor...</div> }))
+);
+
+const ResetPasswordPage = React.lazy(() =>
+  import('./pages/reset-password.tsx').catch(() => ({ default: () => <div>Yükleniyor...</div> }))
+);
+
+const HomePage = React.lazy(() =>
+  import('./pages/home.tsx').catch(() => ({ default: () => <div>Ana sayfa yükleniyor...</div> }))
+);
+
 const TytDashboard = React.lazy(() => 
   import('./pages/tyt-dashboard.tsx').catch(() => ({ default: () => <div>TYT Dashboard yükleniyor...</div> }))
 );
@@ -28,12 +40,28 @@ const YksDashboard = React.lazy(() =>
   import('./pages/yks-dashboard.tsx').catch(() => ({ default: () => <div>YKS Dashboard yükleniyor...</div> }))
 );
 
+const DenemeSinaviPage = React.lazy(() => 
+  import('./pages/deneme-sinavi.tsx').catch(() => ({ default: () => <div>Deneme yükleniyor...</div> }))
+);
+
+const BasarilarPage = React.lazy(() => 
+  import('./pages/basarilar.tsx').catch(() => ({ default: () => <div>Başarılar yükleniyor...</div> }))
+);
+
+const AbonelikPage = React.lazy(() => 
+  import('./pages/abonelik.tsx').catch(() => ({ default: () => <div>Abonelik yükleniyor...</div> }))
+);
+
 const TeacherDashboard = React.lazy(() => 
   import('./pages/teacher-dashboard.tsx').catch(() => ({ default: () => <div>Öğretmen Paneli yükleniyor...</div> }))
 );
 
 const Dashboard = React.lazy(() => 
   import('./pages/dashboard.tsx').catch(() => ({ default: () => <div>Dashboard yükleniyor...</div> }))
+);
+
+const LearnerLmsDashboard = React.lazy(() =>
+  import('./pages/learner-lms-dashboard.tsx').catch(() => ({ default: () => <div>Öğrenci paneli yükleniyor...</div> }))
 );
 
 const Notebook = React.lazy(() => 
@@ -48,27 +76,49 @@ const AuthGuard = React.lazy(() =>
   import('./components/auth/AuthGuard.tsx').catch(() => ({ default: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 );
 
+const StudyTrackApp = React.lazy(() =>
+  import('./pages/study-track/StudyTrackApp.tsx').catch(() => ({
+    default: () => <div>Çalışma takip yükleniyor...</div>,
+  })),
+);
+
 export default function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [location] = useLocation()
+
+  // Mark successful mount for SES guard
+  if (typeof window !== 'undefined') {
+    window.__egitimTodayMountOk = true
+  }
   
   // Routes that don't need authentication
-  const publicRoutes = ['/login', '/register']
+  const publicRoutes = ['/login', '/register', '/forgot-password', '/reset-password']
   const isPublicRoute = publicRoutes.includes(location)
+  const isHomeRoute = location === '/'
   const isAdminRoute = location.startsWith('/admin')
   const isTeacherRoute = location.startsWith('/teacher')
   const isTytRoute = location.startsWith('/tyt-dashboard')
   const isAytRoute = location.startsWith('/ayt-dashboard')
   const isYksRoute = location.startsWith('/yks-dashboard')
   const isDashboardRoute = location === '/dashboard' || location.startsWith('/dashboard/')
+  const isLearnerLmsRoute = location === '/panel/ogrenci' || location.startsWith('/panel/ogrenci/')
   const isNotebookRoute = location === '/notebook' || location.startsWith('/notebook')
   const isPathsRoute = location === '/paths' || location.startsWith('/paths/')
   const isCoursesRoute = location === '/courses' || location.startsWith('/courses/')
   const isCommunityRoute = location === '/community' || location.startsWith('/community/')
+  const isProfileRoute = location === '/profile' || location.startsWith('/profile/')
+  const isDenemeRoute = location === '/deneme-sinavi' || location.startsWith('/deneme-sinavi')
+  const isBasarilarRoute = location === '/basarilar' || location.startsWith('/basarilar')
+  const isAbonelikRoute = location === '/abonelik' || location.startsWith('/abonelik')
+  const isStudyTrackRoute = location.startsWith('/calisma-takip')
 
   useEffect(() => {
-    if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute) {
+    if (isStudyTrackRoute) {
+      setLoading(false)
+      return
+    }
+    if (!isPublicRoute && !isAdminRoute && !isTeacherRoute && !isTytRoute && !isAytRoute && !isYksRoute && !isDenemeRoute && !isBasarilarRoute) {
       fetch('/api/user')
         .then(res => res.json())
         .then(data => {
@@ -79,7 +129,23 @@ export default function App() {
     } else {
       setLoading(false)
     }
-  }, [isPublicRoute, isAdminRoute, isTeacherRoute, isTytRoute, isAytRoute, isYksRoute])
+  }, [isPublicRoute, isAdminRoute, isTeacherRoute, isTytRoute, isAytRoute, isYksRoute, isStudyTrackRoute])
+
+  // Supabase study-track module (separate auth)
+  if (isStudyTrackRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#0f1419]">
+          <div className="text-center text-slate-400">
+            <div className="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="mt-4 text-sm">Çalışma takip yükleniyor…</p>
+          </div>
+        </div>
+      }>
+        <StudyTrackApp />
+      </Suspense>
+    )
+  }
 
   // Public routes (Login/Register)
   if (isPublicRoute) {
@@ -94,6 +160,40 @@ export default function App() {
       }>
         {location === '/login' && <LoginPage />}
         {location === '/register' && <RegisterPage />}
+        {location === '/forgot-password' && <ForgotPasswordPage />}
+        {location === '/reset-password' && <ResetPasswordPage />}
+      </Suspense>
+    )
+  }
+
+  // Home Route (Public)
+  if (isHomeRoute) {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          </div>
+        </div>
+      )
+    }
+
+    if (user) {
+      window.location.href = '/dashboard'
+      return null
+    }
+
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Ana sayfa yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <HomePage />
       </Suspense>
     )
   }
@@ -114,7 +214,7 @@ export default function App() {
     )
   }
 
-  // Teacher Route (Protected)
+  // Teacher Route (Protected - teacher/admin only)
   if (isTeacherRoute) {
     return (
       <Suspense fallback={
@@ -125,7 +225,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <TeacherDashboard />
+        <AuthGuard allowedRoles={['teacher', 'admin']} fallbackRedirect="/dashboard">
+          <TeacherDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -159,7 +261,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <AytDashboard />
+        <AuthGuard>
+          <AytDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -175,7 +279,63 @@ export default function App() {
           </div>
         </div>
       }>
-        <YksDashboard />
+        <AuthGuard>
+          <YksDashboard />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Abonelik Route (Protected)
+  if (isAbonelikRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Abonelik Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <AbonelikPage />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Basarilar Route (Protected)
+  if (isBasarilarRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Başarılar Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <BasarilarPage />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Deneme Sinavi Route (Protected)
+  if (isDenemeRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Deneme Sınavı Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <DenemeSinaviPage />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -191,7 +351,27 @@ export default function App() {
           </div>
         </div>
       }>
-        <Dashboard />
+        <AuthGuard>
+          <Dashboard />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // LMS Phase 1 — Öğrenci paneli (Protected)
+  if (isLearnerLmsRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Öğrenci paneli yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <LearnerLmsDashboard />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -207,7 +387,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Notebook />
+        <AuthGuard>
+          <Notebook />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -223,7 +405,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <LearningPaths />
+        <AuthGuard>
+          <LearningPaths />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -243,7 +427,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Courses />
+        <AuthGuard>
+          <Courses />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -268,7 +454,9 @@ export default function App() {
             </div>
           </div>
         }>
-          <CertificateVerify />
+          <AuthGuard>
+            <CertificateVerify />
+          </AuthGuard>
         </Suspense>
       );
     }
@@ -281,7 +469,9 @@ export default function App() {
           </div>
         </div>
       }>
-        <Certificates />
+        <AuthGuard>
+          <Certificates />
+        </AuthGuard>
       </Suspense>
     );
   }
@@ -301,7 +491,31 @@ export default function App() {
           </div>
         </div>
       }>
-        <Community />
+        <AuthGuard>
+          <Community />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Profile Route (Protected)
+  const ProfilePage = React.lazy(() =>
+    import('./pages/profile.tsx').catch(() => ({ default: () => <div>Profil yükleniyor...</div> }))
+  );
+
+  if (isProfileRoute) {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-gray-600">Profil Yükleniyor...</p>
+          </div>
+        </div>
+      }>
+        <AuthGuard>
+          <ProfilePage />
+        </AuthGuard>
       </Suspense>
     )
   }
@@ -319,7 +533,7 @@ export default function App() {
   }
 
   // If not authenticated and trying to access protected routes, redirect to login
-  if (!user && !isPublicRoute && !isAdminRoute) {
+  if (!user && !isPublicRoute && !isAdminRoute && !isHomeRoute) {
     window.location.href = '/login'
     return null
   }

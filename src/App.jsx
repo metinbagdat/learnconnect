@@ -3,6 +3,7 @@ import { useLocation } from 'wouter'
 import Dashboard from './components/Dashboard.jsx'
 import StudyPlan from './components/StudyPlan.jsx'
 import ProgressChart from './components/ProgressChart.jsx'
+import LoadingSpinner from './components/LoadingSpinner.jsx'
 
 // Import pages (lazy load)
 const AdminDashboard = React.lazy(() => 
@@ -21,6 +22,14 @@ const TytDashboard = React.lazy(() =>
   import('./client/src/pages/tyt-dashboard.tsx').catch(() => ({ default: () => <div>TYT Dashboard yükleniyor...</div> }))
 );
 
+const LiveExamPage = React.lazy(() =>
+  import('./components/student/LiveExamPage.jsx').catch(() => ({ default: () => <div>Canlı sınav sayfası yükleniyor...</div> }))
+);
+
+const AssignmentsPage = React.lazy(() =>
+  import('./components/student/AssignmentsPage.jsx').catch(() => ({ default: () => <div>Görev sayfası yükleniyor...</div> }))
+);
+
 const AuthGuard = React.lazy(() => 
   import('./client/src/components/auth/AuthGuard.tsx').catch(() => ({ default: ({ children }) => <>{children}</> }))
 );
@@ -35,9 +44,11 @@ export default function App() {
   const isPublicRoute = publicRoutes.includes(location)
   const isAdminRoute = location.startsWith('/admin')
   const isTytRoute = location.startsWith('/tyt-dashboard')
+  const isLiveExamRoute = location.startsWith('/live-exam')
+  const isAssignmentsRoute = location.startsWith('/assignments')
 
   useEffect(() => {
-    if (!isPublicRoute && !isAdminRoute && !isTytRoute) {
+    if (!isPublicRoute && !isAdminRoute && !isTytRoute && !isLiveExamRoute && !isAssignmentsRoute) {
       fetch('/api/user')
         .then(res => res.json())
         .then(data => {
@@ -48,19 +59,12 @@ export default function App() {
     } else {
       setLoading(false)
     }
-  }, [isPublicRoute, isAdminRoute, isTytRoute])
+  }, [isPublicRoute, isAdminRoute, isTytRoute, isLiveExamRoute, isAssignmentsRoute])
 
   // Public routes (Login/Register)
   if (isPublicRoute) {
     return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Yükleniyor...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingSpinner />}>
         {location === '/login' && <LoginPage />}
         {location === '/register' && <RegisterPage />}
       </Suspense>
@@ -70,14 +74,7 @@ export default function App() {
   // Admin Route
   if (isAdminRoute) {
     return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Admin Dashboard Yükleniyor...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingSpinner message="Admin Dashboard Yükleniyor..." />}>
         <AdminDashboard />
       </Suspense>
     )
@@ -86,16 +83,31 @@ export default function App() {
   // TYT Dashboard Route (Protected)
   if (isTytRoute) {
     return (
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">TYT Dashboard Yükleniyor...</p>
-          </div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingSpinner message="TYT Dashboard Yükleniyor..." />}>
         <AuthGuard>
           <TytDashboard />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Live Exam Route (Protected)
+  if (isLiveExamRoute) {
+    return (
+      <Suspense fallback={<LoadingSpinner message="Canlı Sınav Yükleniyor..." />}>
+        <AuthGuard>
+          <LiveExamPage />
+        </AuthGuard>
+      </Suspense>
+    )
+  }
+
+  // Assignments Route (Protected)
+  if (isAssignmentsRoute) {
+    return (
+      <Suspense fallback={<LoadingSpinner message="Görevler Yükleniyor..." />}>
+        <AuthGuard>
+          <AssignmentsPage />
         </AuthGuard>
       </Suspense>
     )
@@ -120,14 +132,7 @@ export default function App() {
   }
 
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingSpinner />}>
       <AuthGuard>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
           {/* Header */}
@@ -173,6 +178,12 @@ export default function App() {
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
                 >
                   🔐 Admin Panel
+                </a>
+                <a 
+                  href="/assignments" 
+                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                >
+                  📌 Görevlerim
                 </a>
               </div>
             </div>

@@ -13,6 +13,19 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
+
+    function isCreatingOwnedDoc() {
+      return request.auth != null
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    function isUpdatingOwnedDoc() {
+      return request.auth != null
+        && resource.data.userId is string
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+    }
     
     function isValidUserData() {
       return request.resource.data.keys().hasAll(['email', 'displayName', 'createdAt']) 
@@ -69,6 +82,12 @@ service cloud.firestore {
     
     // Site metadata
     match /site/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && isAdmin();
+    }
+
+    // Learning paths are public content
+    match /learningPaths/{pathId} {
       allow read: if true;
       allow write: if request.auth != null && isAdmin();
     }
@@ -130,6 +149,47 @@ service cloud.firestore {
     match /notifications/{userId}/{notificationId} {
       allow read, write: if isOwner(userId);
       allow create: if request.auth != null;
+    }
+
+    // Notes
+    match /notes/{noteId} {
+      allow create: if isCreatingOwnedDoc();
+      allow read, delete: if isOwner(resource.data.userId) || isAdmin();
+      allow update: if isUpdatingOwnedDoc() || isAdmin();
+    }
+
+    // Daily study statistics
+    match /studyStats/{statId} {
+      allow create: if isCreatingOwnedDoc();
+      allow read, delete: if isOwner(resource.data.userId) || isAdmin();
+      allow update: if isUpdatingOwnedDoc() || isAdmin();
+    }
+
+    // User learning path progress
+    match /userPathProgress/{progressId} {
+      allow create: if isCreatingOwnedDoc();
+      allow read, delete: if isOwner(resource.data.userId) || isAdmin();
+      allow update: if isUpdatingOwnedDoc() || isAdmin();
+    }
+
+    // Community posts (public read; write constrained by userId field)
+    match /communityPosts/{postId} {
+      allow read: if true;
+      allow create: if request.resource.data.userId is string;
+      allow update: if (resource.data.userId is string
+                       && request.resource.data.userId == resource.data.userId)
+                    || isAdmin();
+      allow delete: if isAdmin();
+
+      // Nested comments
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if request.resource.data.userId is string;
+        allow update: if (resource.data.userId is string
+                         && request.resource.data.userId == resource.data.userId)
+                      || isAdmin();
+        allow delete: if isAdmin();
+      }
     }
     
     // ============================================

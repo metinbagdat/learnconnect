@@ -12,6 +12,8 @@ import {
   getUserTags,
   type Note,
 } from '@/services/notesService';
+import { getAllPaths, type LearningPath } from '@/services/learningPathsService';
+import { getUserId } from '@/lib/user-utils';
 
 export default function Notebook() {
   const { user } = useAuth();
@@ -27,14 +29,16 @@ export default function Notebook() {
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteTags, setNoteTags] = useState('');
+  const [relatedPathId, setRelatedPathId] = useState<string>('');
+  const [availablePaths, setAvailablePaths] = useState<LearningPath[]>([]);
 
-  // Fetch notes
+  // Fetch notes and paths
   useEffect(() => {
     if (!user?.username && !user?.id) return;
 
     const fetchNotes = async () => {
       try {
-        const userId = String(user.id || user.username);
+        const userId = getUserId(user);
         const [fetchedNotes, tags] = await Promise.all([
           getUserNotes(userId),
           getUserTags(userId),
@@ -50,6 +54,10 @@ export default function Notebook() {
     fetchNotes();
   }, [user]);
 
+  useEffect(() => {
+    getAllPaths().then(setAvailablePaths).catch(() => setAvailablePaths([]));
+  }, []);
+
   // Check URL for note ID
   useEffect(() => {
     const params = new URLSearchParams(location.split('?')[1] || '');
@@ -61,6 +69,7 @@ export default function Notebook() {
         setNoteTitle(note.title);
         setNoteContent(note.content);
         setNoteTags(note.tags?.join(', ') || '');
+        setRelatedPathId(note.relatedPathId || '');
         setIsCreating(false);
       }
     }
@@ -84,6 +93,7 @@ export default function Notebook() {
     setNoteTitle('');
     setNoteContent('');
     setNoteTags('');
+    setRelatedPathId('');
     setIsCreating(true);
     setLocation('/notebook');
   };
@@ -93,14 +103,16 @@ export default function Notebook() {
     setNoteTitle(note.title);
     setNoteContent(note.content);
     setNoteTags(note.tags?.join(', ') || '');
+    setRelatedPathId(note.relatedPathId || '');
     setIsCreating(false);
     setLocation(`/notebook?note=${note.id}`);
   };
 
   const handleSaveNote = async () => {
-    if (!user?.id || (!noteTitle.trim() && !noteContent.trim())) return;
+    if ((!user?.username && !user?.id) || (!noteTitle.trim() && !noteContent.trim())) return;
 
     try {
+      const userId = getUserId(user);
       const tags = noteTags
         .split(',')
         .map(t => t.trim())
@@ -109,42 +121,22 @@ export default function Notebook() {
 
       const title = noteTitle.trim() || noteContent.substring(0, 50) || 'Yeni Not';
 
+      const pathId = relatedPathId.trim() || undefined;
       if (selectedNote) {
         // Update existing note
-        const noteRef = doc(db, 'notes', selectedNote.id);
-        await updateDoc(noteRef, {
-          title,
-          content: noteContent,
-          tags,
-          updatedAt: Timestamp.now(),
-        });
+        await updateNote(selectedNote.id, title, noteContent, tags);
       } else {
         // Create new note
-        await addDoc(collection(db, 'notes'), {
-          userId: String(user.id),
-          title,
-          content: noteContent,
-          tags,
-          createdAt: Timestamp.now(),
-          updatedAt: Timestamp.now(),
-        });
+        await createNote(userId, title, noteContent, tags);
       }
 
-      // Refresh notes
-      const notesRef = collection(db, 'notes');
-      const q = query(
-        notesRef,
-        where('userId', '==', String(user.id)),
-        orderBy('updatedAt', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const updatedNotes = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Note[];
+      const [updatedNotes, updatedTags] = await Promise.all([
+        getUserNotes(userId),
+        getUserTags(userId),
+      ]);
       setNotes(updatedNotes);
+      setAllTags(updatedTags);
 
-      // Clear form
       setSelectedNote(null);
       setNoteTitle('');
       setNoteContent('');
@@ -164,7 +156,7 @@ export default function Notebook() {
       await deleteNote(selectedNote.id);
       
       // Refresh notes and tags
-      const userId = String(user?.id || user?.username);
+      const userId = getUserId(user);
       const [updatedNotes, updatedTags] = await Promise.all([
         getUserNotes(userId),
         getUserTags(userId),
@@ -368,6 +360,26 @@ export default function Notebook() {
                           Örnek: tyt, matematik, paragraf (virgülle ayırın, # işareti otomatik eklenir)
                         </p>
                       </div>
+
+                      {availablePaths.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Öğrenme Yolu (isteğe bağlı)
+                          </label>
+                          <select
+                            value={relatedPathId}
+                            onChange={(e) => setRelatedPathId(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          >
+                            <option value="">Hiçbiri</option>
+                            {availablePaths.map((path) => (
+                              <option key={path.id} value={path.id}>
+                                {path.title} ({path.category})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
 
                       <div className="flex items-center space-x-3">
                         <button

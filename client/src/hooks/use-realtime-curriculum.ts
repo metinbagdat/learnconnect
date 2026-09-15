@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, query, orderBy, onSnapshot, getDocs, type Firestore } from 'firebase/firestore';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 import type { CurriculumTree, Subject, Subtopic, Topic } from '@/types/curriculum';
 
 type ExamType = 'tyt' | 'ayt' | 'yks';
@@ -19,8 +19,12 @@ function normalizeSubject(id: string, data: Record<string, unknown>): Subject {
   };
 }
 
-async function loadTopics(examType: ExamType, subjectId: string): Promise<Topic[]> {
-  const topicsRef = collection(db, `curriculum/${examType}/subjects/${subjectId}/topics`);
+async function loadTopics(
+  firestore: Firestore,
+  examType: ExamType,
+  subjectId: string
+): Promise<Topic[]> {
+  const topicsRef = collection(firestore, `curriculum/${examType}/subjects/${subjectId}/topics`);
 
   let topicsSnapshot;
   try {
@@ -33,7 +37,7 @@ async function loadTopics(examType: ExamType, subjectId: string): Promise<Topic[
     topicsSnapshot.docs.map(async (topicDoc) => {
       const topicData = topicDoc.data();
       const subtopicsRef = collection(
-        db,
+        firestore,
         `curriculum/${examType}/subjects/${subjectId}/topics/${topicDoc.id}/subtopics`
       );
 
@@ -86,7 +90,17 @@ export function useRealtimeCurriculum(examType: ExamType = 'tyt') {
     setLoading(true);
     setError(null);
 
-    const subjectsRef = collection(db, `curriculum/${examType}/subjects`);
+    if (!isFirebaseConfigured || !db) {
+      setSubjects([]);
+      setLoading(false);
+      setError('Firebase not configured');
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const firestore = db;
+    const subjectsRef = collection(firestore, `curriculum/${examType}/subjects`);
     let q;
     try {
       q = query(subjectsRef, orderBy('order', 'asc'));
@@ -101,7 +115,7 @@ export function useRealtimeCurriculum(examType: ExamType = 'tyt') {
           const tree = await Promise.all(
             snapshot.docs.map(async (subjectDoc) => {
               const subject = normalizeSubject(subjectDoc.id, subjectDoc.data());
-              const topics = await loadTopics(examType, subjectDoc.id);
+              const topics = await loadTopics(firestore, examType, subjectDoc.id);
               return {
                 ...subject,
                 topics,

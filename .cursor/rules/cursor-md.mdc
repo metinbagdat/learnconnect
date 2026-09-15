@@ -1,0 +1,6 @@
+---
+description: Depo kökündeki cursor.md — yerel çalıştırma ve deploy tercihleri
+alwaysApply: true
+---
+
+Her oturumda ve özellikle yerel `npm`/`vite` önermeden önce depo kökündeki `cursor.md` dosyasını okuyup ona uy.

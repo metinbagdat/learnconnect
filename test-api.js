@@ -1111,7 +1111,10 @@ import {
   eq,
   desc,
   inArray,
-  asc
+  asc,
+  and,
+  gte,
+  lte
 } from "drizzle-orm";
 var users2, courses2, enrollments, modules2, lessons2, assignments2, submissions, quizzes, quizAnswers, achievements2, challenges2, dailyTasks2, learningPaths2, studySchedules2, successMetrics, curriculumDesignParameters2, curriculumSuccessMetrics2, curriculumFeedbackLoops2, integrationOrchestrationLogs, performanceOptimizationLogs, aiLearningData2, courseIntegrationState2, moduleIntegrationLog2, aiRecommendationState2, learningEcosystemState2, userCourses2, userAchievements2, DatabaseStorage, InMemoryStorage, useDatabase, storage;
 var init_storage = __esm({
@@ -1306,11 +1309,15 @@ var init_storage = __esm({
       async getCurriculumContextForDailyTasks(userId, taskIds) {
         return /* @__PURE__ */ new Map();
       }
-      async getDailyStudyTasks(userId, date2) {
-        if (date2) {
-          return db.select().from(dailyTasks2).where(eq(dailyTasks2.userId, userId));
+      async getDailyStudyTasks(userId, date2, startDate, endDate) {
+        const baseCond = eq(dailyTasks2.userId, userId);
+        if (startDate && endDate) {
+          return db.select().from(dailyTasks2).where(and(baseCond, gte(dailyTasks2.dueDate, startDate), lte(dailyTasks2.dueDate, endDate)));
         }
-        return db.select().from(dailyTasks2).where(eq(dailyTasks2.userId, userId));
+        if (date2) {
+          return db.select().from(dailyTasks2).where(and(baseCond, eq(dailyTasks2.dueDate, date2)));
+        }
+        return db.select().from(dailyTasks2).where(baseCond);
       }
       async createDailyStudyTask(task) {
         const [created] = await db.insert(dailyTasks2).values(task).returning();
@@ -31632,8 +31639,10 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
       return res.status(401).json({ message: "Unauthorized" });
     }
     const date2 = req.query.date;
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
     try {
-      const tasks = await storage.getDailyStudyTasks(req.user.id, date2);
+      const tasks = await storage.getDailyStudyTasks(req.user.id, date2, startDate, endDate);
       const taskIds = tasks.map((t) => t.id);
       const curriculumContext = await storage.getCurriculumContextForDailyTasks(req.user.id, taskIds);
       const tasksWithContext = tasks.map((task) => ({
@@ -31647,10 +31656,12 @@ In this lesson, you've learned about ${lessonTitle}, including its core concepts
   });
   app2.get("/api/user/daily-tasks", async (req, res) => {
     const date2 = req.query.date;
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
     const userId = req.user?.id || parseInt(req.headers["x-user-id"] || "0");
     try {
       if (!userId) return res.status(401).json({ message: "Unauthorized" });
-      const tasks = await storage.getDailyStudyTasks(userId, date2);
+      const tasks = await storage.getDailyStudyTasks(userId, date2, startDate, endDate);
       const taskIds = tasks.map((t) => t.id);
       const curriculumContext = await storage.getCurriculumContextForDailyTasks(userId, taskIds);
       const tasksWithContext = (Array.isArray(tasks) ? tasks : []).map((task) => ({

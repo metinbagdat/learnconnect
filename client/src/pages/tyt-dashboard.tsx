@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,8 +21,7 @@ import {
   Flame,
   Users,
   PlayCircle,
-  PlusCircle,
-  Loader2
+  PlusCircle
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +39,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { BilingualText } from "@/components/ui/bilingual-text";
 import PageWrapper from "@/components/layout/page-wrapper";
 import type { TytStudentProfile, TytSubject, TytTrialExam, DailyStudyTask } from "@/types/tyt";
+import { getLocalDateString } from "@/lib/date-utils";
 
 const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
 const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
@@ -53,21 +53,28 @@ interface TytStudyStats {
   streaks: Array<{ type: string; current: number; longest: number }>;
 }
 
-// Helper function to get local date string (fixes timezone issue)
-const getLocalDateString = () => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+const getWeekStart = () => {
+  const d = new Date();
+  const day = d.getDay();
+  const daysToMonday = day === 0 ? 6 : day - 1;
+  d.setDate(d.getDate() - daysToMonday);
+  return getLocalDateString(d);
 };
 
-const LazySectionFallback = () => (
-  <div className="flex items-center justify-center py-12 text-gray-600">
-    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-    <span>Yükleniyor...</span>
-  </div>
-);
+const getWeekEnd = () => {
+  const d = new Date();
+  const day = d.getDay();
+  const daysToSunday = day === 0 ? 0 : 7 - day;
+  d.setDate(d.getDate() + daysToSunday);
+  return getLocalDateString(d);
+};
+
+const getNext7DaysEnd = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 6);
+  return getLocalDateString(d);
+};
+
 
 export default function TytDashboard() {
   const { language, t } = useLanguage();
@@ -85,6 +92,24 @@ export default function TytDashboard() {
   
   const isCreationMode = location === '/tyt/tasks/new' || location === '/tyt/trials/new';
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'trials' | 'tasks' | 'curriculum' | 'ai-plan'>(getTabFromRoute());
+  
+  // Date range filter for tasks
+  type TaskDateFilter = 'today' | 'week' | 'next7' | 'custom';
+  const [taskDateFilter, setTaskDateFilter] = useState<TaskDateFilter>('today');
+  const [taskDateCustomStart, setTaskDateCustomStart] = useState(getLocalDateString());
+  const [taskDateCustomEnd, setTaskDateCustomEnd] = useState(getLocalDateString());
+  
+  // Deneme (trial) form state
+  const [showTrialForm, setShowTrialForm] = useState(false);
+  const [trialForm, setTrialForm] = useState({ examDate: getLocalDateString(), matNet: 0, trNet: 0, fenNet: 0, sosNet: 0 });
+  
+  const getTasksDateParams = (): { date?: string; startDate?: string; endDate?: string } => {
+    const today = getLocalDateString();
+    if (taskDateFilter === 'today') return { date: today };
+    if (taskDateFilter === 'week') return { startDate: getWeekStart(), endDate: getWeekEnd() };
+    if (taskDateFilter === 'next7') return { startDate: today, endDate: getNext7DaysEnd() };
+    return { startDate: taskDateCustomStart, endDate: taskDateCustomEnd };
+  };
   
   // Update active tab when route changes
   useEffect(() => {
@@ -123,17 +148,34 @@ export default function TytDashboard() {
     enabled: !!tytProfile
   });
 
-  // Fetch Today's Tasks
-  const { data: todayTasks = [] } = useQuery<DailyStudyTask[]>({
+  // Fetch today's tasks (for Overview stats and preview)
+  const { data: todayTasksForOverview = [] } = useQuery<DailyStudyTask[]>({
     queryKey: ['/api/tyt/tasks', { date: getLocalDateString() }],
     queryFn: async () => {
-      const today = getLocalDateString();
-      const response = await fetch(`/api/tyt/tasks?date=${today}`);
+      const response = await fetch(`/api/tyt/tasks?date=${getLocalDateString()}`);
       if (!response.ok) throw new Error('Failed to fetch daily tasks');
       return response.json();
     },
     enabled: !!tytProfile
   });
+
+  // Fetch Tasks with date/range filter (for Tasks tab)
+  const taskDateParams = getTasksDateParams();
+  const { data: filteredTasks = [] } = useQuery<DailyStudyTask[]>({
+    queryKey: ['/api/tyt/tasks', 'filtered', taskDateParams],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (taskDateParams.date) params.set('date', taskDateParams.date);
+      if (taskDateParams.startDate) params.set('startDate', taskDateParams.startDate);
+      if (taskDateParams.endDate) params.set('endDate', taskDateParams.endDate);
+      const response = await fetch(`/api/tyt/tasks?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch daily tasks');
+      return response.json();
+    },
+    enabled: !!tytProfile && activeTab === 'tasks'
+  });
+
+  const tasksForDisplay = activeTab === 'tasks' ? filteredTasks : todayTasksForOverview;
 
   // Fetch TYT Study Stats
   const { data: studyStats } = useQuery<TytStudyStats>({
@@ -144,6 +186,41 @@ export default function TytDashboard() {
       return response.json();
     },
     enabled: !!tytProfile
+  });
+
+  // Add trial mutation
+  const addTrialMutation = useMutation({
+    mutationFn: async (data: { examDate: string; matNet?: number; trNet?: number; fenNet?: number; sosNet?: number; netScore?: number }) => {
+      const mat = data.matNet ?? 0;
+      const tr = data.trNet ?? 0;
+      const fen = data.fenNet ?? 0;
+      const sos = data.sosNet ?? 0;
+      const totalNet = data.netScore ?? (mat + tr + fen + sos);
+      const totalQuestions = 120;
+      const correct = Math.round(totalNet * 1.2);
+      const wrong = Math.max(0, totalQuestions - correct - 5);
+      const empty = totalQuestions - correct - wrong;
+      const res = await fetch('/api/tyt/trials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          examDate: data.examDate,
+          netScore: totalNet,
+          correctAnswers: correct,
+          wrongAnswers: wrong,
+          emptyAnswers: empty,
+          subjectScores: { Matematik: mat, Türkçe: tr, Fen: fen, Sosyal: sos },
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/trials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/stats'] });
+      toast({ title: language === 'tr' ? 'Deneme eklendi' : 'Trial added' });
+    },
   });
 
   // Complete task mutation
@@ -164,6 +241,45 @@ export default function TytDashboard() {
   const handleCompleteTask = (taskId: number) => {
     completeTaskMutation.mutate({ taskId });
   };
+
+  /** Rule-based daily task pack (Learning Orchestrator — no LLM). */
+  const generateOrchestratorMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch('/api/tasks/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          date: getLocalDateString(),
+          replaceExisting: true,
+        }),
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(txt || res.statusText);
+      }
+      return res.json() as Promise<{ created?: unknown[]; meta?: { orchestratorVersion?: string } }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tyt/stats'] });
+      const n = Array.isArray(data?.created) ? data.created.length : 0;
+      toast({
+        title: language === 'tr' ? 'Günlük görevler oluşturuldu' : 'Daily tasks generated',
+        description:
+          language === 'tr'
+            ? `${n} görev (kural tabanlı, v${data?.meta?.orchestratorVersion ?? '?'})`
+            : `${n} task(s) (rule-based, v${data?.meta?.orchestratorVersion ?? '?'})`,
+      });
+    },
+    onError: (e: Error) => {
+      toast({
+        title: language === 'tr' ? 'Görev üretilemedi' : 'Could not generate tasks',
+        description: e.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   // If no profile exists, show setup prompt
   if (!profileLoading && !tytProfile) {
@@ -251,8 +367,8 @@ export default function TytDashboard() {
     );
   }
 
-  const completedTasksToday = todayTasks.filter(task => task.isCompleted).length;
-  const totalTasksToday = todayTasks.length;
+  const completedTasksToday = todayTasksForOverview.filter(task => task.isCompleted).length;
+  const totalTasksToday = todayTasksForOverview.length;
   const completionRate = totalTasksToday > 0 ? (completedTasksToday / totalTasksToday) * 100 : 0;
 
   const lastTrialScore = recentTrials.length > 0 ? recentTrials[0].netScore : 0;
@@ -672,7 +788,7 @@ export default function TytDashboard() {
                         </div>
                       ) : (
                         <div className="space-y-3">
-                          {todayTasks.slice(0, 3).map((task, index) => (
+                          {todayTasksForOverview.slice(0, 3).map((task, index) => (
                             <motion.div
                               key={task.id}
                               initial={{ opacity: 0, x: -20 }}
@@ -721,15 +837,15 @@ export default function TytDashboard() {
                             </motion.div>
                           ))}
                           
-                          {todayTasks.length > 3 && (
+                          {todayTasksForOverview.length > 3 && (
                             <Button 
                               variant="outline" 
                               className="w-full mt-4"
                               onClick={() => setActiveTab('tasks')}
                             >
                               <BilingualText 
-                                text={`${todayTasks.length - 3} görev daha görüntüle`} 
-                                en={`View ${todayTasks.length - 3} more tasks`} 
+                                text={`${todayTasksForOverview.length - 3} görev daha görüntüle`} 
+                                en={`View ${todayTasksForOverview.length - 3} more tasks`} 
                               />
                               <ArrowRight className="h-4 w-4 ml-2" />
                             </Button>
@@ -799,19 +915,88 @@ export default function TytDashboard() {
                     <h2 className="text-2xl font-bold">
                       <BilingualText text="Deneme Sınavları – Trial Exams" />
                     </h2>
-                    <div className="space-x-2">
-                      <Button variant="outline" onClick={() => setLocation('/tyt/trials')}>
-                        <BilingualText text="Tümünü Gör – View All" />
-                      </Button>
-                      <Button onClick={() => setLocation('/tyt/trials/new')}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        <BilingualText text="Yeni Deneme – New Trial" />
-                      </Button>
-                    </div>
+                    <Button onClick={() => setShowTrialForm(!showTrialForm)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      <BilingualText text="Yeni Deneme – New Trial" />
+                    </Button>
                   </div>
 
+                  {/* Deneme Ekleme Formu - Net girişi per subject */}
+                  {showTrialForm && (
+                    <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20">
+                      <CardHeader>
+                        <CardTitle className="text-lg">
+                          <BilingualText text="Deneme Ekle – Add Trial" />
+                        </CardTitle>
+                        <CardDescription>
+                          <BilingualText text="Tarih ve ders bazında net girin – Enter date and net per subject" />
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            addTrialMutation.mutate({
+                              examDate: trialForm.examDate,
+                              matNet: Number(trialForm.matNet) || 0,
+                              trNet: Number(trialForm.trNet) || 0,
+                              fenNet: Number(trialForm.fenNet) || 0,
+                              sosNet: Number(trialForm.sosNet) || 0,
+                            });
+                            setShowTrialForm(false);
+                            setTrialForm({ examDate: getLocalDateString(), matNet: 0, trNet: 0, fenNet: 0, sosNet: 0 });
+                          }}
+                          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4"
+                        >
+                          <div>
+                            <label className="text-sm font-medium mb-1 block">
+                              <BilingualText text="Tarih – Date" />
+                            </label>
+                            <input
+                              type="date"
+                              value={trialForm.examDate}
+                              onChange={(e) => setTrialForm({ ...trialForm, examDate: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-md text-sm"
+                              required
+                            />
+                          </div>
+                          {['matNet', 'trNet', 'fenNet', 'sosNet'].map((key, i) => (
+                            <div key={key}>
+                              <label className="text-sm font-medium mb-1 block">
+                                {['Matematik', 'Türkçe', 'Fen', 'Sosyal'][i]}
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={40}
+                                value={trialForm[key as keyof typeof trialForm]}
+                                onChange={(e) => setTrialForm({ ...trialForm, [key]: e.target.value })}
+                                className="w-full px-3 py-2 border rounded-md text-sm"
+                              />
+                            </div>
+                          ))}
+                          <div className="flex items-end gap-2">
+                            <Button type="submit" disabled={addTrialMutation.isPending}>
+                              {addTrialMutation.isPending ? '...' : (language === 'tr' ? 'Ekle' : 'Add')}
+                            </Button>
+                            <Button type="button" variant="outline" onClick={() => setShowTrialForm(false)}>
+                              {language === 'tr' ? 'İptal' : 'Cancel'}
+                            </Button>
+                          </div>
+                        </form>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          Toplam Net: {(Number(trialForm.matNet) || 0) + (Number(trialForm.trNet) || 0) + (Number(trialForm.fenNet) || 0) + (Number(trialForm.sosNet) || 0)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {recentTrials.slice(0, 4).map((trial, index) => (
+                    {recentTrials.slice(0, 4).map((trial, index) => {
+                      const targetNet = tytProfile?.targetTytScore ?? 80;
+                      const net = trial.netScore ?? 0;
+                      const netColor = net >= targetNet ? 'bg-green-100 text-green-800 border-green-300' : net >= targetNet * 0.8 ? 'bg-amber-100 text-amber-800 border-amber-300' : 'bg-red-100 text-red-800 border-red-300';
+                      return (
                       <motion.div
                         key={trial.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -827,7 +1012,7 @@ export default function TytDashboard() {
                                   {new Date(trial.examDate).toLocaleDateString(language === 'tr' ? 'tr-TR' : 'en-US')}
                                 </CardDescription>
                               </div>
-                              <Badge variant="outline" className="text-lg font-semibold">
+                              <Badge variant="outline" className={`text-lg font-semibold ${netColor}`}>
                                 {trial.netScore} net
                               </Badge>
                             </div>
@@ -856,7 +1041,7 @@ export default function TytDashboard() {
                           </CardContent>
                         </Card>
                       </motion.div>
-                    ))}
+                    );})}
                   </div>
 
                   {recentTrials.length === 0 && (
@@ -871,7 +1056,7 @@ export default function TytDashboard() {
                             text="İlk deneme sınavınızı ekleyerek ilerlemenizi takip etmeye başlayın – Add your first trial exam to start tracking your progress" 
                           />
                         </p>
-                        <Button onClick={() => setLocation('/tyt/trials/new')}>
+                        <Button onClick={() => setShowTrialForm(true)}>
                           <Plus className="h-4 w-4 mr-2" />
                           <BilingualText text="İlk Denemeni Ekle – Add Your First Trial" />
                         </Button>
@@ -882,18 +1067,67 @@ export default function TytDashboard() {
 
                 {/* Tasks Tab */}
                 <TabsContent value="tasks" className="space-y-6">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <h2 className="text-2xl font-bold">
                       <BilingualText text="Günlük Görevler – Daily Tasks" />
                     </h2>
-                    <Button onClick={() => setLocation('/tyt/tasks/new')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      <BilingualText text="Görev Ekle – Add Task" />
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        disabled={generateOrchestratorMutation.isPending}
+                        onClick={() => generateOrchestratorMutation.mutate()}
+                      >
+                        <Brain className="h-4 w-4 mr-2" />
+                        <BilingualText text="Orchestrator (bugünü üret) – Generate today" />
+                      </Button>
+                      <Button onClick={() => setLocation('/tyt/tasks/new')}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        <BilingualText text="Görev Ekle – Add Task" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Date range filter */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-muted-foreground mr-2">
+                      <BilingualText text="Tarih aralığı – Date range" />
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(['today', 'week', 'next7', 'custom'] as const).map((mode) => (
+                        <Button
+                          key={mode}
+                          variant={taskDateFilter === mode ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setTaskDateFilter(mode)}
+                        >
+                          {language === 'tr'
+                            ? mode === 'today' ? 'Bugün' : mode === 'week' ? 'Bu Hafta' : mode === 'next7' ? 'Önümüzdeki 7 Gün' : 'Özel'
+                            : mode === 'today' ? 'Today' : mode === 'week' ? 'This Week' : mode === 'next7' ? 'Next 7 Days' : 'Custom'}
+                        </Button>
+                      ))}
+                    </div>
+                    {taskDateFilter === 'custom' && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="date"
+                          value={taskDateCustomStart}
+                          onChange={(e) => setTaskDateCustomStart(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm"
+                        />
+                        <span className="text-muted-foreground">–</span>
+                        <input
+                          type="date"
+                          value={taskDateCustomEnd}
+                          onChange={(e) => setTaskDateCustomEnd(e.target.value)}
+                          className="px-3 py-2 border rounded-md text-sm"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-4">
-                    {todayTasks.map((task, index) => (
+                    {tasksForDisplay.map((task, index) => (
                       <motion.div
                         key={task.id}
                         initial={{ opacity: 0, y: 20 }}
@@ -976,12 +1210,23 @@ export default function TytDashboard() {
                     ))}
                   </div>
 
-                  {todayTasks.length === 0 && (
+                  {tasksForDisplay.length === 0 && (
                     <Card>
                       <CardContent className="p-12 text-center">
                         <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
                         <h3 className="text-lg font-semibold mb-2">
-                          <BilingualText text="Bugün için görev yok – No tasks for today" />
+                          {taskDateFilter === 'today' && (
+                            <BilingualText text="Bugün için görev yok – No tasks for today" />
+                          )}
+                          {taskDateFilter === 'week' && (
+                            <BilingualText text="Bu hafta için görev yok – No tasks for this week" />
+                          )}
+                          {taskDateFilter === 'next7' && (
+                            <BilingualText text="Önümüzdeki 7 günde görev yok – No tasks in the next 7 days" />
+                          )}
+                          {taskDateFilter === 'custom' && (
+                            <BilingualText text="Seçilen tarih aralığında görev yok – No tasks in selected date range" />
+                          )}
                         </h3>
                         <p className="text-muted-foreground mb-4">
                           <BilingualText 
@@ -999,14 +1244,30 @@ export default function TytDashboard() {
 
                 {/* Curriculum Tab */}
                 <TabsContent value="curriculum" className="space-y-6">
-                  <Suspense fallback={<LazySectionFallback />}>
+                  <Suspense
+                    fallback={
+                      <Card>
+                        <CardContent className="py-12 text-center text-muted-foreground">
+                          Müfredat yükleniyor...
+                        </CardContent>
+                      </Card>
+                    }
+                  >
                     <CurriculumTree />
                   </Suspense>
                 </TabsContent>
 
                 {/* AI Plan Tab */}
                 <TabsContent value="ai-plan" className="space-y-6">
-                  <Suspense fallback={<LazySectionFallback />}>
+                  <Suspense
+                    fallback={
+                      <Card>
+                        <CardContent className="py-12 text-center text-muted-foreground">
+                          AI plan bileşeni yükleniyor...
+                        </CardContent>
+                      </Card>
+                    }
+                  >
                     <AIPlanGenerator />
                   </Suspense>
                 </TabsContent>

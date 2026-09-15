@@ -6,6 +6,29 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
+    // Authentication helper
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Owner helpers for user-scoped documents (userId field based)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isCreatingOwnData() {
+      return isAuthenticated()
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    function isOwnerAndKeepsOwnership() {
+      return isAuthenticated()
+        && resource.data.userId is string
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+    }
+
     // Curriculum - public read, admin write
     match /curriculum/{document=**} {
       allow read: if true;
@@ -37,6 +60,94 @@ service cloud.firestore {
     // AI plans - user can read/write own data
     match /ai_plans/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Notes (Defterim) - user can read/write own notes
+    match /notes/{noteId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+                 && resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null
+                            && resource.data.userId == request.auth.uid
+                            && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Study stats - user can read/write own stats
+    match /studyStats/{statId} {
+      allow read: if request.auth != null
+                 && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null
+                   && (isAdmin() || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if request.auth != null
+                           && (isAdmin()
+                               || (resource.data.userId == request.auth.uid
+                                   && request.resource.data.userId == request.auth.uid));
+    }
+
+    // Daily study statistics
+    match /studyStats/{statId} {
+      allow create: if isCreatingOwnData();
+      allow read, delete: if isOwner(resource.data.userId);
+      allow update: if isOwnerAndKeepsOwnership();
+    }
+
+    // Learning path progress per user
+    match /userPathProgress/{progressId} {
+      allow create: if request.auth != null
+                    && (request.resource.data.userId == request.auth.uid || isAdmin());
+      allow read, update, delete: if request.auth != null
+                                  && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Community posts (public read, controlled write by document userId)
+    match /communityPosts/{postId} {
+      allow read: if request.auth != null;
+      // Only allow creating a post for oneself (or by admin)
+      allow create: if request.auth != null
+                    && (isAdmin() || request.resource.data.userId == request.auth.uid);
+      // Only the owner (by userId) or an admin can update/delete,
+      // and ownership (userId) must not change on update
+      allow update, delete: if request.auth != null
+                            && (isAdmin()
+                                || (resource.data.userId == request.auth.uid
+                                    && request.resource.data.userId == request.auth.uid));
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        // Only allow creating a comment for oneself (or by admin)
+        allow create: if request.auth != null
+                      && (isAdmin() || request.resource.data.userId == request.auth.uid);
+        // Only the comment owner (by userId) or an admin can update/delete,
+        // and ownership (userId) must not change on update
+        allow update, delete: if request.auth != null
+                              && (isAdmin()
+                                  || (resource.data.userId == request.auth.uid
+                                      && request.resource.data.userId == request.auth.uid));
+      }
+    }
+
+    // Certificates - issued when paths are completed; public read for verification
+    match /certificates/{certId} {
+      // Allow direct document lookups for verification by ID
+      allow get: if true;
+
+      // Allow:
+      // - Authenticated users to list only their own certificates via userId filter
+      // - Public verification via a single-document query filtered by verificationCode
+      allow list: if
+        // Owner listing: e.g., getDocs(where('userId', '==', request.auth.uid))
+        (isAuthenticated() && request.query.userId == request.auth.uid)
+        ||
+        // Public verification: e.g., getDocs(where('verificationCode', '==', code)).limit(1)
+        (!isAuthenticated()
+          && request.query.verificationCode is string
+          && request.query.limit == 1);
+
+      // Allow authenticated users to create certificates only for themselves
+      allow create: if isAuthenticated() && isOwner(request.resource.data.userId);
+
+      // Disallow any modification of existing certificates
+      allow update, delete: if false;
     }
     
     // Deny all other access by default

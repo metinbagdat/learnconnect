@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import { Link } from 'wouter';
-import { Users, BookOpen, TrendingUp, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Users, BookOpen, TrendingUp, Calendar, CheckCircle2, AlertCircle, ListTodo } from 'lucide-react';
+import { teacherAssignLearnerTask } from '@/services/lmsLearnerApi';
 import AuthGuard from '@/components/auth/AuthGuard';
 import MainNavbar from '@/components/layout/MainNavbar';
 import { useAuth } from '@/hooks/use-auth';
@@ -34,6 +35,12 @@ export default function TeacherDashboard() {
   const [classes, setClasses] = useState<ClassProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
+  const [assignStudentId, setAssignStudentId] = useState('');
+  const [assignTitle, setAssignTitle] = useState('');
+  const [assignType, setAssignType] = useState('ödev');
+  const [assignDue, setAssignDue] = useState('');
+  const [assignBusy, setAssignBusy] = useState(false);
+  const [assignMsg, setAssignMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -53,6 +60,33 @@ export default function TeacherDashboard() {
       console.error('Error loading teacher data:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAssignTask(e: FormEvent) {
+    e.preventDefault();
+    setAssignMsg(null);
+    const sid = parseInt(assignStudentId, 10);
+    const title = assignTitle.trim();
+    if (!sid || Number.isNaN(sid) || !title) {
+      setAssignMsg('Öğrenci kullanıcı ID (sayı) ve başlık gerekli.');
+      return;
+    }
+    setAssignBusy(true);
+    try {
+      await teacherAssignLearnerTask({
+        studentUserId: sid,
+        title,
+        taskType: assignType,
+        dueAt: assignDue ? new Date(assignDue).toISOString() : null,
+      });
+      setAssignMsg('Görev atandı. Öğrenci /panel/ogrenci ekranında görebilir.');
+      setAssignTitle('');
+      setAssignDue('');
+    } catch (err) {
+      setAssignMsg(err instanceof Error ? err.message : 'Atama başarısız (DB veya yetki).');
+    } finally {
+      setAssignBusy(false);
     }
   }
 
@@ -241,6 +275,85 @@ export default function TeacherDashboard() {
               </div>
             </div>
           )}
+
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ListTodo className="h-5 w-5" />
+                LMS — Öğrenciye görev ata (Phase 2)
+              </CardTitle>
+              <CardDescription>
+                Neon&apos;da <code className="text-xs bg-gray-100 px-1 rounded">lms_learner_tasks</code> tablosu ve{' '}
+                <code className="text-xs bg-gray-100 px-1 rounded">DATABASE_URL</code> gerekir. Öğrenci ID&apos;si, oturum
+                kullanıcısındaki sayısal <strong>id</strong> ile aynı olmalıdır.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleAssignTask} className="space-y-4 max-w-xl">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Öğrenci kullanıcı ID</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={assignStudentId}
+                    onChange={(e) => setAssignStudentId(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="ör. 1001"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Başlık</label>
+                  <input
+                    type="text"
+                    value={assignTitle}
+                    onChange={(e) => setAssignTitle(e.target.value)}
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    placeholder="Ödev / sınav açıklaması"
+                    required
+                  />
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Tür</label>
+                    <select
+                      value={assignType}
+                      onChange={(e) => setAssignType(e.target.value)}
+                      className="mt-1 block rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    >
+                      <option value="ödev">ödev</option>
+                      <option value="sınav">sınav</option>
+                      <option value="içerik">içerik</option>
+                      <option value="etkinlik">etkinlik</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="text-sm font-medium text-gray-700">Bitiş (isteğe bağlı)</label>
+                    <input
+                      type="datetime-local"
+                      value={assignDue}
+                      onChange={(e) => setAssignDue(e.target.value)}
+                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" disabled={assignBusy}>
+                  {assignBusy ? 'Gönderiliyor…' : 'Görevi ata'}
+                </Button>
+                {assignMsg && (
+                  <p
+                    className={`text-sm ${
+                      assignMsg.includes('başarısız') || assignMsg.includes('gerekli') || assignMsg.includes('DB')
+                        ? 'text-red-600'
+                        : 'text-green-700'
+                    }`}
+                  >
+                    {assignMsg}
+                  </p>
+                )}
+              </form>
+            </CardContent>
+          </Card>
         </main>
       </div>
     </AuthGuard>

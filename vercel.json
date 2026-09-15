@@ -1,13 +1,27 @@
 {
   "version": 2,
-  "buildCommand": "sh -c 'rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && npm run build'",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "echo 'Skipping install; clean install runs in buildCommand.'",
+  "installCommand": "npm install",
   "framework": "vite",
+  "functions": {
+    "api/index.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "api/[...path].js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
+      "source": "/api",
+      "destination": "/api/index.js"
+    },
+    {
       "source": "/api/(.*)",
-      "destination": "/api/$1"
+      "destination": "/api/[...path].js"
     },
     {
       "source": "/((?!api/).*)",
@@ -32,8 +46,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
-  }
+  ]
 }

@@ -1,0 +1,34 @@
+# Aynı Vite build artık [ci.yml](ci.yml) içinde otomatik çalışıyor.
+# Bu workflow sadece manuel tetikleme içindir — PR/push’ta çift kırmızı / çift süre oluşmasın diye otomasyon kapatıldı.
+name: Frontend build (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
+
+      - name: Build (Vite)
+        run: npm run build

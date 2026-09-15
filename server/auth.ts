@@ -150,8 +150,11 @@ export async function setupAuth(app: Express) {
     name: 'edulearn.sid' // Custom session ID name
   };
 
+  const sessionMiddleware = session(sessionSettings);
   app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
+  app.set("sessionMiddleware", sessionMiddleware);
+  app.set("sessionStore", sessionStore);
+  app.use(sessionMiddleware);
   app.use(passport.initialize());
   app.use(passport.session());
 

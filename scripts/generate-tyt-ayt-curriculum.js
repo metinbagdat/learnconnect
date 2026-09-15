@@ -1,0 +1,773 @@
+/**
+ * scripts/generate-tyt-ayt-curriculum.js
+ * 
+ * MEB TYT/AYT Müfredatını JSON formatına dönüştür
+ * Böyle çalıştır: node scripts/generate-tyt-ayt-curriculum.js
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const curriculum = {
+  subjects: [
+    // ===== TYT DERSLERI (Temel Yeterlilik Testi) =====
+    {
+      name: 'TYT Matematik',
+      slug: 'tyt-matematik',
+      description: 'Temel Yeterlilik Testi - Matematik (9-10. sınıf müfredatı)',
+      exams: ['tyt'],
+      gradeLevel: 9,
+      units: [
+        {
+          name: 'Sayı Sistemleri ve Temel Operasyonlar',
+          description: 'Doğal, tam, rasyonel ve irrasyonel sayılar',
+          topics: [
+            { name: 'Doğal Sayılar ve Sayılabilirlik', difficulty: 1, estimatedMinutes: 45, isTyt: true },
+            { name: 'Tam Sayılar ve Mutlak Değer', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Rasyonel Sayılar ve Kesirlerde İşlemler', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'İrrasyonel Sayılar ve √2 Kanıtı', difficulty: 3, estimatedMinutes: 40, isTyt: true },
+            { name: 'Reel Sayılar Kümesi', difficulty: 2, estimatedMinutes: 35, isTyt: true }
+          ]
+        },
+        {
+          name: 'Üslü ve Köklü İfadeler',
+          description: 'Üslü ifadelerin özellikleri, köklü ifadelerin işlemleri',
+          topics: [
+            { name: 'Tam Sayı Üsleri ve Özellikleri', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Negatif ve Sıfır Üssü', difficulty: 2, estimatedMinutes: 35, isTyt: true },
+            { name: 'Üslü İfadelerin Sadeleştirilmesi', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'n. Dereceden Köklü İfadeler', difficulty: 3, estimatedMinutes: 55, isTyt: true },
+            { name: 'Köklü İfadelerde İşlemler', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Payda Rasyonelleştirme', difficulty: 3, estimatedMinutes: 45, isTyt: true }
+          ]
+        },
+        {
+          name: 'Eşitsizlikler',
+          description: 'Birinci derece eşitsizliklerin çözümü ve uygulamaları',
+          topics: [
+            { name: 'Eşitsizlik Özellikleri', difficulty: 1, estimatedMinutes: 40, isTyt: true },
+            { name: 'Birinci Derece Eşitsizlikleri Çözme', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Eşitsizlik Sistemleri', difficulty: 3, estimatedMinutes: 55, isTyt: true },
+            { name: 'Basit Eşitsizlikler (Basit Problemler)', difficulty: 2, estimatedMinutes: 45, isTyt: true }
+          ]
+        },
+        {
+          name: 'Mutlak Değer',
+          description: 'Mutlak değerin tanımı, geometrik anlamı, denklem ve eşitsizlikleri',
+          topics: [
+            { name: 'Mutlak Değerin Tanımı', difficulty: 2, estimatedMinutes: 40, isTyt: true },
+            { name: 'Mutlak Değer Denklemleri', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Mutlak Değer Eşitsizlikleri', difficulty: 3, estimatedMinutes: 55, isTyt: true },
+            { name: 'Mutlak Değer Özellikleri', difficulty: 2, estimatedMinutes: 40, isTyt: true }
+          ]
+        },
+        {
+          name: 'Rasyonel İfadeler ve Denklemler',
+          description: 'Kesir işlemleri, rasyonel ifadelerin sadeleştirilmesi',
+          topics: [
+            { name: 'Kesir Türleri ve Kesirlerde İşlemler', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Rasyonel İfadelerin Sadeleştirilmesi', difficulty: 3, estimatedMinutes: 50, isTyt: true },
+            { name: 'Rasyonel Denklemler', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Kesirlerde Hız Kavramı', difficulty: 2, estimatedMinutes: 45, isTyt: true }
+          ]
+        },
+        {
+          name: 'Oran-Orantı',
+          description: 'Oranın tanımı, doğru ve ters orantı ilişkileri',
+          topics: [
+            { name: 'Oran Kavramı', difficulty: 1, estimatedMinutes: 35, isTyt: true },
+            { name: 'Orantı Özellikleri', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Doğru Orantı', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Ters Orantı', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Orta Orantı ve Uygulamaları', difficulty: 3, estimatedMinutes: 55, isTyt: true }
+          ]
+        },
+        {
+          name: 'Yüzde Problemleri',
+          description: 'Yüzde hesapları, artış-azalış, kar-zarar, faiz problemleri',
+          topics: [
+            { name: 'Yüzde Kavramı ve Hesaplamalar', difficulty: 1, estimatedMinutes: 40, isTyt: true },
+            { name: 'Yüzdeli Problemler', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Artış-Azalış Problemleri', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Kar-Zarar Problemleri', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Faiz Problemleri', difficulty: 3, estimatedMinutes: 60, isTyt: true }
+          ]
+        },
+        {
+          name: 'İşçi-Havuz-Akış Problemleri',
+          description: 'Birlikte çalışma, havuz doldurma, akış hızı problemleri',
+          topics: [
+            { name: 'Birlikte Çalışma Problemleri', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Havuz Doldurma Problemleri', difficulty: 3, estimatedMinutes: 55, isTyt: true },
+            { name: 'Akış Hızı Problemleri', difficulty: 3, estimatedMinutes: 60, isTyt: true }
+          ]
+        },
+        {
+          name: 'Kümeler',
+          description: 'Kümelerin tanımı, gösterim yöntemleri, işlemleri',
+          topics: [
+            { name: 'Küme Tanımı ve Gösterim', difficulty: 1, estimatedMinutes: 40, isTyt: true },
+            { name: 'Küme Türleri (Boş, Evrensel, Sonlu, Sonsuz)', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Kümelerde Temel İşlemler (Birleşim, Kesişim)', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Kümelerde Tamamlayıcı ve Fark', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Venn Diyagramları', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'De Morgan Kuralları', difficulty: 3, estimatedMinutes: 40, isTyt: true }
+          ]
+        },
+        {
+          name: 'Fonksiyonlar',
+          description: 'Fonksiyon tanımı, tanım kümesi, değer kümesi, işlemleri',
+          topics: [
+            { name: 'Fonksiyon Tanımı ve Gösterim', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Tanım Kümesi, Değer Kümesi, Görüntü Kümesi', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Bire-Bir ve Örten Fonksiyonlar', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Ters Fonksiyon ', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Fonksiyonlarda İşlemler', difficulty: 3, estimatedMinutes: 55, isTyt: true }
+          ]
+        },
+        {
+          name: 'Polinomlar',
+          description: 'Polinom tanımı, dereceyi belirleme, işlemler, bölme',
+          topics: [
+            { name: 'Polinom Tanımı', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Polinomda Dereceyi Belirleme', difficulty: 2, estimatedMinutes: 40, isTyt: true },
+            { name: 'Polinomların Değerini Bulma', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Polinomlar Üzerinde İşlemler', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Polinom Bölmesi', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Horner Yöntemi', difficulty: 3, estimatedMinutes: 50, isTyt: true }
+          ]
+        },
+        {
+          name: 'Permütasyon ve Kombinasyon',
+          description: 'saymanın temel ilkeleri, permütasyon, kombinasyon',
+          topics: [
+            { name: 'Saymanın Temel İlkeleri', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Faktöriyel (n!)', difficulty: 2, estimatedMinutes: 40, isTyt: true },
+            { name: 'Permütasyon (Sıralı Seçim)', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Kombinasyon (Sırasız Seçim)', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Binom Katsayıları', difficulty: 3, estimatedMinutes: 50, isTyt: true }
+          ]
+        },
+        {
+          name: 'Olasılık',
+          description: 'Olasılık tanımı, basit geometrik olasılık, koşullu olasılık',
+          topics: [
+            { name: 'Deney, Örnek Uzayı, Olay Tanımları', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Olasılık Tanımı', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Basit Olasılık Problemleri', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Geometrik Olasılık', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Koşullu Olasılık', difficulty: 4, estimatedMinutes: 70, isTyt: true }
+          ]
+        },
+        {
+          name: 'İstatistik',
+          description: 'Merkezi eğilim ölçüleri, dağılım ölçüleri, standart sapma',
+          topics: [
+            { name: 'Frekans Tablosu ve Grafikleri', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Aritmetik Ortalama', difficulty: 1, estimatedMinutes: 40, isTyt: true },
+            { name: 'Medyan ve Mod', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Ranj (Aralık)', difficulty: 1, estimatedMinutes: 35, isTyt: true },
+            { name: 'Standart Sapma', difficulty: 3, estimatedMinutes: 65, isTyt: true },
+            { name: 'Varyans', difficulty: 3, estimatedMinutes: 55, isTyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'TYT Türkçe',
+      slug: 'tyt-turkce',
+      description: 'Temel Yeterlilik Testi - Türkçe (Okuma ve Yazma Becerisi)',
+      exams: ['tyt'],
+      gradeLevel: 9,
+      units: [
+        {
+          name: 'Paragraf Analizi ve Okuma Becerisi',
+          description: 'Tema, ana fikir, yardımcı fikirler, ima edilen anlam',
+          topics: [
+            { name: 'Konunun ve Temanın Belirlenmesi', difficulty: 1, estimatedMinutes: 50, isTyt: true },
+            { name: 'Ana Fikir ve Yardımcı Fikirler', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Anlatıcı Bakış Açısı', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Metnin Türü ve Özellikleri', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Ima Edilen Anlamı Çıkarma', difficulty: 3, estimatedMinutes: 60, isTyt: true }
+          ]
+        },
+        {
+          name: 'Anlatım Bozuklukları ve Yazım',
+          description: 'Cümleleme hataları, mantık hataları, yazım kuralları',
+          topics: [
+            { name: 'Cümleleme Hataları', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Özne-Yüklem Uyumu Hataları', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Mantık Hataları (Anakronizm, Çelişki)', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Yazım Kuralları', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Noktalama İşaretleri', difficulty: 2, estimatedMinutes: 45, isTyt: true }
+          ]
+        },
+        {
+          name: 'Sözcük ve Semantik',
+          description: 'Kelime anlamları, mecazi anlamlar, sinonimleri, antonimleri',
+          topics: [
+            { name: 'Sözcüklerin Anlamları (Sözlük Anlamı)', difficulty: 1, estimatedMinutes: 40, isTyt: true },
+            { name: 'Mecazi Anlam (Kinaye, Metafor, Mecaz)', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'Eş Anlamlı Sözcükler (Sinonim)', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Zıt Anlamlı Sözcükler (Antonim)', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Sözcüklerin Bağlamda Anlamı', difficulty: 2, estimatedMinutes: 55, isTyt: true }
+          ]
+        },
+        {
+          name: 'Edebî Sanatlar',
+          description: 'Benzetme, abartı, kişileştirme, çelişki, mizah vb.',
+          topics: [
+            { name: 'Benzetme (Simile)', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Teşbih', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Abartı (Hiperbol)', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Kişileştirme (Prosopope)', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Çelişki (Paradoks)', difficulty: 3, estimatedMinutes: 55, isTyt: true },
+            { name: 'İronik Kullanımlar (Mizah, Yergi)', difficulty: 3, estimatedMinutes: 60, isTyt: true }
+          ]
+        },
+        {
+          name: 'Atasözü ve Deyimler',
+          description: 'Mecazi biriktirilmiş anlamdaki söz grupları',
+          topics: [
+            { name: 'Atasözü Tanımı ve Özellikleri', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Deyim Tanımı ve Özellikleri', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Ortak Atasözleri ve Deyimler', difficulty: 2, estimatedMinutes: 60, isTyt: true },
+            { name: 'Atasözü-Deyim Farkları', difficulty: 2, estimatedMinutes: 50, isTyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'TYT Sosyal Bilgiler',
+      slug: 'tyt-sosyal-bilgiler',
+      description: 'Temel Yeterlilik Testi - Coğrafya, Tarih, Felsefe, Din Kültürü',
+      exams: ['tyt'],
+      gradeLevel: 9,
+      units: [
+        {
+          name: 'Türkçe',
+          description: 'Osmanlı İmparatorluğu Döneminden Günümüze',
+          topics: [
+            { name: 'Osmanlı İmparatorluğunun Kuruluşu', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Osmanlı İmparatorluğunun Yükselişi', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Tanzimat ve Reform Dönemleri', difficulty: 3, estimatedMinutes: 60, isTyt: true },
+            { name: 'I. Dünya Savaşı ve Cumhuriyet Kuruluşu', difficulty: 3, estimatedMinutes: 65, isTyt: true }
+          ]
+        },
+        {
+          name: 'Türkiye\'nin Coğrafi Özellikleri',
+          description: 'Konumu, sınırları, yer şekilleri, iklim bölgeleri',
+          topics: [
+            { name: 'Türkiye\'nin Konumu ve Sınırları', difficulty: 1, estimatedMinutes: 40, isTyt: true },
+            { name: 'Anadolu\'nun Bölge Özelikleri', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'İklim Bölgeleri ve Etkiler', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Doğal Kaynaklar ve Ekonomi', difficulty: 2, estimatedMinutes: 55, isTyt: true }
+          ]
+        },
+        {
+          name: 'Dünya Tarihi',
+          description: 'Antik medeniyetler, orta çağ, yeni çağ',
+          topics: [
+            { name: 'Antik Dönem Medeniyetleri', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'İslam Medeniyeti', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Avrupa\'nın Yükselişi ve Sanayileşme', difficulty: 3, estimatedMinutes: 60, isTyt: true }
+          ]
+        },
+        {
+          name: 'Din Kültürü ve Ahlak Bilgisi',
+          description: 'İslamiyet, kutsal metinler, ahlaki ilkeler',
+          topics: [
+            { name: 'İslam Dininin Temel Kaynakları', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'İbadetler (Namaz, Oruç, Hacı)', difficulty: 2, estimatedMinutes: 55, isTyt: true }
+          ]
+        },
+        {
+          name: 'Felsefe',
+          description: 'Metafizik, epistemoloji, etik temelleri',
+          topics: [
+            { name: 'Felsefenin Tanımı ve Dalları', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Varlık Bilgisi (Ontoloji)', difficulty: 3, estimatedMinutes: 60, isTyt: true}
+          ]
+        }
+      ]
+    },
+    {
+      name: 'TYT Fen Bilimleri',
+      slug: 'tyt-fen-bilimleri',
+      description: 'Temel Yeterlilik Testi - Fizik, Kimya, Biyoloji',
+      exams: ['tyt'],
+      gradeLevel: 9,
+      units: [
+        {
+          name: 'Harekete (Kinematik)',
+          description: 'Hız, hızlanma, hareket denklemleri',
+          topics: [
+            { name: 'Hız Kavramı', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Hızlanma Kavramı', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Doğrusal Hareket Denklemleri', difficulty: 3, estimatedMinutes: 65, isTyt: true }
+          ]
+        },
+        {
+          name: 'Kuvvet ve Hareket (Dinamik)',
+          description: 'Newton\'un yasaları, düşen cisimleri, basit fizyoloji',
+          topics: [
+            { name: 'Newton\'un Birinci Yasası (Eylemsizlik)', difficulty: 2, estimatedMinutes: 45, isTyt: true },
+            { name: 'Newton\'un İkinci Yasası (F=ma)', difficulty: 3, estimatedMinutes: 65, isTyt: true },
+            { name: 'Newton\'un Üçüncü Yasası', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Yerçekimi ve Ağırlık', difficulty: 2, estimatedMinutes: 50, isTyt: true }
+          ]
+        },
+        { 
+          name: 'Elektromanyetizmanın Temeleri',
+          description: 'Elektrik yükü, elektrik alan, akım, devre',
+          topics: [
+            { name: 'Elektrik Yükü ve Coulomb Yasası', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Elektrik Potansiyeli ve Gerilim', difficulty: 3, estimatedMinutes: 60, isTyt: true},
+            { name: 'Elektrik Akımı', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Ohm Yasası ve Elektrik Devresi', difficulty: 2, estimatedMinutes: 60, isTyt: true }
+          ]
+        },
+        {
+          name: 'Maddenin Yapısı',
+          description: 'Atom, periyodik tabel, bağ çeşitleri',
+          topics: [
+            { name: 'Atom Yapısı ve Kuantum Sayıları', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Periyodik Tabel ve Clement Grupları', difficulty: 2, estimatedMinutes: 60, isTyt: true },
+            { name: 'Kimyasal Bağlar', difficulty: 3, estimatedMinutes: 70, isTyt: true },
+            { name: 'Moleküller ve Formüller', difficulty: 2, estimatedMinutes: 50, isTyt: true }
+          ]
+        },
+        {
+          name: 'Biyolojinin Temelleri',
+          description: 'Hücre, organizmalar, besin zinciri',
+          topics: [
+            { name: 'Hücre Tanımı ve Organelleri', difficulty: 2, estimatedMinutes: 60, isTyt: true },
+            { name: 'Prokaryotik vs Ökaryotik Hücreler', difficulty: 2, estimatedMinutes: 50, isTyt: true },
+            { name: 'Canlıların Sınıflandırılması', difficulty: 2, estimatedMinutes: 55, isTyt: true },
+            { name: 'Besin Zinciriyle Enerji Akışı', difficulty: 2, estimatedMinutes: 50, isTyt: true }
+          ]
+        }
+      ]
+    },
+
+    // ===== AYT DERSLERI (Alan Yeterlilik Testi) =====
+    {
+      name: 'AYT Matematik',
+      slug: 'ayt-matematik',
+      description: 'Alan Yeterlilik Testi - Matematik (11-12. sınıf müfredatı)',
+      exams: ['ayt'],
+      gradeLevel: 11,
+      units: [
+        {
+          name: 'Türev ve Uygulamaları',
+          description: 'Limitle türev tanımı, türev kuralları, ekstremum',
+          topics: [
+            { name: 'Limit ve Sürekliliğin Tanımı', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Türevin Limitle Tanımı', difficulty: 4, estimatedMinutes: 70, isAyt: true },
+            { name: 'Türev Alma Kuralları', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Zincir Kuralı ve Parametrik Türev', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Türevin Geometrik Anlamı', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Artan-Azalan Aralıkları', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Maksimum-Minimum Noktaları', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Bükeylik ve Dönüm Noktaları', difficulty: 4, estimatedMinutes: 70, isAyt: true }
+          ]
+        },
+        {
+          name: 'İntegral ve Uygulamaları',
+          description: 'Belirsiz integral, tanımlı integral, alan ve hacim',
+          topics: [
+            { name: 'Belirsiz İndernal Tanımı', difficulty: 4, estimatedMinutes: 70, isAyt: true },
+            { name: 'İntegral Kuralları', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Parçalı İntegrasyon (Integration by Parts)', difficulty: 5, estimatedMinutes: 85, isAyt: true },
+            { name: 'Tanımlı İnegral (Riemann\'ın Tanımı)', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Eğri Altında Alan Hesabı', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Hacim Hesapları', difficulty: 5, estimatedMinutes: 85, isAyt: true }
+          ]
+        },
+        {
+          name: 'Trigonometri ve Trigonometrik Fonksiyonlar',
+          description: 'Açı birimleri, trigonometrik fonksiyonlar, kimlikler',
+          topics: [
+            { name: 'Açı Ölçü Birimleri (Derece, Radyan)', difficulty: 2, estimatedMinutes: 45, isAyt: true },
+            { name: 'Trigonometrik Fonksiyonlar (sin, cos, tan, cot)', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Trigonometrik Özdeşlikler', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Toplam-Fark Formülleri', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'İkiye Katlama Formülleri', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Trigonometrik Denklemler', difficulty: 4, estimatedMinutes: 80, isAyt: true }
+          ]
+        },
+        {
+          name: 'Logaritma ve Üstel Fonksiyonlar',
+          description: 'Logaritmanın tanımı, özellikleri, üstel ve logaritmik denklemler',
+          topics: [
+            { name: 'Üstel Fonksiyon', difficulty: 3, estimatedMinutes: 55, isAyt: true },
+            { name: 'e Sayısı ve Doğal Logaritma', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Logaritmanın Tanımı', difficulty: 3, estimatedMinutes: 55, isAyt: true },
+            { name: 'Logaritma Özellikleri', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Üstel Denklemler', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Logaritmik Denklemler', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Kompleks Sayılar',
+          description: 'i sayısı, kompleks sayıların işlemleri, De Moivre teoremleri',
+          topics: [
+            { name: 'İ Sayısı ve Kompleks Sayılar', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Kompleks Sayılarda İşlemler', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Kompleks Sayıların Eşlenik ve Modülü', difficulty: 3, estimatedMinutes: 55, isAyt: true },
+            { name: 'Kompleks Sayılar Düzlemi (Argand)', difficulty: 3, estimatedMinutes: 60, isAyt: true }
+          ]
+        },
+        {
+          name: 'Cebir ve Denklemler',
+          description: 'Polinom denklemleri, ikinci dereceden denklemler, sistem çözümleri',
+          topics: [
+            { name: 'İkinci Dereceden Bir Bilinmeyenli Denklemler', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Vieta\'nın Formülleri', difficulty: 3, estimatedMinutes: 55, isAyt: true },
+            { name: 'Polinom Denklemleri', difficulty: 4, estimatedMinutes: 70, isAyt: true },
+            { name: 'Köklerin Bulunması (Kardano, vb.)', difficulty: 5, estimatedMinutes: 90, isAyt: true }
+          ]
+        },
+        {
+          name: 'Matriks ve Determinantlar',
+          description: 'Matris işlemleri, determinant, ters matris',
+          topics: [
+            { name: 'Matris Tanımı ve Gösterim', difficulty: 2, estimatedMinutes: 45, isAyt: true },
+            { name: 'Matrislerde İşlemler', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Determinant Hesabı', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Ters Matris (Inverse)', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Doğrusal Denklem Sistemlerini Çözme (Cramer)', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'AYT Fizik',
+      slug: 'ayt-fizik',
+      description: 'Alan Yeterlilik Testi - Fizik (11-12. sınıf müfredatı)',
+      exams: ['ayt'],
+      gradeLevel: 11,
+      units: [
+        {
+          name: 'Elektromanyetizmanın İleri Konuları',
+          description: 'Manyetik alan, elektromanyetik indüksiyon, enerji',
+          topics: [
+            { name: 'Manyetik Alan ve Manyetik Kuvvet', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Amper Yasası', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Faraday\'ın İndüksiyon Yasası', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Lenz Yasası', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Transformatörler', difficulty: 3, estimatedMinutes: 55, isAyt: true },
+            { name: 'Elektromanyetik Dalgalar', difficulty: 4, estimatedMinutes: 70, isAyt: true }
+          ]
+        },
+        {
+          name: 'Optik (Geometrik ve Fiziksel)',
+          description: 'Işığın yayılması, yansıma, kırılma, mercekler',
+          topics: [
+            { name: 'Işığın Yayılma Hızı ve Kırılma İndeksi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Snell Yasası', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Toplam İç Yansıma', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Mercekler ve Görüntü Oluşumu', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Lens Denklemi', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Girişim (Interference)', difficulty: 4, estimatedMinutes: 70, isAyt: true },
+            { name: 'Kırınım (Diffraction)', difficulty: 4, estimatedMinutes: 70, isAyt: true }
+          ]
+        },
+        {
+          name: 'Modern Fizik (Atomik ve Nükleer)',
+          description: 'Atom modelleri, kuantum teorisi, nükleer fizyoloji',
+          topics: [
+            { name: 'Rutherford ve Bohr\'un Atom Modelleri', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Fotoelektrik Olay', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Compton Etkisi', difficulty: 4, estimatedMinutes: 70, isAyt: true },
+            { name: 'Heisenberg Belirsizlik İlkesi', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Schrödinger Dalga Denklemi', difficulty: 5, estimatedMinutes: 85, isAyt: true },
+            { name: 'Nükleer Bozunma ve Radyoaktivite', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Nükleer Enerji (Fission ve Fusion)', difficulty: 3, estimatedMinutes: 60, isAyt: true }
+          ]
+        },
+        {
+          name: 'Termodinamik',
+          description: 'Sıcaklık, enerji, entropi, sistemler',
+          topics: [
+            { name: 'Sıcaklık ve İç Enerji', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Termodinamiğin 0. Yasası', difficulty: 2, estimatedMinutes: 45, isAyt: true },
+            { name: 'Termodinamiğin 1. Yasası (Enerji Korunumu)', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Isıt Çeşitleri ve Kalorimeteri', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Termodinamiğin 2. Yasası (Entropi)', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Carnot Döngüsü', difficulty: 4, estimatedMinutes: 75, isAyt: true }
+          ]
+        },
+        {
+          name: 'Salınımlar ve Dalgalar',
+          description: 'Basit harmonik hareket, mekanik dalgalar, sesin örnekleri',
+          topics: [
+            { name: 'Basit Harmonik Hareket (BHH)', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Yay Sistemi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Duvarların Dönüşümlü Hareketi', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Mekanik Dalgalar', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Sesin Hızı ve Frekansı', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Doppler Etkisi', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Akustik Rezonans', difficulty: 3, estimatedMinutes: 60, isAyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'AYT Kimya',
+      slug: 'ayt-kimya',
+      description: 'Alan Yeterlilik Testi - Kimya (11-12. sınıf müfredatı)',
+      exams: ['ayt'],
+      gradeLevel: 11,
+      units: [
+        {
+          name: 'Organik Kimya Temelleri',
+          description: 'Karbon bileşikleri, alkali, alken, alkin, aromatik',
+          topics: [
+            { name: 'Karbon Bileşikleriyle Tanışma', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Alkanlar (Doymuş Hidrokarbürler)', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Alkenler (İki Bağ)', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Alkinler (Üç bağ)', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Aromatik Bileşikler (Benzen)', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Alkol ve Eterle', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Aldehitler ve Ketonlar', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Karboksilik Asitler', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'İyonik Denge ve Asit-Baz',
+          description: 'Asitlik, bazlık, pH, tampon çözeltileri',
+          topics: [
+            { name: 'Asit-Baz Tanımları (Arrhenius, Brønsted-Lowry)', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Su İyonizasyonu', difficulty: 2, estimatedMinutes: 45, isAyt: true },
+            { name: 'pH ve pOH Kavramları', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Ka ve Kb Sabitleri', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Zayıf Asit ve Bazlar', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Tampon Sosyetesi', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Titrasyonlar', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Redoks Reaksiyonları',
+          description: 'Oksidasyon durumları, yarı reaksiyonlar, galvanik hücreler',
+          topics: [
+            { name: 'Oksidasyon Durumları', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Redoks Reaksiyonlarında Tanımlar', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Redoks Reaksiyonlarındandenkleştirme (Yarı Reaksiyon)', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Galvanik Hücreler (Piller)', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Elektroliz', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Standart Elektrot Potansiyeli', difficulty: 4, estimatedMinutes: 75, isAyt: true }
+          ]
+        },
+        {
+          name: 'Kimyasal Kinetik ve Denge',
+          description: 'Reaksiyon hızı, aktivasyon enerjisi, denge sabiti',
+          topics: [
+            { name: 'Reaksiyon Hızları', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Reaksiyon Mertebeleri', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Aktivasyon Enerjisi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Kimyasal Denge', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Denge Sabiti (K)', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Le Chatelier\'in İlkesi', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Termodinamik ve Entalpi',
+          description: 'Sistem, çevre, enerji değişimleri, entalpi',
+          topics: [
+            { name: 'Sistem ve Çevre Tanımları', difficulty: 1, estimatedMinutes: 40, isAyt: true },
+            { name: 'Enerji Korunumu (1. Yasa)', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Entalpi Kavramı', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Reaksiyon Entalpileri', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Hess Yasası', difficulty: 3, estimatedMinutes: 60, isAyt: true },
+            { name: 'Entropi', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Gibbs Serbest Enerjisi', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'AYT Biyoloji',
+      slug: 'ayt-biyoloji',
+      description: 'Alan Yeterlilik Testi - Biyoloji (11-12. sınıf müfredatı)',
+      exams: ['ayt'],
+      gradeLevel: 12,
+      units: [
+        {
+          name: 'Genetik ve Kalıtım',
+          description: 'DNA, mitoz, mayoz, gen, allel, genetik hastalıklar',
+          topics: [
+            { name: 'DNA Yapısı ve Replikasyonu', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Gen Ekspresyonu (Transkripsyon, Translasyon)', difficulty: 4, estimatedMinutes: 75, isAyt: true },
+            { name: 'Mitoz Bölünme', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Mayoz Bölünme', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Mendel Yasaları', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Bağlantılı Genler ve Çaprazlama', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Genetik Hastalıklar ve Mutasyonlar', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Evrim',
+          description: 'Darwin\'in teorisi, uyum, doğal seçilim, embriyoloji',
+          topics: [
+            { name: 'Evrim Kanıtları (Paleontoloji, Anatomi)', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Darwin\'in Doğal Seçilim Teorisi', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Popülasyon Genetiği ve Alel Frekansları', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Çeşitlilik Kaynakları', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Speciation (Türleşme)', difficulty: 3, estimatedMinutes: 60, isAyt: true }
+          ]
+        },
+        {
+          name: 'Hücre ve Fizyoloji',
+          description: 'Hücre organelleri, enzimler, gömleler, fotosentez, solunum',
+          topics: [
+            { name: 'Hücre Zarı ve Geçirgenlik', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Osmoz ve Difüzyon', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Aktif Taşıma', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Enzimler ve Kataliz', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Fotosentez Prosesi', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Hücresel Solunum (Glikoliz, Krebs, ETZ)', difficulty: 4, estimatedMinutes: 80, isAyt: true },
+            { name: 'ATP ve Enerji Sistemleri', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Beden Sistemi ve Homeostat',
+          description: 'Sinir, damar dolaşım, endokrin, bağışıklık sistemleri',
+          topics: [
+            { name: 'Sinir Hücresi (Nöron) ve İmpuls Taşınması', difficulty: 3, estimatedMinutes: 70, isAyt: true },
+            { name: 'Sinaps ve Nörotransmitterler', difficulty: 3, estimatedMinutes: 65, isAyt: true },
+            { name: 'Merkezi ve Periferik Sinir Sistemleri', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Kalp ve Kan Dolaşımı', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Kan Hücreleri ve Kanın Fonksiyonları', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Solunum Sistemi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Endokrin Sistem ve Hormonlar', difficulty: 2, estimatedMinutes: 60, isAyt: true }
+          ]
+        },
+        {
+          name: 'Ekosistem ve Ekoloji',
+          description: 'Popülasyonlar, topluluklar, ekosistem, enerji akışı',
+          topics: [
+            { name: 'Popülasyon Dinamiği', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Besin Zinciri ve Enerji Akışı', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Nutrient Döngüleri (Karbon, Azot, Su)', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Biyolojik Çeşitlilik', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'İnsan İçin Çevre ve Koruması', difficulty: 2, estimatedMinutes: 55, isAyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'AYT Tarih',
+      slug: 'ayt-tarih',
+      description: 'Alan Yeterlilik Testi - Tarih (11-12. sınıf müfredatı)',
+      exams: ['ayt'],
+      gradeLevel: 11,
+      units: [
+        {
+          name: 'Osmanlı İmparatorluğu (Genişleme ve Reform)',
+          description: 'Kanuni Sultan Süleyman, Tanzimat dönemi',
+          topics: [
+            { name: 'Kanuni Döneminde Osmanlı\'nın Zirve Zamanı', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: '17. ve 18. Yüzyılda Osmanlı\'nın Gerilemesi', difficulty: 2, estimatedMinutes: 60, isAyt: true }
+          ]
+        },
+        {
+          name: 'Tanzimat ve Modernleşme',
+          description: '1839-1876 dönemi reformları',
+          topics: [
+            { name: 'Tanzimat Fermanı ve İçeriği', difficulty: 2, estimatedMinutes: 55, isAyt: true },
+            { name: 'Tarihî Toplum Reyan\'ı', difficulty: 3, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Cumhuriyet Kuruluşu ve İlk Yıllar',
+          description: 'Atatürk reformları, yeni devlet yapısı',
+          topics: [
+            { name: 'Kurtuluş Savaşı ve Lozan Antlaşması', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Atatürk Reformları', difficulty: 2, estimatedMinutes: 65, isAyt: true },
+            { name: 'Ekonomik ve Sosyal Dönüşümler', difficulty: 2, estimatedMinutes: 60, isAyt: true }
+          ]
+        },
+        {
+          name: 'Dünya Tarihi (20. Yüzyıl)',
+          description: 'Savaşlar, devrimler, soğuk savaş',
+          topics: [
+            { name: 'I. Dünya Savaşı ve Sonrası', difficulty: 2, estimatedMinutes: 65, isAyt: true },
+            { name: 'II. Dünya Savaşı', difficulty: 2, estimatedMinutes: 65, isAyt: true },
+            { name: 'Soğuk Savaş Dönemi', difficulty: 2, estimatedMinutes: 60, isAyt: true }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'AYT Coğrafya',
+      slug: 'ayt-cografi',
+      description: 'Alan Yeterlilik Testi - Coğrafya (11-12. sınıf müfredatı)',
+      exams: ['ayt'],
+      gradeLevel: 11,
+      units: [
+        {
+          name: 'İnsana-Çevre İlişkisi',
+          description: 'Doğal kaynaklar, çevre problemleri, kalkınma',
+          topics: [
+            { name: 'Doğal Kaynaklar ve Yönetimi', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Çevre Problemleri (Kirliliği, İklim Değişikliği)', difficulty: 2, estimatedMinutes: 65, isAyt: true }
+          ]
+        },
+        {
+          name: 'Türkiye\'nin Bölgeleri ve Özellikleri',
+          description: 'Coğrafik bölgeler, ekonomi, nüfus dağılımı',
+          topics: [
+            { name: 'Marmara Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Ege Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Akdeniz Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Karadeniz Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'İç Anadolu Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Doğu Anadolu Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true },
+            { name: 'Güneydoğu Anadolu Bölgesi', difficulty: 2, estimatedMinutes: 50, isAyt: true }
+          ]
+        },
+        {
+          name: 'Dünya Coğrafyası',
+          description: 'Küresel sistemler, coğrafi bölgeler, gelişen ülkeler',
+          topics: [
+            { name: 'Dünya Nüfusu ve Göçler', difficulty: 2, estimatedMinutes: 60, isAyt: true },
+            { name: 'Gelişmiş ve Gelişmekte Olan Ülkeler', difficulty: 2, estimatedMinutes: 60, isAyt: true }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+// JSON'u güzel formatladı ve dosyaya yaz
+const outputPath = path.join(__dirname, '..', 'curriculum-tyt-ayt-full.json');
+fs.writeFileSync(outputPath, JSON.stringify(curriculum, null, 2), 'utf-8');
+
+console.log(`✅ Müfredat verileri oluşturuldu!`);
+console.log(`📊 İstatistikler:`);
+
+let totalSubjects = curriculum.subjects.length;
+let totalUnits = 0;
+let totalTopics = 0;
+
+curriculum.subjects.forEach(subject => {
+  subject.units.forEach(unit => {
+    totalUnits++;
+    totalTopics += unit.topics.length;
+  });
+});
+
+console.log(`   - Dersler: ${totalSubjects}`);
+console.log(`   - Üniteler: ${totalUnits}`);
+console.log(`   - Konular: ${totalTopics}`);
+console.log(`   - Toplam tahmini çalışma saati: ~${(totalTopics * 55 / 60).toFixed(0)} saat`);
+console.log(`\n📁 Dosya: ${outputPath}`);
+console.log(`\n💡 API'ye yüklemek için çalıştır:`);
+console.log(`   curl -X POST http://localhost:3000/api/admin/curriculum-import \\`);
+console.log(`     -H "Content-Type: application/json" \\`);
+console.log(`     -d @curriculum-tyt-ayt-full.json`);

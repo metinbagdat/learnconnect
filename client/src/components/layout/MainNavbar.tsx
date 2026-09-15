@@ -1,7 +1,8 @@
 import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
-import { Search, Menu, X, Home, BookOpen, GraduationCap, NotebookPen, Users, User, Target, BookMarked } from 'lucide-react';
+import { Search, Menu, X, Home, BookOpen, GraduationCap, NotebookPen, Users, User, Award, Crown, LayoutGrid } from 'lucide-react';
 import { useState } from 'react';
+import GamificationBar from '@/components/gamification/GamificationBar';
 
 export default function MainNavbar() {
   const [location, setLocation] = useLocation();
@@ -9,15 +10,16 @@ export default function MainNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Plan: egitim.today | Dashboard | Öğrenme Yolları | Kurslar | Defterim | Topluluk | [Ara] [Profil]
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: Home },
-    { path: '/tyt-dashboard', label: 'TYT', icon: BookOpen },
-    { path: '/ayt-dashboard', label: 'AYT', icon: BookMarked },
-    { path: '/yks-dashboard', label: 'YKS', icon: Target },
+    { path: '/panel/ogrenci', label: 'Öğrenci paneli', icon: LayoutGrid },
+    { path: '/basarilar', label: 'Başarılar', icon: Award },
     { path: '/paths', label: 'Öğrenme Yolları', icon: BookOpen },
     { path: '/courses', label: 'Kurslar', icon: GraduationCap },
     { path: '/notebook', label: 'Defterim', icon: NotebookPen },
     { path: '/community', label: 'Topluluk', icon: Users },
+    { path: '/abonelik', label: 'Abonelik', icon: Crown },
   ];
 
   // Add teacher link if user is teacher or admin
@@ -33,6 +35,7 @@ export default function MainNavbar() {
 
   return (
     <>
+      <GamificationBar />
       {/* Desktop Navbar */}
       <nav className="hidden md:flex bg-white border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8">
@@ -83,9 +86,12 @@ export default function MainNavbar() {
                     <p className="text-sm font-medium text-gray-900">{user.displayName || user.username}</p>
                     <p className="text-xs text-gray-500">{user.profile?.grade || 'Öğrenci'}</p>
                   </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                  <Link
+                    href="/profile"
+                    className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold hover:ring-2 hover:ring-blue-300 transition-all"
+                  >
                     {(user.displayName || user.username)?.charAt(0).toUpperCase()}
-                  </div>
+                  </Link>
                   <button
                     onClick={logout}
                     className="px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"

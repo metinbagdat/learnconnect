@@ -158,7 +158,11 @@ export default function AIPlanGenerator() {
   };
 
   async function saveWeeklyPlanToFirestore(planToSave: StudyPlan) {
-    const { db, auth, collections } = await import('@/lib/firebase');
+    const { db, auth, collections, isFirebaseConfigured } = await import('@/lib/firebase');
+    if (!isFirebaseConfigured || !db || !auth) {
+      console.warn('Firebase not configured, skipping Firestore save');
+      return;
+    }
     const { doc, setDoc } = await import('firebase/firestore');
 
     const userId = auth.currentUser?.uid;

@@ -3,3 +3,5 @@ api/errors/
 api/send-email.js
 api/ai/ayt-curriculum.js
 api/ai/learning-tree.js
+api/lib/
+api/prompts/
