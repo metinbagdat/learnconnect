@@ -2,6 +2,138 @@ import { db, collections, isFirebaseConfigured } from '../lib/firebase';
 import { collection, getDocs, doc, query, orderBy } from 'firebase/firestore';
 import type { Subject, Topic, Subtopic, CurriculumTree } from '@/types/curriculum';
 
+function normalizeSubject(id: string, data: Record<string, unknown>): Subject {
+  const title = String(data.title || data.name || id);
+  return {
+    id,
+    title,
+    description: data.description as string | undefined,
+    order: Number(data.order || 0),
+    totalTopics: data.totalTopics as number | undefined,
+    estimatedHours: data.estimatedHours as number | undefined,
+    color: data.color as string | undefined,
+    icon: data.icon as string | undefined
+  };
+}
+
+function normalizeTopic(id: string, data: Record<string, unknown>, subjectId?: string): Topic {
+  return {
+    id,
+    name: String(data.name || data.title || id),
+    title: (data.title as string | undefined) || String(data.name || id),
+    order: Number(data.order || 0),
+    estimatedTime: data.estimatedTime as number | undefined,
+    difficulty: data.difficulty as Topic['difficulty'],
+    subjectId,
+    subtopics: []
+  };
+}
+
+// TYT Müfredatını getir (alias for compatibility)
+export async function getTYTCurriculum(): Promise<Subject[]> {
+  return getTYTSubjects();
+}
+
+// TYT Subjects getir
+export async function getTYTSubjects(): Promise<Subject[]> {
+  try {
+    if (!isFirebaseConfigured || !db) {
+      return getMockSubjects();
+    }
+    const subjectsRef = collection(db, collections.tytSubjects);
+    let snapshot;
+    try {
+      const q = query(subjectsRef, orderBy('order'));
+      snapshot = await getDocs(q);
+    } catch (orderError) {
+      // Fallback when order field is missing
+      snapshot = await getDocs(subjectsRef);
+    }
+    
+    const subjects = snapshot.docs.map((docSnap) =>
+      normalizeSubject(docSnap.id, docSnap.data() as Record<string, unknown>)
+    );
+
+    if (subjects.length === 0) {
+      return getMockSubjects();
+    }
+
+    return subjects.sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error('Error fetching subjects:', error);
+    return getMockSubjects(); // Fallback
+  }
+}
+
+// Belirli bir dersin konularını getir
+export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
+  try {
+    if (!isFirebaseConfigured || !db) {
+      return getMockSubjectTopics(subjectId);
+    }
+    const topicsRef = collection(db, collections.tytSubjects, subjectId, 'topics');
+    let snapshot;
+    try {
+      const q = query(topicsRef, orderBy('order'));
+      snapshot = await getDocs(q);
+    } catch (orderError) {
+      snapshot = await getDocs(topicsRef);
+    }
+    
+    const topics = await Promise.all(
+      snapshot.docs.map(async (topicDoc) => {
+        const topicData = normalizeTopic(
+          topicDoc.id,
+          topicDoc.data() as Record<string, unknown>,
+          subjectId
+        );
+        
+        // Get subtopics
+        try {
+          const subtopicsRef = collection(
+            db, 
+            collections.tytSubjects, 
+            subjectId, 
+            'topics', 
+            topicDoc.id, 
+            'subtopics'
+          );
+          let subtopicsSnapshot;
+          try {
+            const subtopicsQ = query(subtopicsRef, orderBy('order'));
+            subtopicsSnapshot = await getDocs(subtopicsQ);
+          } catch (orderError) {
+            subtopicsSnapshot = await getDocs(subtopicsRef);
+          }
+          
+          topicData.subtopics = subtopicsSnapshot.docs
+            .map((subDoc) => {
+              const data = subDoc.data() as Record<string, unknown>;
+              return {
+                id: subDoc.id,
+                name: String(data.name || data.title || subDoc.id),
+                title: data.title as string | undefined,
+                order: Number(data.order || 0),
+                estimatedTime: data.estimatedTime as number | undefined,
+                completed: Boolean(data.completed)
+              } as Subtopic;
+            })
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+        } catch (error) {
+          topicData.subtopics = [];
+        }
+        
+        return topicData;
+      })
+    );
+    
+    return topics.sort((a, b) => (a.order || 0) - (b.order || 0));
+  } catch (error) {
+    console.error('Error fetching topics:', error);
+    return getMockSubjectTopics(subjectId);
+  }
+}
+
 const mockCurriculumTree: CurriculumTree[] = [
   {
     id: 'mathematics',
@@ -20,8 +152,8 @@ const mockCurriculumTree: CurriculumTree[] = [
         estimatedTime: 60,
         difficulty: 'medium',
         subtopics: [
-          { id: 'equations', name: 'Denklemler', order: 1 },
-          { id: 'inequalities', name: 'Eşitsizlikler', order: 2 }
+          { id: 'equations', name: 'Denklemler', order: 1, estimatedTime: 30 },
+          { id: 'inequalities', name: 'Eşitsizlikler', order: 2, estimatedTime: 30 }
         ]
       },
       {
@@ -31,19 +163,8 @@ const mockCurriculumTree: CurriculumTree[] = [
         estimatedTime: 60,
         difficulty: 'medium',
         subtopics: [
-          { id: 'triangles', name: 'Üçgenler', order: 1 },
-          { id: 'polygons', name: 'Çokgenler', order: 2 }
-        ]
-      },
-      {
-        id: 'problems',
-        name: 'Problemler',
-        order: 3,
-        estimatedTime: 45,
-        difficulty: 'easy',
-        subtopics: [
-          { id: 'ratio', name: 'Oran-Orantı', order: 1 },
-          { id: 'percent', name: 'Yüzde Problemleri', order: 2 }
+          { id: 'triangles', name: 'Üçgenler', order: 1, estimatedTime: 30 },
+          { id: 'circles', name: 'Çember ve Daire', order: 2, estimatedTime: 30 }
         ]
       }
     ]
@@ -59,36 +180,25 @@ const mockCurriculumTree: CurriculumTree[] = [
     icon: '📚',
     topics: [
       {
-        id: 'reading',
-        name: 'Okuma ve Anlama',
+        id: 'grammar',
+        name: 'Dil Bilgisi',
         order: 1,
         estimatedTime: 45,
-        difficulty: 'medium',
+        difficulty: 'easy',
         subtopics: [
-          { id: 'paragraph', name: 'Paragraf', order: 1 },
-          { id: 'meaning', name: 'Anlam Bilgisi', order: 2 }
+          { id: 'verbs', name: 'Fiiller', order: 1, estimatedTime: 20 },
+          { id: 'sentence', name: 'Cümle Bilgisi', order: 2, estimatedTime: 25 }
         ]
       },
       {
-        id: 'grammar',
-        name: 'Dil Bilgisi',
+        id: 'reading',
+        name: 'Paragraf',
         order: 2,
         estimatedTime: 45,
         difficulty: 'medium',
         subtopics: [
-          { id: 'spelling', name: 'Yazım Kuralları', order: 1 },
-          { id: 'punctuation', name: 'Noktalama', order: 2 }
-        ]
-      },
-      {
-        id: 'vocabulary',
-        name: 'Sözcük Bilgisi',
-        order: 3,
-        estimatedTime: 40,
-        difficulty: 'easy',
-        subtopics: [
-          { id: 'wordTypes', name: 'Sözcük Türleri', order: 1 },
-          { id: 'meaningRelations', name: 'Anlam İlişkileri', order: 2 }
+          { id: 'main-idea', name: 'Ana Düşünce', order: 1, estimatedTime: 20 },
+          { id: 'structure', name: 'Paragraf Yapısı', order: 2, estimatedTime: 25 }
         ]
       }
     ]
@@ -107,33 +217,22 @@ const mockCurriculumTree: CurriculumTree[] = [
         id: 'physics',
         name: 'Fizik',
         order: 1,
-        estimatedTime: 50,
-        difficulty: 'hard',
+        estimatedTime: 60,
+        difficulty: 'medium',
         subtopics: [
-          { id: 'motion', name: 'Hareket', order: 1 },
-          { id: 'force', name: 'Kuvvet', order: 2 }
+          { id: 'motion', name: 'Hareket', order: 1, estimatedTime: 30 },
+          { id: 'force', name: 'Kuvvet', order: 2, estimatedTime: 30 }
         ]
       },
       {
         id: 'chemistry',
         name: 'Kimya',
         order: 2,
-        estimatedTime: 50,
+        estimatedTime: 60,
         difficulty: 'medium',
         subtopics: [
-          { id: 'atoms', name: 'Atom ve Periyodik Sistem', order: 1 },
-          { id: 'reactions', name: 'Kimyasal Tepkimeler', order: 2 }
-        ]
-      },
-      {
-        id: 'biology',
-        name: 'Biyoloji',
-        order: 3,
-        estimatedTime: 45,
-        difficulty: 'medium',
-        subtopics: [
-          { id: 'cells', name: 'Hücre', order: 1 },
-          { id: 'genetics', name: 'Genetik', order: 2 }
+          { id: 'atoms', name: 'Atom ve Periyodik Sistem', order: 1, estimatedTime: 30 },
+          { id: 'bonds', name: 'Kimyasal Bağlar', order: 2, estimatedTime: 30 }
         ]
       }
     ]
@@ -152,11 +251,11 @@ const mockCurriculumTree: CurriculumTree[] = [
         id: 'history',
         name: 'Tarih',
         order: 1,
-        estimatedTime: 45,
+        estimatedTime: 50,
         difficulty: 'medium',
         subtopics: [
-          { id: 'earlyHistory', name: 'İlk Çağ', order: 1 },
-          { id: 'ottoman', name: 'Osmanlı Tarihi', order: 2 }
+          { id: 'ottoman', name: 'Osmanlı Tarihi', order: 1, estimatedTime: 25 },
+          { id: 'republic', name: 'Cumhuriyet Dönemi', order: 2, estimatedTime: 25 }
         ]
       },
       {
@@ -166,130 +265,20 @@ const mockCurriculumTree: CurriculumTree[] = [
         estimatedTime: 40,
         difficulty: 'easy',
         subtopics: [
-          { id: 'maps', name: 'Harita Bilgisi', order: 1 },
-          { id: 'climate', name: 'İklim', order: 2 }
-        ]
-      },
-      {
-        id: 'philosophy',
-        name: 'Felsefe',
-        order: 3,
-        estimatedTime: 35,
-        difficulty: 'medium',
-        subtopics: [
-          { id: 'logic', name: 'Mantık', order: 1 },
-          { id: 'thinkers', name: 'Düşünürler', order: 2 }
+          { id: 'climate', name: 'İklim', order: 1, estimatedTime: 20 },
+          { id: 'population', name: 'Nüfus', order: 2, estimatedTime: 20 }
         ]
       }
     ]
   }
 ];
 
-const getMockCurriculum = (): Subject[] => mockCurriculumTree;
-
-const getMockTopics = (subjectId: string): Topic[] => {
-  const subject = mockCurriculumTree.find((item) => item.id === subjectId);
-  return subject?.topics ?? [];
-};
-
-const normalizeSubject = (id: string, data: Partial<Subject>): Subject => ({
-  id,
-  title: data.title || (data as { name?: string }).name || id,
-  description: data.description,
-  order: data.order ?? 0,
-  totalTopics: data.totalTopics,
-  estimatedHours: data.estimatedHours,
-  color: data.color,
-  icon: data.icon
-});
-
-const normalizeTopic = (id: string, data: Partial<Topic>): Topic => ({
-  id,
-  name: data.name || data.title || id,
-  title: data.title,
-  order: data.order ?? 0,
-  estimatedTime: data.estimatedTime,
-  difficulty: data.difficulty,
-  subjectId: data.subjectId
-});
-
-const normalizeSubtopic = (id: string, data: Partial<Subtopic>): Subtopic => ({
-  id,
-  name: data.name || data.title || id,
-  title: data.title,
-  order: data.order ?? 0,
-  estimatedTime: data.estimatedTime,
-  completed: data.completed
-});
-
-// TYT Müfredatını getir (alias for compatibility)
-export async function getTYTCurriculum(): Promise<Subject[]> {
-  return getTYTSubjects();
+function getMockSubjects(): Subject[] {
+  return mockCurriculumTree.map(({ topics, ...subject }) => ({ ...subject }));
 }
 
-// TYT Subjects getir
-export async function getTYTSubjects(): Promise<Subject[]> {
-  if (!isFirebaseConfigured) {
-    return getMockCurriculum();
-  }
-
-  try {
-    const subjectsRef = collection(db, collections.tytSubjects);
-    const q = query(subjectsRef, orderBy('order'));
-    const snapshot = await getDocs(q);
-    
-    const subjects = snapshot.docs.map((doc) => normalizeSubject(doc.id, doc.data() as Partial<Subject>));
-    return subjects.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  } catch (error) {
-    console.error('Error fetching subjects:', error);
-    return getMockCurriculum(); // Fallback
-  }
-}
-
-// Belirli bir dersin konularını getir
-export async function getSubjectTopics(subjectId: string): Promise<Topic[]> {
-  if (!isFirebaseConfigured) {
-    return getMockTopics(subjectId);
-  }
-
-  try {
-    const topicsRef = collection(db, collections.tytSubjects, subjectId, 'topics');
-    const q = query(topicsRef, orderBy('order'));
-    const snapshot = await getDocs(q);
-    
-    const topics = await Promise.all(
-      snapshot.docs.map(async (doc) => {
-        const topicData = normalizeTopic(doc.id, doc.data() as Partial<Topic>);
-        
-        // Get subtopics
-        try {
-          const subtopicsRef = collection(
-            db, 
-            collections.tytSubjects, 
-            subjectId, 
-            'topics', 
-            doc.id, 
-            'subtopics'
-          );
-          const subtopicsQ = query(subtopicsRef, orderBy('order'));
-          const subtopicsSnapshot = await getDocs(subtopicsQ);
-          
-          topicData.subtopics = subtopicsSnapshot.docs
-            .map((subDoc) => normalizeSubtopic(subDoc.id, subDoc.data() as Partial<Subtopic>))
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-        } catch (error) {
-          topicData.subtopics = [];
-        }
-        
-        return topicData;
-      })
-    );
-    
-    return topics.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  } catch (error) {
-    console.error('Error fetching topics:', error);
-    return getMockTopics(subjectId);
-  }
+function getMockSubjectTopics(subjectId: string): Topic[] {
+  return mockCurriculumTree.find((subject) => subject.id === subjectId)?.topics ?? [];
 }
 
 // Müfredat ağacını getir (dersler + konular + alt konular)
@@ -300,7 +289,7 @@ export async function getCurriculumTree(): Promise<CurriculumTree[]> {
     const tree = await Promise.all(
       subjects.map(async (subject) => {
         const topics = await getSubjectTopics(subject.id);
-        
+
         return {
           ...subject,
           topics
@@ -308,7 +297,7 @@ export async function getCurriculumTree(): Promise<CurriculumTree[]> {
       })
     );
     
-    return tree;
+    return tree.length > 0 ? tree : mockCurriculumTree;
   } catch (error) {
     console.error('Error fetching curriculum tree:', error);
     return mockCurriculumTree;
@@ -322,11 +311,10 @@ export async function saveUserProgress(
   topicId: string, 
   progress: Record<string, unknown>
 ): Promise<{ success: boolean; error?: string }> {
-  if (!isFirebaseConfigured) {
-    return { success: false, error: 'Firebase yapılandırılmadı' };
-  }
-
   try {
+    if (!isFirebaseConfigured || !db) {
+      return { success: false, error: 'Firebase not configured' };
+    }
     const { setDoc } = await import('firebase/firestore');
     const progressRef = doc(db, collections.userProgress, `${userId}_${subjectId}_${topicId}`);
     

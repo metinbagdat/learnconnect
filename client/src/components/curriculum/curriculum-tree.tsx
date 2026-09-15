@@ -1,101 +1,151 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { getCurriculumTree, saveUserProgress } from '@/services/curriculumService';
 import type { CurriculumTree } from '@/types/curriculum';
 import { useAuth } from '@/hooks/use-auth';
-import { CheckCircle2, ChevronDown, ChevronRight, Circle } from 'lucide-react';
+import { useRealtimeCurriculum } from '@/hooks/use-realtime-curriculum';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronRight, Loader2, Radio } from 'lucide-react';
+
+const difficultyLabels: Record<string, string> = {
+  easy: 'Kolay',
+  medium: 'Orta',
+  hard: 'Zor'
+};
+
+const difficultyStyles: Record<string, string> = {
+  easy: 'bg-green-100 text-green-800',
+  medium: 'bg-yellow-100 text-yellow-800',
+  hard: 'bg-red-100 text-red-800'
+};
 
 export default function CurriculumTree() {
   const { user } = useAuth();
-  const [curriculum, setCurriculum] = useState<CurriculumTree[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    subjects: realtimeSubjects,
+    loading: realtimeLoading,
+    error: realtimeError
+  } = useRealtimeCurriculum('tyt');
+
+  const [fallbackCurriculum, setFallbackCurriculum] = useState<CurriculumTree[]>([]);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+  const [fallbackError, setFallbackError] = useState<string | null>(null);
   const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({});
   const [completedTopics, setCompletedTopics] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
+  const useFallback = Boolean(realtimeError) || (!realtimeLoading && realtimeSubjects.length === 0);
+  const curriculum = useFallback ? fallbackCurriculum : realtimeSubjects;
+  const loading = useFallback ? fallbackLoading || realtimeLoading : realtimeLoading;
+  const error = useFallback ? fallbackError : null;
+  const isLive = !useFallback && !realtimeLoading && realtimeSubjects.length > 0;
+
   useEffect(() => {
-    loadCurriculum();
-  }, []);
+    if (!useFallback) return;
+    loadFallbackCurriculum();
+  }, [useFallback]);
+
+  useEffect(() => {
+    if (curriculum.length > 0 && Object.keys(expandedSubjects).length === 0) {
+      setExpandedSubjects({ [curriculum[0].id]: true });
+    }
+  }, [curriculum, expandedSubjects]);
 
   useEffect(() => {
     loadUserProgress();
   }, [user]);
 
+  async function loadFallbackCurriculum() {
+    setFallbackLoading(true);
+    setFallbackError(null);
+    try {
+      const data = await getCurriculumTree();
+      setFallbackCurriculum(data);
+    } catch (loadError) {
+      console.error('Failed to load curriculum:', loadError);
+      setFallbackError('Müfredat yüklenemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setFallbackLoading(false);
+    }
+  }
+
   async function loadUserProgress() {
     if (!user?.id && !user?.username) return;
-    
+
     try {
       const { db, collections, isFirebaseConfigured } = await import('@/lib/firebase');
-      if (!isFirebaseConfigured) return;
-
+      if (!isFirebaseConfigured || !db) return;
       const { collection, query, where, getDocs } = await import('firebase/firestore');
-      
+
       const userId = String(user.id || user.username);
       const progressRef = collection(db, collections.userProgress);
       const q = query(progressRef, where('userId', '==', userId));
       const snapshot = await getDocs(q);
-      
+
       const completed = new Set<string>();
-      snapshot.forEach((doc) => {
-        const data = doc.data();
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         if (data.completed && data.topicId) {
           completed.add(`${data.subjectId}_${data.topicId}`);
         }
       });
-      
+
       setCompletedTopics(completed);
-    } catch (error) {
-      console.error('Error loading user progress:', error);
+    } catch (progressError) {
+      console.error('Error loading user progress:', progressError);
     }
   }
 
-  async function loadCurriculum() {
-    setLoading(true);
-    setError(null);
+  const stats = useMemo(() => {
+    const subjectCount = curriculum.length;
+    const topicCount = curriculum.reduce((sum, subject) => sum + (subject.topics?.length || 0), 0);
+    const subtopicCount = curriculum.reduce(
+      (sum, subject) =>
+        sum + (subject.topics?.reduce((tSum, topic) => tSum + (topic.subtopics?.length || 0), 0) || 0),
+      0
+    );
+    const totalHours = curriculum.reduce((sum, subject) => sum + (subject.estimatedHours || 0), 0);
 
-    try {
-      const data = await getCurriculumTree();
-      setCurriculum(data);
-      
-      // İlk dersi genişlet
-      if (data.length > 0) {
-        setExpandedSubjects((prev) => (Object.keys(prev).length ? prev : { [data[0].id]: true }));
-      }
-    } catch (error) {
-      console.error('Failed to load curriculum:', error);
-      setError('Müfredat yüklenemedi. Lütfen tekrar deneyin.');
-    } finally {
-      setLoading(false);
-    }
-  }
+    return {
+      subjectCount,
+      topicCount,
+      subtopicCount,
+      totalHours
+    };
+  }, [curriculum]);
 
   const toggleSubject = (subjectId: string) => {
-    setExpandedSubjects(prev => ({
+    setExpandedSubjects((prev) => ({
       ...prev,
       [subjectId]: !prev[subjectId]
     }));
   };
 
-  const toggleTopic = (subjectId: string, topicId: string) => {
-    const key = `${subjectId}_${topicId}`;
-    setExpandedTopics(prev => ({
+  const toggleTopic = (topicId: string) => {
+    setExpandedTopics((prev) => ({
       ...prev,
-      [key]: !prev[key]
+      [topicId]: !prev[topicId]
     }));
+  };
+
+  const getSubjectProgress = (subject: CurriculumTree) => {
+    const totalTopics = subject.topics?.length || 0;
+    if (totalTopics === 0) return 0;
+    const completed =
+      subject.topics?.filter((topic) => completedTopics.has(`${subject.id}_${topic.id}`)).length || 0;
+    return Math.round((completed / totalTopics) * 100);
   };
 
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-            <p className="mt-4 text-gray-600">Müfredat yükleniyor...</p>
+        <CardContent className="py-12">
+          <div className="flex items-center justify-center gap-3 text-gray-600">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Müfredat yükleniyor...</span>
           </div>
         </CardContent>
       </Card>
@@ -105,197 +155,213 @@ export default function CurriculumTree() {
   if (error) {
     return (
       <Card>
-        <CardContent className="py-10 text-center">
-          <p className="text-gray-700 mb-4">{error}</p>
-          <Button onClick={loadCurriculum}>Tekrar Dene</Button>
+        <CardContent className="py-10 text-center space-y-4">
+          <div className="flex items-center justify-center gap-2 text-red-600">
+            <AlertCircle className="h-5 w-5" />
+            <span>{error}</span>
+          </div>
+          <Button onClick={loadFallbackCurriculum} variant="outline">
+            Tekrar Dene
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
-  const subjectCount = curriculum.length;
-  const topicCount = curriculum.reduce((sum, subject) => sum + (subject.topics?.length || 0), 0);
-  const subtopicCount = curriculum.reduce(
-    (sum, subject) => sum + (subject.topics?.reduce((tSum, t) => tSum + (t.subtopics?.length || 0), 0) || 0),
-    0
-  );
-  const completedCount = curriculum.reduce(
-    (sum, subject) =>
-      sum + (subject.topics?.filter((topic) => completedTopics.has(`${subject.id}_${topic.id}`)).length || 0),
-    0
-  );
-  const overallProgress = topicCount > 0 ? Math.round((completedCount / topicCount) * 100) : 0;
-
   return (
-    <Card className="border-gray-100">
-      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <Card className="bg-white">
+      <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <CardTitle className="text-xl">TYT Müfredat Ağacı</CardTitle>
-          <CardDescription>Dersler, konular ve alt konular</CardDescription>
+          <CardDescription>Dersler, konular ve alt konuların hiyerarşisi</CardDescription>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">{subjectCount} ders</Badge>
-          <Badge variant="secondary">{topicCount} konu</Badge>
-          <Badge variant="secondary">{subtopicCount} alt konu</Badge>
+          {isLive ? (
+            <Badge variant="secondary" className="gap-1">
+              <Radio className="h-3 w-3" />
+              Canlı
+            </Badge>
+          ) : (
+            <Badge variant="outline">Demo / Cache</Badge>
+          )}
+          <Badge variant="secondary">{stats.subjectCount} ders</Badge>
+          <Badge variant="outline">{stats.topicCount} konu</Badge>
+          <Badge variant="outline">{stats.subtopicCount} alt konu</Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="mb-6 space-y-2">
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <span>Genel ilerleme</span>
-            <span>{completedCount}/{topicCount} konu</span>
-          </div>
-          <Progress value={overallProgress} />
-        </div>
-
-        {curriculum.length === 0 ? (
-          <div className="text-center py-10 text-gray-500">
-            Müfredat verisi bulunamadı.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {curriculum.map((subject) => {
-              const subjectTopicCount = subject.topics?.length || 0;
-              const subjectCompletedCount = subject.topics?.filter((topic) =>
-                completedTopics.has(`${subject.id}_${topic.id}`)
-              ).length || 0;
-              const subjectProgress = subjectTopicCount > 0
-                ? Math.round((subjectCompletedCount / subjectTopicCount) * 100)
-                : 0;
-
-              return (
-                <Card key={subject.id} className="border border-gray-200 shadow-none">
-                  <CardHeader
-                    className="cursor-pointer"
-                    onClick={() => toggleSubject(subject.id)}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{subject.icon || '📘'}</span>
-                        <div>
-                          <CardTitle className="text-base">{subject.title}</CardTitle>
-                          <CardDescription>{subject.description}</CardDescription>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">{subjectTopicCount} konu</Badge>
-                        <Badge variant="secondary">{subject.estimatedHours || 0} saat</Badge>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          {expandedSubjects[subject.id] ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="mt-3 space-y-1">
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>İlerleme</span>
-                        <span>{subjectCompletedCount}/{subjectTopicCount}</span>
-                      </div>
-                      <Progress value={subjectProgress} className="h-2" />
-                    </div>
-                  </CardHeader>
-
-                  {expandedSubjects[subject.id] && subject.topics && (
-                    <CardContent className="pt-0">
-                      <div className="space-y-4">
-                        {subject.topics.map((topic) => {
-                          const topicKey = `${subject.id}_${topic.id}`;
-                          const isCompleted = completedTopics.has(topicKey);
-                          const difficultyLabel =
-                            topic.difficulty === 'easy' ? 'Kolay' :
-                            topic.difficulty === 'medium' ? 'Orta' :
-                            topic.difficulty === 'hard' ? 'Zor' : undefined;
-
-                          return (
-                            <div key={topic.id} className="border-l-2 border-blue-100 pl-4">
-                              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0"
-                                      onClick={() => toggleTopic(subject.id, topic.id)}
-                                    >
-                                      {expandedTopics[topicKey] ? (
-                                        <ChevronDown className="h-4 w-4" />
-                                      ) : (
-                                        <ChevronRight className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                    <h4 className="font-medium text-gray-800">{topic.name || topic.title}</h4>
-                                    {difficultyLabel && (
-                                      <Badge
-                                        variant="secondary"
-                                        className={
-                                          topic.difficulty === 'easy'
-                                            ? 'bg-green-100 text-green-800'
-                                            : topic.difficulty === 'medium'
-                                            ? 'bg-yellow-100 text-yellow-800'
-                                            : 'bg-red-100 text-red-800'
-                                        }
-                                      >
-                                        {difficultyLabel}
-                                      </Badge>
-                                    )}
-                                    <Badge variant="outline">{topic.estimatedTime || 45} dk</Badge>
-                                  </div>
-                                  <div className="ml-8 text-xs text-gray-500">
-                                    {topic.subtopics?.length || 0} alt konu
-                                  </div>
-                                </div>
-
-                                <Button
-                                  onClick={() => handleTopicToggle(subject.id, topic.id)}
-                                  disabled={saving[topicKey]}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="justify-start gap-2"
-                                >
-                                  {isCompleted ? (
-                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                  ) : (
-                                    <Circle className="h-5 w-5 text-gray-400" />
-                                  )}
-                                  <span className={isCompleted ? 'text-green-700 line-through' : ''}>
-                                    {isCompleted ? 'Tamamlandı' : 'Tamamla'}
-                                  </span>
-                                </Button>
-                              </div>
-
-                              {expandedTopics[topicKey] && (
-                                <div className="ml-8 mt-3 space-y-2">
-                                  {topic.subtopics && topic.subtopics.length > 0 ? (
-                                    topic.subtopics.map((subtopic) => (
-                                      <div key={subtopic.id} className="flex items-center gap-2 text-sm text-gray-700">
-                                        <span className="text-gray-400 text-xs">›</span>
-                                        <span>{subtopic.name || subtopic.title}</span>
-                                        {subtopic.completed && (
-                                          <Badge variant="secondary">Tamamlandı</Badge>
-                                        )}
-                                      </div>
-                                    ))
-                                  ) : (
-                                    <div className="text-sm text-gray-500 italic">
-                                      Alt konu bulunmuyor
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
+      <CardContent className="space-y-4">
+        {realtimeError && useFallback && (
+          <div className="flex items-center gap-2 rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-800">
+            <AlertCircle className="h-4 w-4" />
+            <span>Firestore bağlantısı yok; mock / cache veri gösteriliyor.</span>
           </div>
         )}
+
+        {curriculum.length === 0 && (
+          <div className="rounded-lg border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500">
+            Müfredat verisi bulunamadı.
+          </div>
+        )}
+
+        {curriculum.map((subject) => {
+          const subjectProgress = getSubjectProgress(subject);
+          const subjectTopics = subject.topics || [];
+          const subtopicCount =
+            subjectTopics.reduce((sum, topic) => sum + (topic.subtopics?.length || 0), 0) || 0;
+
+          return (
+            <Card key={subject.id} className="border border-gray-200">
+              <button
+                type="button"
+                className="w-full text-left"
+                onClick={() => toggleSubject(subject.id)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{subject.icon || '📘'}</span>
+                    <div>
+                      <CardTitle className="text-base">{subject.title}</CardTitle>
+                      <CardDescription>{subject.description}</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {subject.totalTopics || subjectTopics.length} konu
+                    </Badge>
+                    <Badge variant="outline">{subject.estimatedHours || 0} saat</Badge>
+                    {expandedSubjects[subject.id] ? (
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-500" />
+                    )}
+                  </div>
+                </CardHeader>
+              </button>
+
+              {expandedSubjects[subject.id] && (
+                <CardContent className="pt-0 space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>İlerleme</span>
+                      <span>{subjectProgress}%</span>
+                    </div>
+                    <Progress value={subjectProgress} />
+                  </div>
+
+                  <div className="space-y-3">
+                    {subjectTopics.map((topic) => {
+                      const isCompleted = completedTopics.has(`${subject.id}_${topic.id}`);
+                      const subtopics = topic.subtopics || [];
+
+                      return (
+                        <div key={topic.id} className="rounded-lg border border-gray-100 p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              className="flex items-center gap-2 text-left"
+                              onClick={() => toggleTopic(topic.id)}
+                            >
+                              <span className="text-blue-600">•</span>
+                              <span className="font-medium text-gray-800">
+                                {topic.name || topic.title}
+                              </span>
+                            </button>
+                            <div className="flex items-center gap-2">
+                              {topic.difficulty && (
+                                <Badge
+                                  variant="secondary"
+                                  className={difficultyStyles[topic.difficulty] || ''}
+                                >
+                                  {difficultyLabels[topic.difficulty] || topic.difficulty}
+                                </Badge>
+                              )}
+                              <Badge variant="outline">{topic.estimatedTime || 45} dk</Badge>
+                              {expandedTopics[topic.id] ? (
+                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleTopicToggle(subject.id, topic.id)}
+                              disabled={saving[`${subject.id}_${topic.id}`]}
+                              className="gap-2"
+                            >
+                              <CheckCircle2
+                                className={`h-4 w-4 ${isCompleted ? 'text-green-600' : 'text-gray-400'}`}
+                              />
+                              <span className={isCompleted ? 'text-green-700 line-through' : ''}>
+                                {isCompleted ? 'Tamamlandı' : 'Tamamla'}
+                              </span>
+                            </Button>
+                            <Badge variant="outline">{subtopics.length} alt konu</Badge>
+                          </div>
+
+                          {expandedTopics[topic.id] && (
+                            <div className="mt-3 space-y-2">
+                              {subtopics.length > 0 ? (
+                                subtopics.map((subtopic) => (
+                                  <div key={subtopic.id} className="flex items-center gap-2 text-sm">
+                                    <span className="text-gray-400">›</span>
+                                    <span className="text-gray-700">
+                                      {subtopic.name || subtopic.title}
+                                    </span>
+                                    {subtopic.completed && (
+                                      <Badge variant="secondary" className="bg-green-100 text-green-800">
+                                        Tamamlandı
+                                      </Badge>
+                                    )}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="text-sm text-gray-500 italic">Alt konu bulunmuyor</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-600">
+                    <div className="rounded-lg border border-gray-100 p-3 text-center">
+                      <div className="text-lg font-semibold text-gray-800">{subjectTopics.length}</div>
+                      <div>Ana Konu</div>
+                    </div>
+                    <div className="rounded-lg border border-gray-100 p-3 text-center">
+                      <div className="text-lg font-semibold text-gray-800">{subtopicCount}</div>
+                      <div>Alt Konu</div>
+                    </div>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          );
+        })}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-lg border border-gray-200 p-3 text-center">
+            <div className="text-2xl font-bold text-blue-700">{stats.subjectCount}</div>
+            <div className="text-sm text-gray-600">Ders</div>
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3 text-center">
+            <div className="text-2xl font-bold text-green-700">{stats.topicCount}</div>
+            <div className="text-sm text-gray-600">Ana Konu</div>
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3 text-center">
+            <div className="text-2xl font-bold text-purple-700">{stats.subtopicCount}</div>
+            <div className="text-sm text-gray-600">Alt Konu</div>
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3 text-center">
+            <div className="text-2xl font-bold text-yellow-700">{stats.totalHours} saat</div>
+            <div className="text-sm text-gray-600">Tahmini Süre</div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -305,11 +371,11 @@ export default function CurriculumTree() {
       alert('İlerleme kaydetmek için giriş yapın');
       return;
     }
-    
+
     const key = `${subjectId}_${topicId}`;
     const isCompleted = completedTopics.has(key);
-    setSaving(prev => ({ ...prev, [key]: true }));
-    
+    setSaving((prev) => ({ ...prev, [key]: true }));
+
     try {
       const userId = String(user.id || user.username);
       const result = await saveUserProgress(userId, subjectId, topicId, {
@@ -317,12 +383,12 @@ export default function CurriculumTree() {
         completedAt: !isCompleted ? new Date().toISOString() : null,
         updatedAt: new Date().toISOString()
       });
-      
+
       if (result.success) {
         if (!isCompleted) {
-          setCompletedTopics(prev => new Set([...prev, key]));
+          setCompletedTopics((prev) => new Set([...prev, key]));
         } else {
-          setCompletedTopics(prev => {
+          setCompletedTopics((prev) => {
             const next = new Set(prev);
             next.delete(key);
             return next;
@@ -331,11 +397,11 @@ export default function CurriculumTree() {
       } else {
         alert('İlerleme kaydedilemedi: ' + (result.error || 'Bilinmeyen hata'));
       }
-    } catch (error) {
-      console.error('Error toggling topic:', error);
+    } catch (toggleError) {
+      console.error('Error toggling topic:', toggleError);
       alert('İlerleme kaydedilemedi');
     } finally {
-      setSaving(prev => ({ ...prev, [key]: false }));
+      setSaving((prev) => ({ ...prev, [key]: false }));
     }
   }
 }

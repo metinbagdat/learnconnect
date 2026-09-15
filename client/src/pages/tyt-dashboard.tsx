@@ -44,9 +44,6 @@ import { getLocalDateString } from "@/lib/date-utils";
 const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
 const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
 
-const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
-const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
-
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {
   totalStudyTime: number;
@@ -77,6 +74,7 @@ const getNext7DaysEnd = () => {
   d.setDate(d.getDate() + 6);
   return getLocalDateString(d);
 };
+
 
 export default function TytDashboard() {
   const { language, t } = useLanguage();
