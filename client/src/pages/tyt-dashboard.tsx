@@ -44,9 +44,6 @@ import { getLocalDateString } from "@/lib/date-utils";
 const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
 const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
 
-const CurriculumTree = lazy(() => import("@/components/curriculum/curriculum-tree"));
-const AIPlanGenerator = lazy(() => import("@/components/curriculum/ai-plan-generator"));
-
 // Study Stats Interface (not in shared schema yet)
 interface TytStudyStats {
   totalStudyTime: number;
